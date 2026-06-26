@@ -88,11 +88,29 @@ export async function fetchNearbyProviders(category?: ServiceCategory): Promise<
   if (!hasSupabase) {
     return category ? mockProviders.filter(p => p.category === category) : mockProviders;
   }
-  let q = supabase.from('providers').select('*').eq('online', true).order('distance_km');
-  if (category) q = q.eq('category', category);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []) as unknown as Provider[];
+  const { data, error } = await supabase.rpc('nearby_providers', {
+    lat: LOME.lat, lng: LOME.lng, cat: category ?? null, radius_km: 20,
+  });
+  if (error) {
+    // fallback to simple select if RPC fails
+    let q = supabase.from('providers').select('*').eq('online', true);
+    if (category) q = q.eq('category', category);
+    const { data: d2, error: e2 } = await q;
+    if (e2) throw e2;
+    return (d2 ?? []).map((p: any) => ({
+      id: p.id, name: p.name, category: p.category, rating: p.rating,
+      reviews: p.reviews, verified: p.verified, online: p.online,
+      missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
+      bio: p.bio, distanceKm: 0, location: LOME,
+    }));
+  }
+  return (data ?? []).map((p: any) => ({
+    id: p.id, name: p.name, category: p.category, rating: p.rating,
+    reviews: p.reviews, verified: p.verified, online: p.online,
+    missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
+    bio: p.bio, distanceKm: p.distance_km ?? 0,
+    location: { lat: p.lat, lng: p.lng },
+  }));
 }
 
 export async function fetchProvider(id: string): Promise<Provider> {
@@ -117,12 +135,21 @@ export async function createRequest(
   if (!hasSupabase) {
     return { ...input, id: 'r1', clientId: 'me', createdAt: new Date().toISOString(), status: 'ouverte', offersCount: 0 };
   }
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
   const { data, error } = await supabase
     .from('requests')
-    .insert({ description: input.description, category: input.category, urgent: input.urgent, lat: input.location.lat, lng: input.location.lng, location_label: input.locationLabel })
+    .insert({
+      client_id: user.id,
+      description: input.description,
+      category: input.category,
+      urgent: input.urgent,
+      geo: `POINT(${input.location.lng} ${input.location.lat})`,
+      location_label: input.locationLabel,
+    })
     .select().single();
   if (error) throw error;
-  return data as unknown as ServiceRequest;
+  return { ...data, clientId: data.client_id, createdAt: data.created_at, locationLabel: data.location_label, offersCount: 0, location: input.location } as unknown as ServiceRequest;
 }
 
 export async function fetchMyRequests(): Promise<ServiceRequest[]> {
@@ -147,25 +174,69 @@ export async function acceptOffer(offerId: string): Promise<void> {
 
 export async function fetchNotifications(): Promise<Notification[]> {
   if (!hasSupabase) return mockNotifications;
-  return mockNotifications;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return mockNotifications;
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) return mockNotifications;
+  return (data ?? []).map((n: any) => ({
+    id: n.id, type: n.type, title: n.title, body: n.body,
+    read: n.read, createdAt: n.created_at, actionRoute: n.action_route,
+  }));
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
-  // TODO: implement with Supabase
+  if (!hasSupabase) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
 }
 
 export async function fetchCurrentJob(): Promise<Job | null> {
   if (!hasSupabase) return mockJobs[0] ?? null;
-  return mockJobs[0] ?? null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data, error } = await supabase
+    .from('jobs')
+    .select('*, provider:providers(*)')
+    .eq('client_id', user.id)
+    .not('status', 'eq', 'termine')
+    .order('accepted_at', { ascending: false })
+    .limit(1)
+    .single();
+  if (error) return null;
+  return data ? {
+    id: data.id, requestId: data.request_id, price: data.price,
+    status: data.status, acceptedAt: data.accepted_at,
+    provider: data.provider as any,
+    clientName: '', locationLabel: '', location: LOME,
+  } : null;
 }
 
 export async function updateJobStatus(jobId: string, status: Job['status']): Promise<void> {
-  // TODO: Supabase realtime update
+  if (!hasSupabase) return;
+  const { error } = await supabase.from('jobs').update({ status }).eq('id', jobId);
+  if (error) throw error;
 }
 
 export async function fetchFavorites(): Promise<Provider[]> {
   if (!hasSupabase) return [mockProviders[0], mockProviders[4]];
-  return [mockProviders[0], mockProviders[4]];
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('favorites')
+    .select('provider:providers(*)')
+    .eq('user_id', user.id);
+  if (error) return [];
+  return (data ?? []).map((f: any) => ({
+    ...f.provider,
+    distanceKm: 0, location: LOME,
+    yearsActive: f.provider.years_active,
+    responseRate: f.provider.response_rate,
+  }));
 }
 
 // ---- PROVIDER API ----
@@ -188,7 +259,14 @@ export async function fetchNearbyRequests(category?: ServiceCategory): Promise<S
 
 export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string }): Promise<void> {
   if (!hasSupabase) return;
-  const { error } = await supabase.from('offers').insert({ request_id: input.requestId, price: input.price, availability: input.availability, message: input.message });
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: providerData } = await supabase.from('providers').select('id').eq('user_id', user.id).single();
+  if (!providerData) throw new Error('Profil prestataire introuvable');
+  const { error } = await supabase.from('offers').insert({
+    request_id: input.requestId, provider_id: providerData.id,
+    price: input.price, availability: input.availability, message: input.message,
+  });
   if (error) throw error;
 }
 
@@ -202,27 +280,64 @@ export async function toggleOnline(online: boolean): Promise<void> {
 
 export async function fetchAdminStats(): Promise<AdminStats> {
   if (!hasSupabase) return mockAdminStats;
-  return mockAdminStats;
+  const [users, providers, requests, jobs] = await Promise.all([
+    supabase.from('profiles').select('id', { count: 'exact', head: true }),
+    supabase.from('providers').select('id', { count: 'exact', head: true }),
+    supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
+    supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'termine'),
+  ]);
+  return {
+    totalUsers: users.count ?? 0,
+    totalProviders: providers.count ?? 0,
+    openRequests: requests.count ?? 0,
+    completedToday: jobs.count ?? 0,
+    pendingVerifications: mockAdminStats.pendingVerifications,
+    openDisputes: mockAdminStats.openDisputes,
+    responseRate: mockAdminStats.responseRate,
+  };
 }
 
 export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
   if (!hasSupabase) return mockVerifications;
-  return mockVerifications;
+  const { data, error } = await supabase
+    .from('verification_requests')
+    .select('*, provider:providers(name, category)')
+    .order('created_at', { ascending: false });
+  if (error) return mockVerifications;
+  return (data ?? []).map((v: any) => ({
+    id: v.id, providerName: v.provider?.name ?? '', category: v.provider?.category ?? '',
+    submittedAt: v.created_at, status: v.status,
+  }));
 }
 
 export async function approveVerification(id: string): Promise<void> {
   if (!hasSupabase) return;
+  const { data: vr } = await supabase.from('verification_requests').select('provider_id').eq('id', id).single();
+  await Promise.all([
+    supabase.from('verification_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', id),
+    vr && supabase.from('providers').update({ verified: true }).eq('id', vr.provider_id),
+  ]);
 }
 
 export async function rejectVerification(id: string): Promise<void> {
   if (!hasSupabase) return;
+  await supabase.from('verification_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
 }
 
 export async function fetchDisputes(): Promise<Dispute[]> {
   if (!hasSupabase) return mockDisputes;
-  return mockDisputes;
+  const { data, error } = await supabase
+    .from('disputes')
+    .select('*, job:jobs(client_id, provider_id)')
+    .order('created_at', { ascending: false });
+  if (error) return mockDisputes;
+  return (data ?? []).map((d: any) => ({
+    id: d.id, reason: d.reason, status: d.status, createdAt: d.created_at,
+    clientName: d.reporter_id ?? '', providerName: '',
+  }));
 }
 
 export async function resolveDispute(id: string): Promise<void> {
   if (!hasSupabase) return;
+  await supabase.from('disputes').update({ status: 'resolu', resolved_at: new Date().toISOString() }).eq('id', id);
 }
