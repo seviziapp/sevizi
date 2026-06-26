@@ -1,24 +1,34 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Search, Users, ShieldCheck, User } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { supabase } from '../../src/lib/supabase';
 
-const MOCK_USERS = [
-  { id: 'u1', name: 'Ama Doe', phone: '+228 90 12 34 56', role: 'client', requests: 5, joined: '2025-03-10' },
-  { id: 'u2', name: 'Kossi Plomberie', phone: '+228 91 23 45 67', role: 'prestataire', missions: 214, joined: '2024-11-02' },
-  { id: 'u3', name: 'Kosi Atta', phone: '+228 92 34 56 78', role: 'client', requests: 2, joined: '2026-01-15' },
-  { id: 'u4', name: 'Salon Afi', phone: '+228 93 45 67 89', role: 'prestataire', missions: 380, joined: '2024-08-20' },
-  { id: 'u5', name: 'Yawa Nkrumah', phone: '+228 94 56 78 90', role: 'client', requests: 8, joined: '2025-07-05' },
-  { id: 'u6', name: 'Transport Koffi', phone: '+228 95 67 89 01', role: 'prestataire', missions: 175, joined: '2025-02-18' },
-];
+type UserRow = {
+  id: string;
+  full_name: string | null;
+  phone: string | null;
+  role: string;
+  created_at: string;
+};
 
 export default function AdminUsers() {
+  const [users, setUsers] = useState<UserRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'client' | 'prestataire'>('all');
 
-  const filtered = MOCK_USERS.filter(u => {
-    const matchSearch = u.name.toLowerCase().includes(search.toLowerCase()) || u.phone.includes(search);
+  useEffect(() => {
+    supabase.from('profiles').select('*').order('created_at', { ascending: false })
+      .then(({ data }) => { setUsers((data ?? []) as UserRow[]); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const filtered = users.filter(u => {
+    const name = u.full_name ?? '';
+    const phone = u.phone ?? '';
+    const matchSearch = name.toLowerCase().includes(search.toLowerCase()) || phone.includes(search);
     const matchRole = filter === 'all' || u.role === filter;
     return matchSearch && matchRole;
   });
@@ -29,7 +39,7 @@ export default function AdminUsers() {
         <Users size={24} color={colors.encre} />
         <Text style={[text.h2, { color: colors.encre }]}>Utilisateurs</Text>
         <View style={styles.totalBadge}>
-          <Text style={[text.label, { color: colors.encre }]}>{MOCK_USERS.length}</Text>
+          <Text style={[text.label, { color: colors.encre }]}>{users.length}</Text>
         </View>
       </View>
 
@@ -44,7 +54,6 @@ export default function AdminUsers() {
         />
       </View>
 
-      {/* Role filter */}
       <View style={styles.filterRow}>
         {(['all', 'client', 'prestataire'] as const).map(f => (
           <Pressable key={f} style={[styles.filterChip, filter === f && styles.filterActive]} onPress={() => setFilter(f)}>
@@ -55,31 +64,36 @@ export default function AdminUsers() {
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {filtered.map(u => (
-          <View key={u.id} style={[styles.card, shadow.card]}>
-            <View style={[styles.avatar, u.role === 'prestataire' && styles.avatarProvider]}>
-              {u.role === 'prestataire'
-                ? <ShieldCheck size={20} color={colors.white} />
-                : <User size={20} color={colors.white} />}
+      {loading ? (
+        <ActivityIndicator color={colors.vert} style={{ marginTop: 40 }} />
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {filtered.length === 0 && (
+            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: 40 }]}>Aucun utilisateur trouvé.</Text>
+          )}
+          {filtered.map(u => (
+            <View key={u.id} style={[styles.card, shadow.card]}>
+              <View style={[styles.avatar, u.role === 'prestataire' && styles.avatarProvider]}>
+                {u.role === 'prestataire'
+                  ? <ShieldCheck size={20} color={colors.white} />
+                  : <User size={20} color={colors.white} />}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{u.full_name || 'Sans nom'}</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{u.phone || u.id.slice(0, 8)}</Text>
+                <Text style={[text.label, { color: colors.textMuted }]}>
+                  Inscrit le {new Date(u.created_at).toLocaleDateString('fr-FR')}
+                </Text>
+              </View>
+              <View style={styles.roleBadge}>
+                <Text style={[text.label, { color: u.role === 'prestataire' ? colors.vert : colors.textMuted }]}>
+                  {u.role === 'client' ? 'CLIENT' : 'PREST.'}
+                </Text>
+              </View>
             </View>
-            <View style={{ flex: 1 }}>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>{u.name}</Text>
-              <Text style={[text.small, { color: colors.textMuted }]}>{u.phone}</Text>
-              <Text style={[text.label, { color: colors.textMuted }]}>
-                {u.role === 'client'
-                  ? `${(u as any).requests ?? 0} demandes`
-                  : `${(u as any).missions ?? 0} missions`}
-              </Text>
-            </View>
-            <View style={styles.roleBadge}>
-              <Text style={[text.label, { color: u.role === 'prestataire' ? colors.vert : colors.textMuted }]}>
-                {u.role === 'client' ? 'CLIENT' : 'PREST.'}
-              </Text>
-            </View>
-          </View>
-        ))}
-      </ScrollView>
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

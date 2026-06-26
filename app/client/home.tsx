@@ -7,19 +7,23 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES } from '../../src/lib/types';
-import { fetchNearbyProviders } from '../../src/lib/api';
-import type { Provider } from '../../src/lib/types';
+import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications } from '../../src/lib/api';
+import type { Provider, Job } from '../../src/lib/types';
 
-// First 8 categories shown, last is "Plus"
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
 
 export default function Home() {
   const router = useRouter();
   const [providers, setProviders] = useState<Provider[]>([]);
-  const [unread] = useState(2);
+  const [activeJob, setActiveJob] = useState<Job | null>(null);
+  const [userName, setUserName] = useState('');
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     fetchNearbyProviders().then(setProviders).catch(() => {});
+    fetchCurrentJob().then(setActiveJob).catch(() => {});
+    fetchMyProfile().then(p => { if (p) setUserName(p.fullName.split(' ')[0]); }).catch(() => {});
+    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
   }, []);
 
   return (
@@ -30,8 +34,8 @@ export default function Home() {
           <View style={styles.headerLeft}>
             <Logo size={32} />
             <View>
-              <Text style={[text.small, { color: colors.textMuted }]}>Bonjour,</Text>
-              <Pressable style={styles.location}>
+              <Text style={[text.small, { color: colors.textMuted }]}>Bonjour{userName ? `, ${userName}` : ''}</Text>
+              <Pressable style={styles.location} onPress={() => router.push('/onboarding/location')}>
                 <MapPin size={14} color={colors.vert} />
                 <Text style={[text.bodyMd, { color: colors.encre }]}>Bè-Kpota, Lomé</Text>
                 <ChevronDown size={14} color={colors.encre} />
@@ -45,20 +49,24 @@ export default function Home() {
         </View>
 
         {/* Search */}
-        <Pressable style={styles.search} onPress={() => {}}>
+        <Pressable style={styles.search} onPress={() => router.push('/client/categories')}>
           <Search size={18} color={colors.textMuted} />
           <Text style={[text.body, { color: colors.textMuted }]}>Rechercher un service…</Text>
         </Pressable>
 
-        {/* Active job banner */}
-        <Pressable style={styles.jobBanner} onPress={() => router.push('/client/job-status')}>
-          <View style={styles.jobDot} />
-          <View style={{ flex: 1 }}>
-            <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
-            <Text style={[text.small, { color: colors.textMutedDark }]}>Kossi Plomberie · En route 🚗</Text>
-          </View>
-          <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
-        </Pressable>
+        {/* Active job banner — only shown when there's an active job */}
+        {activeJob && (
+          <Pressable style={styles.jobBanner} onPress={() => router.push('/client/job-status')}>
+            <View style={styles.jobDot} />
+            <View style={{ flex: 1 }}>
+              <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
+              <Text style={[text.small, { color: colors.textMutedDark }]}>
+                {activeJob.provider?.name ?? 'Prestataire'} · {activeJob.status === 'en_route' ? 'En route 🚗' : activeJob.status === 'arrive' ? 'Arrivé 📍' : activeJob.status === 'en_cours' ? 'En cours 🔧' : 'Accepté ✅'}
+              </Text>
+            </View>
+            <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
+          </Pressable>
+        )}
 
         {/* Categories grid */}
         <View style={styles.sectionHead}>
@@ -70,7 +78,7 @@ export default function Home() {
             <Pressable
               key={c.key}
               style={styles.cat}
-              onPress={() => router.push({ pathname: '/client/new-request' })}
+              onPress={() => router.push({ pathname: '/client/new-request', params: { category: c.key } })}
             >
               <View style={styles.catIcon}>
                 <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
@@ -78,7 +86,7 @@ export default function Home() {
               <Text style={[text.label, { color: colors.encre, textAlign: 'center', fontSize: 11 }]} numberOfLines={1}>{c.label}</Text>
             </Pressable>
           ))}
-          <Pressable style={styles.cat}>
+          <Pressable style={styles.cat} onPress={() => router.push('/client/categories')}>
             <View style={styles.catIcon}>
               <Text style={{ fontSize: 22 }}>⋯</Text>
             </View>
@@ -116,6 +124,11 @@ export default function Home() {
               onPress={() => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } })}
             />
           ))}
+          {providers.filter(p => p.online).length === 0 && (
+            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl }]}>
+              Aucun prestataire disponible en ce moment.
+            </Text>
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>

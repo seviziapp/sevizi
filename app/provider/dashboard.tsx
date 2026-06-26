@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
-import { fetchProviderStats, fetchNearbyRequests, toggleOnline } from '../../src/lib/api';
+import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob } from '../../src/lib/api';
 import type { ProviderStats, ServiceRequest } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
 
@@ -14,10 +14,14 @@ export default function ProviderDashboard() {
   const [stats, setStats] = useState<ProviderStats | null>(null);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [online, setOnline] = useState(true);
+  const [providerName, setProviderName] = useState('');
+  const [activeJob, setActiveJob] = useState<any>(null);
 
   useEffect(() => {
     fetchProviderStats().then(setStats).catch(() => {});
     fetchNearbyRequests().then(r => setRequests(r.slice(0, 3))).catch(() => {});
+    fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); } }).catch(() => {});
+    fetchCurrentJob().then(setActiveJob).catch(() => {});
   }, []);
 
   async function handleToggle(v: boolean) {
@@ -34,10 +38,10 @@ export default function ProviderDashboard() {
             <Logo size={36} />
             <View>
               <Text style={[text.small, { color: colors.textMuted }]}>Bienvenue,</Text>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>Kossi Plomberie</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName || 'Mon tableau de bord'}</Text>
             </View>
           </View>
-          <Pressable style={styles.bell} onPress={() => router.push('/client/notifications')}>
+          <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
             <Bell size={20} color={colors.encre} />
             <View style={styles.badge} />
           </Pressable>
@@ -87,15 +91,19 @@ export default function ProviderDashboard() {
           </View>
         )}
 
-        {/* Active job banner */}
-        <Pressable style={styles.activeJobBanner} onPress={() => router.push('/provider/active-job')}>
-          <View style={styles.activeJobDot} />
-          <View style={{ flex: 1 }}>
-            <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
-            <Text style={[text.small, { color: colors.textMutedDark }]}>Ama Doe · En route 🚗</Text>
-          </View>
-          <Text style={[text.small, { color: colors.vert }]}>Gérer →</Text>
-        </Pressable>
+        {/* Active job banner — only shown when there's an active job */}
+        {activeJob && (
+          <Pressable style={styles.activeJobBanner} onPress={() => router.push('/provider/active-job')}>
+            <View style={styles.activeJobDot} />
+            <View style={{ flex: 1 }}>
+              <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
+              <Text style={[text.small, { color: colors.textMutedDark }]}>
+                {activeJob.clientName || 'Client'} · {activeJob.status === 'en_route' ? 'En route 🚗' : activeJob.status === 'arrive' ? 'Arrivé 📍' : 'En cours 🔧'}
+              </Text>
+            </View>
+            <Text style={[text.small, { color: colors.vert }]}>Gérer →</Text>
+          </Pressable>
+        )}
 
         {/* Nearby requests */}
         <View style={styles.sectionHead}>

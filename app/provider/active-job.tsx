@@ -1,38 +1,66 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import type { JobStatus } from '../../src/lib/types';
+import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
+import type { Job, JobStatus } from '../../src/lib/types';
 
 const STEPS: { key: JobStatus; label: string; action: string; emoji: string }[] = [
-  { key: 'accepte',  label: 'Mission acceptée',   action: 'Démarrer le trajet',     emoji: '✅' },
-  { key: 'en_route', label: 'En route',            action: 'Je suis arrivé',          emoji: '🚗' },
-  { key: 'arrive',   label: 'Arrivé chez le client', action: 'Démarrer la mission',  emoji: '📍' },
-  { key: 'en_cours', label: 'Mission en cours',    action: 'Mission terminée',        emoji: '🔧' },
-  { key: 'termine',  label: 'Mission terminée',    action: '',                        emoji: '🏁' },
+  { key: 'accepte',  label: 'Mission acceptée',      action: 'Démarrer le trajet',  emoji: '✅' },
+  { key: 'en_route', label: 'En route',               action: 'Je suis arrivé',      emoji: '🚗' },
+  { key: 'arrive',   label: 'Arrivé chez le client',  action: 'Démarrer la mission', emoji: '📍' },
+  { key: 'en_cours', label: 'Mission en cours',        action: 'Mission terminée',    emoji: '🔧' },
+  { key: 'termine',  label: 'Mission terminée',        action: '',                    emoji: '🏁' },
 ];
-
-const JOB = {
-  clientName: 'Ama Doe',
-  phone: '+228 90 12 34 56',
-  locationLabel: 'Bè-Kpota, Lomé',
-  description: 'Fuite sous l\'évier de la cuisine.',
-  price: 4500,
-  payment: 'cash' as const,
-};
 
 export default function ActiveJob() {
   const router = useRouter();
+  const [job, setJob] = useState<Job | null>(null);
   const [statusIdx, setStatusIdx] = useState(0);
+  const [advancing, setAdvancing] = useState(false);
+
+  useEffect(() => {
+    fetchCurrentJob().then(j => {
+      if (j) {
+        setJob(j);
+        const idx = STEPS.findIndex(s => s.key === j.status);
+        setStatusIdx(idx >= 0 ? idx : 0);
+      }
+    }).catch(() => {});
+  }, []);
 
   const current = STEPS[statusIdx];
   const isDone = statusIdx === STEPS.length - 1;
 
-  function advance() {
-    if (!isDone) setStatusIdx(i => i + 1);
+  async function advance() {
+    if (isDone || advancing || !job) return;
+    const nextStep = STEPS[statusIdx + 1];
+    setAdvancing(true);
+    try {
+      await updateJobStatus(job.id, nextStep.key);
+      setStatusIdx(i => i + 1);
+    } catch {}
+    setAdvancing(false);
   }
+
+  function callClient() {
+    if (job?.clientPhone) Linking.openURL(`tel:${job.clientPhone}`);
+  }
+
+  function navigate() {
+    if (!job?.location) return;
+    const url = Platform.OS === 'ios'
+      ? `maps:?daddr=${job.location.lat},${job.location.lng}`
+      : `geo:${job.location.lat},${job.location.lng}?q=${job.location.lat},${job.location.lng}`;
+    Linking.openURL(url);
+  }
+
+  const clientName = job?.clientName ?? 'Client';
+  const locationLabel = job?.locationLabel ?? '';
+  const description = job?.description ?? '';
+  const price = job?.price ?? 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -45,44 +73,39 @@ export default function ActiveJob() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Status hero */}
         <View style={[styles.statusCard, isDone && styles.statusCardDone]}>
           <Text style={{ fontSize: 40 }}>{current.emoji}</Text>
           <Text style={[text.h2, { color: isDone ? colors.creme : colors.encre }]}>{current.label}</Text>
           <Text style={[text.small, { color: isDone ? colors.textMutedDark : colors.textMuted }]}>
-            {JOB.clientName} · {JOB.locationLabel}
+            {clientName}{locationLabel ? ` · ${locationLabel}` : ''}
           </Text>
         </View>
 
-        {/* Client info */}
         <View style={[styles.clientCard, shadow.card]}>
           <View style={styles.clientAvatar}>
-            <Text style={[text.h2, { color: colors.creme }]}>A</Text>
+            <Text style={[text.h2, { color: colors.creme }]}>{clientName[0]?.toUpperCase()}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[text.bodyMd, { color: colors.encre }]}>{JOB.clientName}</Text>
-            <Text style={[text.small, { color: colors.textMuted }]}>{JOB.description}</Text>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>{clientName}</Text>
+            {!!description && <Text style={[text.small, { color: colors.textMuted }]}>{description}</Text>}
           </View>
           <View style={styles.contactBtns}>
-            <Pressable style={styles.contactBtn}>
+            <Pressable style={styles.contactBtn} onPress={callClient}>
               <Phone size={18} color={colors.vert} />
             </Pressable>
-            <Pressable style={styles.contactBtn}>
+            <Pressable style={styles.contactBtn} onPress={navigate}>
               <Navigation size={18} color={colors.vert} />
             </Pressable>
           </View>
         </View>
 
-        {/* Price */}
-        <View style={styles.priceRow}>
-          <Text style={[text.body, { color: colors.textMuted }]}>Montant convenu</Text>
-          <View style={{ alignItems: 'flex-end', gap: 2 }}>
-            <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{JOB.price.toLocaleString('fr-FR')} F</Text>
-            <Text style={[text.label, { color: colors.textMuted }]}>Paiement en espèces</Text>
+        {price > 0 && (
+          <View style={styles.priceRow}>
+            <Text style={[text.body, { color: colors.textMuted }]}>Montant convenu</Text>
+            <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{price.toLocaleString('fr-FR')} F</Text>
           </View>
-        </View>
+        )}
 
-        {/* Timeline */}
         <View style={{ gap: 0 }}>
           {STEPS.map((step, i) => {
             const done = i < statusIdx;
@@ -109,9 +132,8 @@ export default function ActiveJob() {
           })}
         </View>
 
-        {/* CTA */}
         {!isDone ? (
-          <Pressable style={styles.advanceBtn} onPress={advance}>
+          <Pressable style={[styles.advanceBtn, advancing && { opacity: 0.6 }]} onPress={advance} disabled={advancing}>
             <Text style={[text.bodyMd, { color: colors.white }]}>{current.action}</Text>
             <ChevronRight size={18} color={colors.white} />
           </Pressable>
@@ -120,9 +142,7 @@ export default function ActiveJob() {
             <View style={styles.doneCard}>
               <Text style={{ fontSize: 32 }}>🎉</Text>
               <Text style={[text.h3, { color: colors.encre }]}>Mission accomplie !</Text>
-              <Text style={[text.small, { color: colors.textMuted }]}>
-                Le client va vous évaluer sous peu.
-              </Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>Le client va vous évaluer sous peu.</Text>
             </View>
             <Pressable style={styles.backHomeBtn} onPress={() => router.replace('/provider/dashboard')}>
               <Text style={[text.bodyMd, { color: colors.vert }]}>Retour au tableau de bord</Text>

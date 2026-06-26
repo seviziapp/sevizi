@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Camera, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
@@ -12,8 +12,9 @@ import type { GeoPoint } from '../../src/lib/types';
 
 export default function NewRequest() {
   const router = useRouter();
+  const { category: catParam } = useLocalSearchParams<{ category?: string }>();
   const [desc, setDesc] = useState('');
-  const [category, setCategory] = useState<ServiceCategory>('plomberie');
+  const [category, setCategory] = useState<ServiceCategory>((catParam as ServiceCategory) ?? 'plomberie');
   const [urgent, setUrgent] = useState(true);
   const [loading, setLoading] = useState(false);
   const [location, setLocation] = useState<GeoPoint>(LOME);

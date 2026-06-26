@@ -87,10 +87,12 @@ export type JobStatus = 'accepte' | 'en_route' | 'arrive' | 'en_cours' | 'termin
 export interface Job {
   id: string;
   requestId: string;
-  provider: Provider;
+  provider?: Provider;
   price: number;
   status: JobStatus;
   clientName: string;
+  clientPhone?: string;
+  description?: string;
   locationLabel: string;
   location: GeoPoint;
   acceptedAt: string;

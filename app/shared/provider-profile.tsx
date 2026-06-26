@@ -8,7 +8,7 @@ import {
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { fetchProvider, fetchProviderReviews } from '../../src/lib/api';
+import { fetchProvider, fetchProviderReviews, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
 import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
 
 export default function ProviderProfileView() {
@@ -22,7 +22,18 @@ export default function ProviderProfileView() {
     const pid = id ?? 'p1';
     fetchProvider(pid).then(setProvider).catch(() => {});
     fetchProviderReviews(pid).then(setReviews).catch(() => {});
+    isFavorite(pid).then(setFaved).catch(() => {});
   }, [id]);
+
+  async function toggleFav() {
+    if (!provider) return;
+    const next = !faved;
+    setFaved(next);
+    try {
+      if (next) await addFavorite(provider.id);
+      else await removeFavorite(provider.id);
+    } catch { setFaved(!next); }
+  }
 
   if (!provider) return null;
 
@@ -35,7 +46,7 @@ export default function ProviderProfileView() {
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]} numberOfLines={1}>{provider.name}</Text>
-        <Pressable style={styles.heartBtn} onPress={() => setFaved(!faved)}>
+        <Pressable style={styles.heartBtn} onPress={toggleFav}>
           <Heart size={20} color={faved ? colors.terre : colors.textMuted} fill={faved ? colors.terre : 'none'} />
         </Pressable>
       </View>

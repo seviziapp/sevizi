@@ -239,11 +239,117 @@ export async function fetchFavorites(): Promise<Provider[]> {
   }));
 }
 
+// ---- FAVORITES ----
+
+export async function addFavorite(providerId: string): Promise<void> {
+  if (!hasSupabase) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from('favorites').upsert({ user_id: user.id, provider_id: providerId });
+}
+
+export async function removeFavorite(providerId: string): Promise<void> {
+  if (!hasSupabase) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  await supabase.from('favorites').delete().eq('user_id', user.id).eq('provider_id', providerId);
+}
+
+export async function isFavorite(providerId: string): Promise<boolean> {
+  if (!hasSupabase) return false;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+  const { data } = await supabase.from('favorites').select('id').eq('user_id', user.id).eq('provider_id', providerId).single();
+  return !!data;
+}
+
+// ---- MESSAGES ----
+
+export async function fetchThreads(): Promise<any[]> {
+  if (!hasSupabase) return [];
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*, request:requests(id, description, client_id, category)')
+    .or(`request.client_id.eq.${user.id},sender_id.eq.${user.id}`)
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function fetchMessages(requestId: string): Promise<any[]> {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('request_id', requestId)
+    .order('created_at', { ascending: true });
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function sendMessage(requestId: string, body: string): Promise<void> {
+  if (!hasSupabase) return;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return;
+  const { error } = await supabase.from('messages').insert({ request_id: requestId, sender_id: user.id, body });
+  if (error) throw error;
+}
+
+// ---- PROFILE ----
+
+export async function fetchMyProfile(): Promise<{ id: string; fullName: string; phone: string; role: string } | null> {
+  if (!hasSupabase) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+  if (!data) return null;
+  return {
+    id: data.id,
+    fullName: data.full_name ?? user.user_metadata?.full_name ?? user.email ?? 'Utilisateur',
+    phone: data.phone ?? user.phone ?? '',
+    role: data.role,
+  };
+}
+
+export async function fetchMyProviderProfile(): Promise<Provider | null> {
+  if (!hasSupabase) return null;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from('providers').select('*').eq('user_id', user.id).single();
+  if (!data) return null;
+  return {
+    id: data.id, name: data.name, category: data.category, rating: data.rating,
+    reviews: data.reviews, verified: data.verified, online: data.online,
+    missions: data.missions, yearsActive: data.years_active, responseRate: data.response_rate,
+    bio: data.bio, distanceKm: 0, location: LOME,
+  };
+}
+
 // ---- PROVIDER API ----
 
 export async function fetchProviderStats(): Promise<ProviderStats> {
   if (!hasSupabase) return mockProviderStats;
-  return mockProviderStats;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return mockProviderStats;
+  const { data: provider } = await supabase.from('providers').select('id, rating, response_rate').eq('user_id', user.id).single();
+  if (!provider) return mockProviderStats;
+  const [openReqs, sentOffers, completedJobs, earnings] = await Promise.all([
+    supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
+    supabase.from('offers').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id),
+    supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id).eq('status', 'termine'),
+    supabase.from('jobs').select('price').eq('provider_id', provider.id).eq('status', 'termine'),
+  ]);
+  const totalEarnings = (earnings.data ?? []).reduce((sum: number, j: any) => sum + (j.price ?? 0), 0);
+  return {
+    openRequests: openReqs.count ?? 0,
+    sentOffers: sentOffers.count ?? 0,
+    completedJobs: completedJobs.count ?? 0,
+    rating: provider.rating ?? 0,
+    earnings: totalEarnings,
+    responseRate: provider.response_rate ?? 0,
+  };
 }
 
 export async function fetchNearbyRequests(category?: ServiceCategory): Promise<ServiceRequest[]> {
