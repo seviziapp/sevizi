@@ -30,7 +30,7 @@ export default function Auth() {
         const { error: e } = await supabase.auth.signUp({ email, password });
         if (e) throw e;
       }
-      router.replace('/onboarding/role');
+      router.replace('/');
     } catch (e: any) {
       setError(e.message ?? 'Une erreur est survenue.');
     } finally {
@@ -44,7 +44,7 @@ export default function Auth() {
     try {
       const redirectTo = Platform.OS === 'web'
         ? window.location.origin + '/onboarding/role'
-        : 'sevizi://onboarding/role';
+        : 'sevizi://';
       const { error: e } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },

@@ -6,12 +6,14 @@ import { Search, Wrench, Check, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
+import { supabase } from '../../src/lib/supabase';
 
 type Role = 'client' | 'prestataire';
 
 export default function RoleScreen() {
   const router = useRouter();
   const [role, setRole] = useState<Role>('client');
+  const [loading, setLoading] = useState(false);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
@@ -46,16 +48,25 @@ export default function RoleScreen() {
 
         <Button
           label="Continuer"
+          loading={loading}
           icon={<ArrowRight size={20} color={colors.white} />}
-          onPress={() =>
-            router.replace(role === 'client' ? '/onboarding/location' : '/provider/dashboard')
-          }
+          onPress={async () => {
+            setLoading(true);
+            try {
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                await supabase.from('profiles').upsert({
+                  id: user.id,
+                  role,
+                  full_name: user.user_metadata?.full_name ?? null,
+                  phone: user.phone ?? null,
+                });
+              }
+            } catch {}
+            setLoading(false);
+            router.replace(role === 'client' ? '/client/home' : '/provider/dashboard');
+          }}
         />
-        <Pressable style={{ alignSelf: 'center', marginTop: spacing.lg }}>
-          <Text style={[text.small, { color: colors.textMuted }]}>
-            Déjà inscrit ? <Text style={{ color: colors.vert }}>Se connecter</Text>
-          </Text>
-        </Pressable>
       </View>
     </SafeAreaView>
   );

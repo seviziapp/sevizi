@@ -2,18 +2,28 @@ import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
 
+type Dest = '/client/home' | '/provider/dashboard' | '/onboarding/role' | '/onboarding/auth';
+
 export default function Index() {
-  const [checked, setChecked] = useState(false);
-  const [authed, setAuthed] = useState(false);
+  const [dest, setDest] = useState<Dest | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setAuthed(!!data.session);
-      setChecked(true);
-    });
+    async function resolve() {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setDest('/onboarding/auth'); return; }
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', session.user.id)
+        .single();
+
+      if (!profile) { setDest('/onboarding/role'); return; }
+      setDest(profile.role === 'prestataire' ? '/provider/dashboard' : '/client/home');
+    }
+    resolve();
   }, []);
 
-  if (!checked) return null;
-  if (authed) return <Redirect href="/client/home" />;
-  return <Redirect href="/onboarding/auth" />;
+  if (!dest) return null;
+  return <Redirect href={dest} />;
 }
