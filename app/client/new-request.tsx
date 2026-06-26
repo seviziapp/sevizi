@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { X, MapPin, Navigation, Camera, ArrowRight } from 'lucide-react-native';
+import { X, Camera, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { Badge } from '../../src/components/Badge';
 import { CATEGORIES, ServiceCategory } from '../../src/lib/types';
 import { createRequest, LOME } from '../../src/lib/api';
+import { MapPicker } from '../../src/components/MapPicker';
+import type { GeoPoint } from '../../src/lib/types';
 
 export default function NewRequest() {
   const router = useRouter();
@@ -15,6 +16,8 @@ export default function NewRequest() {
   const [category, setCategory] = useState<ServiceCategory>('plomberie');
   const [urgent, setUrgent] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [location, setLocation] = useState<GeoPoint>(LOME);
+  const [locationLabel, setLocationLabel] = useState('Bè-Kpota, Lomé');
 
   async function publish() {
     if (!desc.trim()) return;
@@ -24,8 +27,8 @@ export default function NewRequest() {
         description: desc,
         category,
         urgent,
-        location: LOME,
-        locationLabel: 'Bè-Kpota, Lomé',
+        location,
+        locationLabel,
       });
       router.replace({ pathname: '/client/offers', params: { requestId: req.id } });
     } finally {
@@ -76,18 +79,11 @@ export default function NewRequest() {
         </Field>
 
         <Field label="Où ? — posez le point exact">
-          <View style={styles.mapBox}>
-            <View style={styles.mapGrid} />
-            <View style={styles.pin}>
-              <MapPin size={20} color={colors.white} fill={colors.vert} />
-            </View>
-            <View style={styles.coord}>
-              <Navigation size={12} color={colors.creme} />
-              <Text style={[text.label, { color: colors.creme }]}>
-                {LOME.lat.toFixed(4)}° N · {LOME.lng.toFixed(4)}° E
-              </Text>
-            </View>
-          </View>
+          <MapPicker
+            value={location}
+            onChange={(pt, lbl) => { setLocation(pt); setLocationLabel(lbl); }}
+            height={260}
+          />
         </Field>
 
         <View style={styles.attachRow}>
@@ -151,21 +147,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   chipActive: { backgroundColor: colors.encre, borderColor: colors.encre },
-  mapBox: {
-    height: 150, borderRadius: radii.md, backgroundColor: colors.surface,
-    overflow: 'hidden', alignItems: 'center', justifyContent: 'center',
-  },
-  mapGrid: { ...StyleSheet.absoluteFillObject, backgroundColor: colors.surface },
-  pin: {
-    width: 44, height: 44, borderRadius: 22, backgroundColor: colors.vert,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  coord: {
-    position: 'absolute', bottom: spacing.md, left: spacing.md,
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: colors.encre, paddingHorizontal: spacing.md, paddingVertical: 6,
-    borderRadius: radii.sm,
-  },
   attachRow: { flexDirection: 'row', gap: spacing.md },
   attach: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
