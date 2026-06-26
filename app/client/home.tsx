@@ -1,0 +1,142 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
+import { Search, Bell, MapPin, ChevronDown, Plus } from 'lucide-react-native';
+import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { Logo } from '../../src/components/Logo';
+import { ProviderCard } from '../../src/components/ProviderCard';
+import { CATEGORIES } from '../../src/lib/types';
+import { fetchNearbyProviders } from '../../src/lib/api';
+import type { Provider } from '../../src/lib/types';
+
+// First 8 categories shown, last is "Plus"
+const VISIBLE_CATS = CATEGORIES.slice(0, 7);
+
+export default function Home() {
+  const router = useRouter();
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [unread] = useState(2);
+
+  useEffect(() => {
+    fetchNearbyProviders().then(setProviders).catch(() => {});
+  }, []);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Logo size={32} />
+            <View>
+              <Text style={[text.small, { color: colors.textMuted }]}>Bonjour,</Text>
+              <Pressable style={styles.location}>
+                <MapPin size={14} color={colors.vert} />
+                <Text style={[text.bodyMd, { color: colors.encre }]}>Bè-Kpota, Lomé</Text>
+                <ChevronDown size={14} color={colors.encre} />
+              </Pressable>
+            </View>
+          </View>
+          <Pressable style={styles.bell} onPress={() => router.push('/client/notifications')}>
+            <Bell size={20} color={colors.encre} />
+            {unread > 0 && <View style={styles.bellBadge}><Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text></View>}
+          </Pressable>
+        </View>
+
+        {/* Search */}
+        <Pressable style={styles.search} onPress={() => {}}>
+          <Search size={18} color={colors.textMuted} />
+          <Text style={[text.body, { color: colors.textMuted }]}>Rechercher un service…</Text>
+        </Pressable>
+
+        {/* Active job banner */}
+        <Pressable style={styles.jobBanner} onPress={() => router.push('/client/job-status')}>
+          <View style={styles.jobDot} />
+          <View style={{ flex: 1 }}>
+            <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
+            <Text style={[text.small, { color: colors.textMutedDark }]}>Kossi Plomberie · En route 🚗</Text>
+          </View>
+          <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
+        </Pressable>
+
+        {/* Categories grid */}
+        <View style={styles.sectionHead}>
+          <Text style={[text.h3, { color: colors.encre }]}>Catégories</Text>
+          <Pressable onPress={() => router.push('/client/categories')}><Text style={[text.small, { color: colors.vert }]}>Tout voir</Text></Pressable>
+        </View>
+        <View style={styles.catGrid}>
+          {VISIBLE_CATS.map((c) => (
+            <Pressable
+              key={c.key}
+              style={styles.cat}
+              onPress={() => router.push({ pathname: '/client/new-request' })}
+            >
+              <View style={styles.catIcon}>
+                <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
+              </View>
+              <Text style={[text.label, { color: colors.encre, textAlign: 'center', fontSize: 11 }]} numberOfLines={1}>{c.label}</Text>
+            </Pressable>
+          ))}
+          <Pressable style={styles.cat}>
+            <View style={styles.catIcon}>
+              <Text style={{ fontSize: 22 }}>⋯</Text>
+            </View>
+            <Text style={[text.label, { color: colors.encre, fontSize: 11 }]}>Plus</Text>
+          </Pressable>
+        </View>
+
+        {/* CTA banner */}
+        <Pressable style={styles.banner} onPress={() => router.push('/client/new-request')}>
+          <View style={{ flex: 1 }}>
+            <Text style={[text.h3, { color: colors.creme }]}>Un besoin précis ?</Text>
+            <Text style={[text.small, { color: colors.textMutedDark, marginTop: 2 }]}>
+              Publiez-le, recevez des offres en minutes.
+            </Text>
+          </View>
+          <View style={styles.bannerBtn}>
+            <Plus size={16} color={colors.white} />
+            <Text style={[text.small, { color: colors.white }]}>Demander</Text>
+          </View>
+        </Pressable>
+
+        {/* Nearby providers */}
+        <View style={styles.sectionHead}>
+          <Text style={[text.h3, { color: colors.encre }]}>Prestataires proches</Text>
+          <Pressable onPress={() => router.push('/client/map')}>
+            <Text style={[text.small, { color: colors.vert }]}>Carte →</Text>
+          </Pressable>
+        </View>
+        <View style={{ gap: spacing.md }}>
+          {providers.filter(p => p.online).map((p) => (
+            <ProviderCard
+              key={p.id}
+              provider={p}
+              subtitle={CATEGORIES.find(c => c.key === p.category)?.label}
+              onPress={() => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } })}
+            />
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.creme },
+  scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.lg },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  location: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  bell: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  bellBadge: { position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.terre, alignItems: 'center', justifyContent: 'center' },
+  search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 52 },
+  jobBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.encre, borderRadius: radii.lg, padding: spacing.md },
+  jobDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.vert },
+  sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  cat: { alignItems: 'center', gap: spacing.xs, width: '22%' },
+  catIcon: { width: 56, height: 56, borderRadius: radii.lg, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.encre, borderRadius: radii.lg, padding: spacing.lg },
+  bannerBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.vert, paddingHorizontal: spacing.lg, height: 40, borderRadius: radii.md, justifyContent: 'center' },
+});

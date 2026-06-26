@@ -1,0 +1,228 @@
+import { supabase } from './supabase';
+import {
+  Provider, ServiceRequest, Offer, ServiceCategory, GeoPoint,
+  Job, Notification, ProviderStats, AdminStats, VerificationRequest, Dispute, Review,
+} from './types';
+
+// Lomé / Bè-Kpota anchor used by the mockups
+export const LOME: GeoPoint = { lat: 6.1719, lng: 1.2310 };
+
+const hasSupabase = !!process.env.EXPO_PUBLIC_SUPABASE_URL;
+
+// ---- Mock data ----
+
+const mockProviders: Provider[] = [
+  { id: 'p1', name: 'Kossi Plomberie', category: 'plomberie', rating: 4.8, reviews: 128, verified: true, distanceKm: 0.8, location: { lat: 6.1735, lng: 1.2322 }, online: true, missions: 214, yearsActive: 5, responseRate: 96, bio: 'Plombier professionnel basé à Lomé depuis 2019. Disponible 7j/7.' },
+  { id: 'p2', name: 'AquaFix Togo', category: 'plomberie', rating: 4.6, reviews: 74, verified: true, distanceKm: 1.4, location: { lat: 6.1702, lng: 1.2290 }, online: true, missions: 148, yearsActive: 3, responseRate: 88 },
+  { id: 'p3', name: 'Mawunyo Services', category: 'plomberie', rating: 4.3, reviews: 41, verified: false, distanceKm: 2.1, location: { lat: 6.1688, lng: 1.2345 }, online: false, missions: 67, yearsActive: 2, responseRate: 72 },
+  { id: 'p4', name: 'Élec Express', category: 'electricite', rating: 4.5, reviews: 58, verified: true, distanceKm: 1.5, location: { lat: 6.1750, lng: 1.2280 }, online: true, missions: 102, yearsActive: 4, responseRate: 91 },
+  { id: 'p5', name: 'Salon Afi', category: 'coiffure', rating: 4.9, reviews: 203, verified: true, distanceKm: 0.5, location: { lat: 6.1722, lng: 1.2305 }, online: true, missions: 380, yearsActive: 6, responseRate: 98 },
+  { id: 'p6', name: 'Transport Koffi', category: 'transport', rating: 4.4, reviews: 89, verified: true, distanceKm: 1.1, location: { lat: 6.1745, lng: 1.2295 }, online: true, missions: 175, yearsActive: 3, responseRate: 85 },
+];
+
+const mockRequests: ServiceRequest[] = [
+  { id: 'r1', clientId: 'me', description: 'Fuite sous l\'évier de la cuisine, besoin d\'un plombier aujourd\'hui.', category: 'plomberie', urgent: true, location: { lat: 6.1720, lng: 1.2315 }, locationLabel: 'Bè-Kpota, Lomé', createdAt: new Date().toISOString(), status: 'ouverte', offersCount: 3 },
+  { id: 'r2', clientId: 'me', description: 'Prise de courant qui ne fonctionne plus dans le salon.', category: 'electricite', urgent: false, location: { lat: 6.1730, lng: 1.2300 }, locationLabel: 'Tokoin, Lomé', createdAt: new Date(Date.now() - 3600000).toISOString(), status: 'ouverte', offersCount: 1 },
+  { id: 'r3', clientId: 'c2', description: 'Tuyau cassé dans la salle de bain.', category: 'plomberie', urgent: true, location: { lat: 6.1705, lng: 1.2330 }, locationLabel: 'Adidogomé, Lomé', createdAt: new Date(Date.now() - 1800000).toISOString(), status: 'ouverte', offersCount: 0 },
+  { id: 'r4', clientId: 'c3', description: 'Peinture salon 3 pièces, environ 45m².', category: 'peinture', urgent: false, location: { lat: 6.1760, lng: 1.2280 }, locationLabel: 'Hédzranawoé, Lomé', createdAt: new Date(Date.now() - 7200000).toISOString(), status: 'ouverte', offersCount: 2 },
+];
+
+const mockOffers: Offer[] = [
+  { id: 'o1', requestId: 'r1', provider: mockProviders[0], price: 4500, availability: 'Sous 2h', message: 'Je peux passer dans 2h, je règle ça aujourd\'hui.', bestPrice: true },
+  { id: 'o2', requestId: 'r1', provider: mockProviders[1], price: 5000, availability: 'Aujourd\'hui' },
+  { id: 'o3', requestId: 'r1', provider: mockProviders[2], price: 6200, availability: 'Demain', message: 'Je serai disponible demain matin.' },
+];
+
+const mockJobs: Job[] = [
+  { id: 'j1', requestId: 'r5', provider: mockProviders[0], price: 4500, status: 'en_route', clientName: 'Ama Doe', locationLabel: 'Bè-Kpota, Lomé', location: { lat: 6.1720, lng: 1.2315 }, acceptedAt: new Date().toISOString() },
+];
+
+const mockNotifications: Notification[] = [
+  { id: 'n1', type: 'offer', title: '3 offres reçues', body: 'Kossi Plomberie et 2 autres ont répondu à votre demande.', read: false, createdAt: new Date(Date.now() - 300000).toISOString(), actionRoute: '/client/offers' },
+  { id: 'n2', type: 'arrived', title: 'Prestataire arrivé', body: 'Kossi Plomberie est arrivé à votre adresse.', read: false, createdAt: new Date(Date.now() - 1800000).toISOString() },
+  { id: 'n3', type: 'completed', title: 'Mission terminée', body: 'Votre mission Électricité est terminée. Donnez votre avis !', read: true, createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: 'n4', type: 'system', title: 'Bienvenue sur Sèvizi', body: 'Votre compte a été créé avec succès.', read: true, createdAt: new Date(Date.now() - 172800000).toISOString() },
+];
+
+const mockProviderStats: ProviderStats = {
+  openRequests: 4,
+  sentOffers: 2,
+  completedJobs: 214,
+  rating: 4.8,
+  earnings: 127500,
+  responseRate: 96,
+};
+
+const mockAdminStats: AdminStats = {
+  totalUsers: 1842,
+  totalProviders: 318,
+  openRequests: 47,
+  completedToday: 23,
+  pendingVerifications: 12,
+  openDisputes: 5,
+  responseRate: 84,
+};
+
+const mockVerifications: VerificationRequest[] = [
+  { id: 'v1', providerName: 'Jean Agbayissa', category: 'electricite', submittedAt: new Date(Date.now() - 3600000).toISOString(), status: 'pending' },
+  { id: 'v2', providerName: 'Abla Mensah', category: 'coiffure', submittedAt: new Date(Date.now() - 7200000).toISOString(), status: 'pending' },
+  { id: 'v3', providerName: 'Kofi Transport', category: 'transport', submittedAt: new Date(Date.now() - 10800000).toISOString(), status: 'pending' },
+  { id: 'v4', providerName: 'Senu Réparations', category: 'reparation', submittedAt: new Date(Date.now() - 86400000).toISOString(), status: 'approved' },
+];
+
+const mockDisputes: Dispute[] = [
+  { id: 'd1', clientName: 'Ama Doe', providerName: 'Mawunyo Services', reason: 'Travail non conforme à l\'accord', createdAt: new Date(Date.now() - 3600000).toISOString(), status: 'ouvert' },
+  { id: 'd2', clientName: 'Kosi Atta', providerName: 'AquaFix Togo', reason: 'Prestataire ne s\'est pas présenté', createdAt: new Date(Date.now() - 86400000).toISOString(), status: 'ouvert' },
+  { id: 'd3', clientName: 'Yawa Nkrumah', providerName: 'Élec Express', reason: 'Prix différent du devis', createdAt: new Date(Date.now() - 172800000).toISOString(), status: 'resolu' },
+];
+
+const mockReviews: Review[] = [
+  { id: 'rv1', authorName: 'Ama D.', rating: 5, comment: 'Travail impeccable, très rapide !', createdAt: new Date(Date.now() - 86400000).toISOString() },
+  { id: 'rv2', authorName: 'Kosi A.', rating: 5, comment: 'Professionnel et ponctuel.', createdAt: new Date(Date.now() - 172800000).toISOString() },
+  { id: 'rv3', authorName: 'Yawa N.', rating: 4, comment: 'Bon travail, petit retard mais expliqué.', createdAt: new Date(Date.now() - 259200000).toISOString() },
+];
+
+// ---- CLIENT API ----
+
+export async function fetchNearbyProviders(category?: ServiceCategory): Promise<Provider[]> {
+  if (!hasSupabase) {
+    return category ? mockProviders.filter(p => p.category === category) : mockProviders;
+  }
+  let q = supabase.from('providers').select('*').eq('online', true).order('distance_km');
+  if (category) q = q.eq('category', category);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as unknown as Provider[];
+}
+
+export async function fetchProvider(id: string): Promise<Provider> {
+  if (!hasSupabase) {
+    return mockProviders.find(p => p.id === id) ?? mockProviders[0];
+  }
+  const { data, error } = await supabase.from('providers').select('*').eq('id', id).single();
+  if (error) throw error;
+  return data as unknown as Provider;
+}
+
+export async function fetchProviderReviews(providerId: string): Promise<Review[]> {
+  if (!hasSupabase) return mockReviews;
+  const { data, error } = await supabase.from('reviews').select('*').eq('provider_id', providerId).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as Review[];
+}
+
+export async function createRequest(
+  input: Omit<ServiceRequest, 'id' | 'createdAt' | 'status' | 'clientId' | 'offersCount'>
+): Promise<ServiceRequest> {
+  if (!hasSupabase) {
+    return { ...input, id: 'r1', clientId: 'me', createdAt: new Date().toISOString(), status: 'ouverte', offersCount: 0 };
+  }
+  const { data, error } = await supabase
+    .from('requests')
+    .insert({ description: input.description, category: input.category, urgent: input.urgent, lat: input.location.lat, lng: input.location.lng, location_label: input.locationLabel })
+    .select().single();
+  if (error) throw error;
+  return data as unknown as ServiceRequest;
+}
+
+export async function fetchMyRequests(): Promise<ServiceRequest[]> {
+  if (!hasSupabase) return mockRequests.filter(r => r.clientId === 'me');
+  const { data, error } = await supabase.from('requests').select('*').eq('client_id', (await supabase.auth.getUser()).data.user?.id).order('created_at', { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as unknown as ServiceRequest[];
+}
+
+export async function fetchOffers(requestId: string): Promise<Offer[]> {
+  if (!hasSupabase) return mockOffers;
+  const { data, error } = await supabase.from('offers').select('*, provider:providers(*)').eq('request_id', requestId).order('price');
+  if (error) throw error;
+  return (data ?? []) as unknown as Offer[];
+}
+
+export async function acceptOffer(offerId: string): Promise<void> {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from('offers').update({ accepted: true }).eq('id', offerId);
+  if (error) throw error;
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+  if (!hasSupabase) return mockNotifications;
+  return mockNotifications;
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  // TODO: implement with Supabase
+}
+
+export async function fetchCurrentJob(): Promise<Job | null> {
+  if (!hasSupabase) return mockJobs[0] ?? null;
+  return mockJobs[0] ?? null;
+}
+
+export async function updateJobStatus(jobId: string, status: Job['status']): Promise<void> {
+  // TODO: Supabase realtime update
+}
+
+export async function fetchFavorites(): Promise<Provider[]> {
+  if (!hasSupabase) return [mockProviders[0], mockProviders[4]];
+  return [mockProviders[0], mockProviders[4]];
+}
+
+// ---- PROVIDER API ----
+
+export async function fetchProviderStats(): Promise<ProviderStats> {
+  if (!hasSupabase) return mockProviderStats;
+  return mockProviderStats;
+}
+
+export async function fetchNearbyRequests(category?: ServiceCategory): Promise<ServiceRequest[]> {
+  if (!hasSupabase) {
+    return category ? mockRequests.filter(r => r.category === category) : mockRequests;
+  }
+  let q = supabase.from('requests').select('*').eq('status', 'ouverte').order('created_at', { ascending: false });
+  if (category) q = q.eq('category', category);
+  const { data, error } = await q;
+  if (error) throw error;
+  return (data ?? []) as unknown as ServiceRequest[];
+}
+
+export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string }): Promise<void> {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from('offers').insert({ request_id: input.requestId, price: input.price, availability: input.availability, message: input.message });
+  if (error) throw error;
+}
+
+export async function toggleOnline(online: boolean): Promise<void> {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from('providers').update({ online }).eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+  if (error) throw error;
+}
+
+// ---- ADMIN API ----
+
+export async function fetchAdminStats(): Promise<AdminStats> {
+  if (!hasSupabase) return mockAdminStats;
+  return mockAdminStats;
+}
+
+export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
+  if (!hasSupabase) return mockVerifications;
+  return mockVerifications;
+}
+
+export async function approveVerification(id: string): Promise<void> {
+  if (!hasSupabase) return;
+}
+
+export async function rejectVerification(id: string): Promise<void> {
+  if (!hasSupabase) return;
+}
+
+export async function fetchDisputes(): Promise<Dispute[]> {
+  if (!hasSupabase) return mockDisputes;
+  return mockDisputes;
+}
+
+export async function resolveDispute(id: string): Promise<void> {
+  if (!hasSupabase) return;
+}

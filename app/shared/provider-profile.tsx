@@ -1,0 +1,191 @@
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import {
+  ArrowLeft, Star, ShieldCheck, MapPin, Phone, MessageCircle,
+  Heart, Briefcase, Clock, TrendingUp,
+} from 'lucide-react-native';
+import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { Button } from '../../src/components/Button';
+import { fetchProvider, fetchProviderReviews } from '../../src/lib/api';
+import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
+
+export default function ProviderProfileView() {
+  const router = useRouter();
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const [provider, setProvider] = useState<Provider | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [faved, setFaved] = useState(false);
+
+  useEffect(() => {
+    const pid = id ?? 'p1';
+    fetchProvider(pid).then(setProvider).catch(() => {});
+    fetchProviderReviews(pid).then(setReviews).catch(() => {});
+  }, [id]);
+
+  if (!provider) return null;
+
+  const cat = CATEGORIES.find(c => c.key === provider.category);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.header}>
+        <Pressable style={styles.back} onPress={() => router.back()}>
+          <ArrowLeft size={22} color={colors.encre} />
+        </Pressable>
+        <Text style={[text.h2, { color: colors.encre }]} numberOfLines={1}>{provider.name}</Text>
+        <Pressable style={styles.heartBtn} onPress={() => setFaved(!faved)}>
+          <Heart size={20} color={faved ? colors.terre : colors.textMuted} fill={faved ? colors.terre : 'none'} />
+        </Pressable>
+      </View>
+
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {/* Hero */}
+        <View style={styles.hero}>
+          <View style={styles.avatar}>
+            <Text style={[text.display, { color: colors.creme }]}>{provider.name[0]}</Text>
+          </View>
+          <Text style={[text.h2, { color: colors.encre }]}>{provider.name}</Text>
+          <View style={styles.catRow}>
+            <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
+            <Text style={[text.body, { color: colors.textMuted }]}>{cat?.label}</Text>
+            <View style={styles.distancePill}>
+              <MapPin size={12} color={colors.vert} />
+              <Text style={[text.label, { color: colors.vert }]}>{provider.distanceKm.toFixed(1)} km</Text>
+            </View>
+          </View>
+          {provider.verified && (
+            <View style={styles.verifiedBadge}>
+              <ShieldCheck size={14} color={colors.vert} />
+              <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
+            </View>
+          )}
+          <View style={[styles.onlineRow, provider.online && styles.onlineRowActive]}>
+            <View style={[styles.onlineDot, provider.online && styles.onlineDotActive]} />
+            <Text style={[text.small, { color: provider.online ? colors.vert : colors.textMuted }]}>
+              {provider.online ? 'Disponible maintenant' : 'Hors ligne'}
+            </Text>
+          </View>
+        </View>
+
+        {/* Stats */}
+        <View style={[styles.statsRow, shadow.card]}>
+          <Stat value={provider.rating.toFixed(1)} label="Note" icon={<Star size={14} color={colors.soleil} fill={colors.soleil} />} />
+          <View style={styles.div} />
+          <Stat value={String(provider.reviews)} label="Avis" icon={<Star size={14} color={colors.soleil} />} />
+          <View style={styles.div} />
+          <Stat value={String(provider.missions ?? 0)} label="Missions" icon={<Briefcase size={14} color={colors.vert} />} />
+          <View style={styles.div} />
+          <Stat value={`${provider.yearsActive ?? 1} ans`} label="Exp." icon={<Clock size={14} color={colors.vert} />} />
+        </View>
+
+        {/* Response rate */}
+        {provider.responseRate && (
+          <View style={styles.responseRow}>
+            <TrendingUp size={16} color={colors.vert} />
+            <Text style={[text.small, { color: colors.vertDark }]}>
+              Taux de réponse : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{provider.responseRate}%</Text>
+            </Text>
+          </View>
+        )}
+
+        {/* Bio */}
+        {provider.bio && (
+          <View style={styles.section}>
+            <Text style={[text.label, { color: colors.textMuted }]}>À PROPOS</Text>
+            <Text style={[text.body, { color: colors.encre, marginTop: spacing.sm }]}>{provider.bio}</Text>
+          </View>
+        )}
+
+        {/* Gallery */}
+        <View style={styles.section}>
+          <Text style={[text.label, { color: colors.textMuted }]}>GALERIE</Text>
+          <View style={styles.gallery}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={styles.galleryItem}>
+                <Text style={{ fontSize: 28 }}>{cat?.emoji}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* Reviews */}
+        <View style={styles.section}>
+          <Text style={[text.label, { color: colors.textMuted }]}>AVIS ({provider.reviews})</Text>
+          <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+            {reviews.map(rv => (
+              <View key={rv.id} style={[styles.reviewCard, shadow.card]}>
+                <View style={styles.reviewHead}>
+                  <Text style={[text.bodyMd, { color: colors.encre }]}>{rv.authorName}</Text>
+                  <View style={styles.stars}>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <Star key={i} size={11} color={colors.soleil} fill={i < rv.rating ? colors.soleil : 'none'} />
+                    ))}
+                  </View>
+                </View>
+                <Text style={[text.small, { color: colors.textMuted }]}>{rv.comment}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* CTA footer */}
+      <View style={styles.footer}>
+        <Pressable style={styles.messageBtn} onPress={() => router.push('/client/thread')}>
+          <MessageCircle size={20} color={colors.encre} />
+        </Pressable>
+        <Pressable style={styles.callBtn}>
+          <Phone size={20} color={colors.encre} />
+        </Pressable>
+        <Button
+          label="Demander ce prestataire"
+          onPress={() => router.push('/client/new-request')}
+          full={false}
+          style={{ flex: 1 }}
+        />
+      </View>
+    </SafeAreaView>
+  );
+}
+
+function Stat({ value, label, icon }: { value: string; label: string; icon: React.ReactNode }) {
+  return (
+    <View style={styles.stat}>
+      {icon}
+      <Text style={[text.data, { color: colors.encre, fontSize: 16 }]}>{value}</Text>
+      <Text style={[text.label, { color: colors.textMuted, fontSize: 10 }]}>{label.toUpperCase()}</Text>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.creme },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  heartBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: 120 },
+  hero: { alignItems: 'center', gap: spacing.sm },
+  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  distancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border },
+  onlineRowActive: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.textMuted },
+  onlineDotActive: { backgroundColor: colors.vert },
+  statsRow: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  stat: { flex: 1, alignItems: 'center', gap: 4 },
+  div: { width: 1, backgroundColor: colors.border },
+  responseRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radii.md },
+  section: { gap: spacing.sm },
+  gallery: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
+  galleryItem: { flex: 1, aspectRatio: 1, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  reviewCard: { backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.xs },
+  reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  stars: { flexDirection: 'row', gap: 2 },
+  footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
+  messageBtn: { width: 52, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  callBtn: { width: 52, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+});

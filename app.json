@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "Sèvizi",
+    "slug": "sevizi",
+    "scheme": "sevizi",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#06291F",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "tg.sevizi.app",
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "Sèvizi utilise votre position pour poser votre point sur la carte et trouver les prestataires proches."
+      }
+    },
+    "android": {
+      "package": "tg.sevizi.app",
+      "permissions": ["ACCESS_FINE_LOCATION", "ACCESS_COARSE_LOCATION"],
+      "adaptiveIcon": {
+        "backgroundColor": "#0FA76A"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-location",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
