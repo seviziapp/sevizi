@@ -40,13 +40,13 @@ export default function Profile() {
       title: 'Mes missions',
       items: [
         { icon: <Briefcase size={20} color={colors.encre} />, label: 'Mission en cours', onPress: () => router.push('/client/job-status') },
-        { icon: <Star size={20} color={colors.encre} />, label: 'Mes avis laissés', onPress: () => {} },
+        { icon: <Star size={20} color={colors.encre} />, label: 'Mes avis laissés', onPress: () => router.push('/client/my-reviews') },
       ],
     },
     {
       title: 'Paramètres',
       items: [
-        { icon: <ShieldCheck size={20} color={colors.encre} />, label: 'Sécurité & confiance', onPress: () => {} },
+        { icon: <ShieldCheck size={20} color={colors.encre} />, label: 'Sécurité & confiance', onPress: () => router.push('/client/security') },
         { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/provider/dashboard') },
         { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => {} },
       ],

@@ -85,9 +85,7 @@ const mockReviews: Review[] = [
 // ---- CLIENT API ----
 
 export async function fetchNearbyProviders(category?: ServiceCategory): Promise<Provider[]> {
-  if (!hasSupabase) {
-    return category ? mockProviders.filter(p => p.category === category) : mockProviders;
-  }
+  if (!hasSupabase) return [];
   const { data, error } = await supabase.rpc('nearby_providers', {
     lat: LOME.lat, lng: LOME.lng, cat: category ?? null, radius_km: 20,
   });
@@ -173,15 +171,15 @@ export async function acceptOffer(offerId: string): Promise<void> {
 }
 
 export async function fetchNotifications(): Promise<Notification[]> {
-  if (!hasSupabase) return mockNotifications;
+  if (!hasSupabase) return [];
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return mockNotifications;
+  if (!user) return [];
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
-  if (error) return mockNotifications;
+  if (error) return [];
   return (data ?? []).map((n: any) => ({
     id: n.id, type: n.type, title: n.title, body: n.body,
     read: n.read, createdAt: n.created_at, actionRoute: n.action_route,
@@ -196,7 +194,7 @@ export async function markAllNotificationsRead(): Promise<void> {
 }
 
 export async function fetchCurrentJob(): Promise<Job | null> {
-  if (!hasSupabase) return mockJobs[0] ?? null;
+  if (!hasSupabase) return null;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
   const { data, error } = await supabase
@@ -330,11 +328,12 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
 // ---- PROVIDER API ----
 
 export async function fetchProviderStats(): Promise<ProviderStats> {
-  if (!hasSupabase) return mockProviderStats;
+  const empty: ProviderStats = { openRequests: 0, sentOffers: 0, completedJobs: 0, rating: 0, earnings: 0, responseRate: 0 };
+  if (!hasSupabase) return empty;
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return mockProviderStats;
+  if (!user) return empty;
   const { data: provider } = await supabase.from('providers').select('id, rating, response_rate').eq('user_id', user.id).single();
-  if (!provider) return mockProviderStats;
+  if (!provider) return empty;
   const [openReqs, sentOffers, completedJobs, earnings] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
     supabase.from('offers').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id),
@@ -353,9 +352,7 @@ export async function fetchProviderStats(): Promise<ProviderStats> {
 }
 
 export async function fetchNearbyRequests(category?: ServiceCategory): Promise<ServiceRequest[]> {
-  if (!hasSupabase) {
-    return category ? mockRequests.filter(r => r.category === category) : mockRequests;
-  }
+  if (!hasSupabase) return [];
   let q = supabase.from('requests').select('*').eq('status', 'ouverte').order('created_at', { ascending: false });
   if (category) q = q.eq('category', category);
   const { data, error } = await q;
@@ -385,7 +382,7 @@ export async function toggleOnline(online: boolean): Promise<void> {
 // ---- ADMIN API ----
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-  if (!hasSupabase) return mockAdminStats;
+  if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0 };
   const [users, providers, requests, jobs] = await Promise.all([
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
     supabase.from('providers').select('id', { count: 'exact', head: true }),
@@ -397,19 +394,19 @@ export async function fetchAdminStats(): Promise<AdminStats> {
     totalProviders: providers.count ?? 0,
     openRequests: requests.count ?? 0,
     completedToday: jobs.count ?? 0,
-    pendingVerifications: mockAdminStats.pendingVerifications,
-    openDisputes: mockAdminStats.openDisputes,
-    responseRate: mockAdminStats.responseRate,
+    pendingVerifications: 0,
+    openDisputes: 0,
+    responseRate: 0,
   };
 }
 
 export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
-  if (!hasSupabase) return mockVerifications;
+  if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('verification_requests')
     .select('*, provider:providers(name, category)')
     .order('created_at', { ascending: false });
-  if (error) return mockVerifications;
+  if (error) return [];
   return (data ?? []).map((v: any) => ({
     id: v.id, providerName: v.provider?.name ?? '', category: v.provider?.category ?? '',
     submittedAt: v.created_at, status: v.status,
@@ -431,12 +428,12 @@ export async function rejectVerification(id: string): Promise<void> {
 }
 
 export async function fetchDisputes(): Promise<Dispute[]> {
-  if (!hasSupabase) return mockDisputes;
+  if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('disputes')
     .select('*, job:jobs(client_id, provider_id)')
     .order('created_at', { ascending: false });
-  if (error) return mockDisputes;
+  if (error) return [];
   return (data ?? []).map((d: any) => ({
     id: d.id, reason: d.reason, status: d.status, createdAt: d.created_at,
     clientName: d.reporter_id ?? '', providerName: '',
