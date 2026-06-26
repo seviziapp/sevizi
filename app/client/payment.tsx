@@ -20,7 +20,7 @@ export default function Payment() {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const amountNum = parseInt(amount ?? '4500', 10);
+  const amountNum = parseInt(amount ?? '0', 10);
 
   async function confirm() {
     setLoading(true);
@@ -47,7 +47,7 @@ export default function Payment() {
             {amountNum.toLocaleString('fr-FR')} F
           </Text>
           <Text style={[text.small, { color: colors.textMuted }]}>
-            {providerName ?? 'Kossi Plomberie'} · Plomberie
+            {providerName ?? 'Prestataire'}
           </Text>
         </View>
 

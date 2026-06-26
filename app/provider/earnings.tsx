@@ -1,24 +1,81 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, TrendingUp, Wallet, Phone } from 'lucide-react-native';
+import { ArrowLeft, Wallet, TrendingUp } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { supabase } from '../../src/lib/supabase';
+import { CATEGORIES } from '../../src/lib/types';
 
-const MONTHS = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Jun'];
-const VALUES = [78000, 95000, 112000, 88000, 140000, 127500];
-const MAX = Math.max(...VALUES);
-
-const TRANSACTIONS = [
-  { id: 't1', client: 'Ama Doe', service: 'Plomberie · Fuite cuisine', amount: 4500, date: 'Aujourd\'hui', method: 'cash' },
-  { id: 't2', client: 'Kosi Atta', service: 'Plomberie · Installation robinet', amount: 8000, date: 'Hier', method: 'flooz' },
-  { id: 't3', client: 'Yawa Nkrumah', service: 'Plomberie · Tuyau', amount: 6200, date: '20 jun', method: 'cash' },
-  { id: 't4', client: 'Adjo M.', service: 'Plomberie · Vidange', amount: 3500, date: '18 jun', method: 'mixx' },
-];
+type Transaction = {
+  id: string;
+  client: string;
+  service: string;
+  amount: number;
+  date: string;
+  method: string;
+};
 
 export default function Earnings() {
   const router = useRouter();
-  const [period, setPeriod] = useState<'month' | 'week'>('month');
+  const [loading, setLoading] = useState(true);
+  const [totalMonth, setTotalMonth] = useState(0);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    loadEarnings();
+  }, []);
+
+  async function loadEarnings() {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: provider } = await supabase
+        .from('providers')
+        .select('id, category')
+        .eq('user_id', user.id)
+        .single();
+      if (!provider) return;
+
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { data: jobs } = await supabase
+        .from('jobs')
+        .select('id, price, accepted_at, payment_method, requests(description, category), profiles(full_name)')
+        .eq('provider_id', provider.id)
+        .eq('status', 'termine')
+        .order('accepted_at', { ascending: false })
+        .limit(20);
+
+      if (jobs) {
+        const txs: Transaction[] = jobs.map((j: any) => {
+          const cat = CATEGORIES.find(c => c.key === j.requests?.category);
+          const dateStr = new Date(j.accepted_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+          return {
+            id: j.id,
+            client: j.profiles?.full_name || 'Client',
+            service: `${cat?.label ?? 'Service'} · ${(j.requests?.description ?? '').slice(0, 30)}`,
+            amount: j.price,
+            date: dateStr,
+            method: j.payment_method ?? 'cash',
+          };
+        });
+        setTransactions(txs);
+
+        const monthTotal = jobs
+          .filter((j: any) => new Date(j.accepted_at) >= startOfMonth)
+          .reduce((sum: number, j: any) => sum + (j.price ?? 0), 0);
+        setTotalMonth(monthTotal);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -38,9 +95,8 @@ export default function Earnings() {
           </View>
           <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE CE MOIS</Text>
           <Text style={[text.display, { color: colors.creme, fontSize: 36, marginTop: 4 }]}>
-            127 500 F
+            {totalMonth.toLocaleString('fr-FR')} F
           </Text>
-          <Text style={[text.small, { color: colors.textMutedDark }]}>+14% vs mois dernier</Text>
 
           <View style={styles.withdrawRow}>
             <Pressable style={styles.withdrawBtn}>
@@ -52,57 +108,44 @@ export default function Earnings() {
           </View>
         </View>
 
-        {/* Period toggle */}
-        <View style={styles.toggleRow}>
-          {(['month', 'week'] as const).map(p => (
-            <Pressable key={p} style={[styles.toggleBtn, period === p && styles.toggleActive]} onPress={() => setPeriod(p)}>
-              <Text style={[text.small, { color: period === p ? colors.white : colors.encre }]}>
-                {p === 'month' ? 'Mensuel' : 'Hebdo'}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Chart */}
-        <View style={[styles.chartCard, shadow.card]}>
-          <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.md }]}>REVENUS MENSUELS (FCFA)</Text>
-          <View style={styles.chart}>
-            {VALUES.map((v, i) => (
-              <View key={i} style={styles.bar}>
-                <View style={[styles.barFill, { height: `${(v / MAX) * 100}%`, backgroundColor: i === VALUES.length - 1 ? colors.vert : colors.surface }]} />
-                <Text style={[text.label, { color: colors.textMuted, fontSize: 10 }]}>{MONTHS[i]}</Text>
-              </View>
-            ))}
-          </View>
-        </View>
-
         {/* Transactions */}
         <View style={styles.sectionHead}>
           <Text style={[text.h3, { color: colors.encre }]}>Transactions récentes</Text>
         </View>
-        <View style={{ gap: spacing.md }}>
-          {TRANSACTIONS.map(t => (
-            <View key={t.id} style={[styles.txCard, shadow.card]}>
-              <View style={styles.txLeft}>
-                <Text style={{ fontSize: 22 }}>🔧</Text>
-                <View>
-                  <Text style={[text.bodyMd, { color: colors.encre }]}>{t.client}</Text>
-                  <Text style={[text.small, { color: colors.textMuted }]}>{t.service}</Text>
-                  <Text style={[text.label, { color: colors.textMuted }]}>{t.date}</Text>
+
+        {loading ? (
+          <ActivityIndicator color={colors.vert} style={{ marginTop: 24 }} />
+        ) : transactions.length === 0 ? (
+          <View style={styles.empty}>
+            <TrendingUp size={40} color={colors.border} />
+            <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
+              Aucune transaction pour l'instant.{'\n'}Vos revenus apparaîtront ici après chaque mission.
+            </Text>
+          </View>
+        ) : (
+          <View style={{ gap: spacing.md }}>
+            {transactions.map(t => (
+              <View key={t.id} style={[styles.txCard, shadow.card]}>
+                <View style={styles.txLeft}>
+                  <Text style={{ fontSize: 22 }}>🔧</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[text.bodyMd, { color: colors.encre }]}>{t.client}</Text>
+                    <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={1}>{t.service}</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>{t.date}</Text>
+                  </View>
+                </View>
+                <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                  <Text style={[text.data, { color: colors.encre }]}>+{t.amount.toLocaleString('fr-FR')} F</Text>
+                  <View style={styles.methodBadge}>
+                    <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
+                      {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : 'Mixx'}
+                    </Text>
+                  </View>
                 </View>
               </View>
-              <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                <Text style={[text.data, { color: colors.encre }]}>+{t.amount.toLocaleString('fr-FR')} F</Text>
-                <View style={styles.methodBadge}>
-                  <Phone size={11} color={t.method === 'cash' ? colors.textMuted : colors.vert} />
-                  <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
-                    {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : 'Mixx'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
+            ))}
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -114,18 +157,12 @@ const styles = StyleSheet.create({
   back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
   balanceCard: { backgroundColor: colors.encre, borderRadius: radii.xl, padding: spacing.xl, gap: spacing.sm },
-  balanceIcon: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.encreSoft, alignItems: 'center', justifyContent: 'center' },
+  balanceIcon: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
   withdrawRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   withdrawBtn: { flex: 1, height: 44, borderRadius: radii.md, backgroundColor: colors.creme, alignItems: 'center', justifyContent: 'center' },
-  toggleRow: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radii.md, padding: 4, borderWidth: 1, borderColor: colors.border },
-  toggleBtn: { flex: 1, height: 36, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center' },
-  toggleActive: { backgroundColor: colors.encre },
-  chartCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  chart: { flexDirection: 'row', alignItems: 'flex-end', gap: spacing.sm, height: 120 },
-  bar: { flex: 1, alignItems: 'center', gap: 4, height: '100%', justifyContent: 'flex-end' },
-  barFill: { width: '100%', borderRadius: 4, minHeight: 8 },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  empty: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxxl },
   txCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   txLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flex: 1 },
-  methodBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm },
+  methodBadge: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm },
 });

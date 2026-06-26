@@ -11,14 +11,6 @@ import { Logo } from '../../src/components/Logo';
 import { fetchAdminStats } from '../../src/lib/api';
 import type { AdminStats } from '../../src/lib/types';
 
-const ZONES = [
-  { name: 'Bè-Kpota', requests: 14, pct: 82 },
-  { name: 'Tokoin', requests: 9, pct: 65 },
-  { name: 'Adidogomé', requests: 7, pct: 78 },
-  { name: 'Hédzranawoé', requests: 5, pct: 90 },
-  { name: 'Baguida', requests: 3, pct: 60 },
-];
-
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
@@ -86,25 +78,16 @@ export default function AdminDashboard() {
           </View>
         )}
 
-        {/* Activity by zone */}
+        {/* Activity by zone — populated once real requests arrive */}
         <Text style={[text.h3, { color: colors.encre }]}>Activité par zone — Lomé</Text>
-        <View style={{ gap: spacing.sm }}>
-          {ZONES.map(z => (
-            <View key={z.name} style={[styles.zoneRow, shadow.card]}>
-              <MapPin size={16} color={colors.vert} />
-              <View style={{ flex: 1 }}>
-                <View style={styles.zoneTop}>
-                  <Text style={[text.bodyMd, { color: colors.encre }]}>{z.name}</Text>
-                  <Text style={[text.data, { color: colors.encre }]}>{z.pct}%</Text>
-                </View>
-                <View style={styles.zoneBar}>
-                  <View style={[styles.zoneBarFill, { width: `${z.pct}%` }]} />
-                </View>
-                <Text style={[text.label, { color: colors.textMuted }]}>{z.requests} demandes</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        {stats && stats.openRequests === 0 ? (
+          <View style={[styles.zoneRow, shadow.card]}>
+            <MapPin size={16} color={colors.border} />
+            <Text style={[text.small, { color: colors.textMuted }]}>
+              Aucune demande pour l'instant.
+            </Text>
+          </View>
+        ) : null}
 
         {/* Quick links */}
         <View style={styles.quickLinks}>

@@ -31,7 +31,7 @@ export default function Profile() {
     {
       title: 'Mon compte',
       items: [
-        { icon: <MapPin size={20} color={colors.encre} />, label: 'Mon adresse', value: 'Bè-Kpota, Lomé', onPress: () => router.push('/onboarding/location') },
+        { icon: <MapPin size={20} color={colors.encre} />, label: 'Mon adresse', onPress: () => router.push('/onboarding/location') },
         { icon: <Bell size={20} color={colors.encre} />, label: 'Notifications', onPress: () => router.push('/client/notifications') },
         { icon: <Heart size={20} color={colors.encre} />, label: 'Mes favoris', onPress: () => router.push('/client/favorites') },
       ],

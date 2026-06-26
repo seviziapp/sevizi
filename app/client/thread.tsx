@@ -1,36 +1,57 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, ScrollView, TextInput, Pressable, KeyboardAvoidingView, Platform, ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Wrench, MapPin, Navigation, Send } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
-import { LOME } from '../../src/lib/api';
+import { LOME, fetchMessages, sendMessage } from '../../src/lib/api';
 
 type Bubble = { id: string; me: boolean; text?: string; map?: boolean; time: string };
 
-const SEED: Bubble[] = [
-  { id: '1', me: false, text: 'Bonjour ! Je suis en route. Vous confirmez l\u2019emplacement exact ?', time: '10:02' },
-  { id: '2', me: true, text: 'Oui, je vous partage le point.', time: '10:03' },
-  { id: '3', me: true, map: true, time: '10:03' },
-  { id: '4', me: false, text: 'Parfait, je vous trouve. À tout de suite 👍', time: '10:04' },
-];
-
 export default function Thread() {
   const router = useRouter();
-  const { providerName } = useLocalSearchParams<{ providerName?: string }>();
-  const [msgs, setMsgs] = useState<Bubble[]>(SEED);
+  const { requestId, providerName } = useLocalSearchParams<{ requestId?: string; providerName?: string }>();
+  const [msgs, setMsgs] = useState<Bubble[]>([]);
   const [draft, setDraft] = useState('');
+  const [loading, setLoading] = useState(true);
+  const scrollRef = useRef<ScrollView>(null);
 
-  function send() {
-    if (!draft.trim()) return;
-    setMsgs([...msgs, { id: String(Date.now()), me: true, text: draft, time: '10:05' }]);
+  useEffect(() => {
+    if (!requestId) { setLoading(false); return; }
+    fetchMessages(requestId)
+      .then((data: any[]) => {
+        setMsgs(data.map(m => ({
+          id: m.id,
+          me: m.fromMe,
+          text: m.text,
+          time: new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+        })));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [requestId]);
+
+  async function send() {
+    if (!draft.trim() || !requestId) return;
+    const body = draft.trim();
     setDraft('');
+    const tempId = String(Date.now());
+    const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    setMsgs(prev => [...prev, { id: tempId, me: true, text: body, time: now }]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
+    try {
+      await sendMessage(requestId, body);
+    } catch {
+      setMsgs(prev => prev.filter(m => m.id !== tempId));
+    }
   }
 
   function shareLocation() {
-    setMsgs([...msgs, { id: String(Date.now()), me: true, map: true, time: '10:05' }]);
+    const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    setMsgs(prev => [...prev, { id: String(Date.now()), me: true, map: true, time: now }]);
+    setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }
 
   return (
@@ -41,41 +62,48 @@ export default function Thread() {
         </Pressable>
         <View style={styles.avatar}><Wrench size={18} color={colors.vert} /></View>
         <View>
-          <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName ?? 'Kossi Plomberie'}</Text>
-          <View style={styles.online}>
-            <View style={styles.onlineDot} />
-            <Text style={[text.label, { color: colors.vert }]}>en ligne</Text>
-          </View>
+          <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName ?? 'Prestataire'}</Text>
         </View>
       </View>
 
-      <View style={styles.statusPill}>
-        <Text style={[text.label, { color: colors.textMuted }]}>OFFRE ACCEPTÉE · 4 500 F</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {msgs.map((m) => (
-          <View key={m.id} style={[styles.bubbleRow, m.me ? styles.rowMe : styles.rowThem]}>
-            <View style={[styles.bubble, m.me ? styles.bubbleMe : styles.bubbleThem]}>
-              {m.map ? (
-                <View style={styles.miniMap}>
-                  <MapPin size={22} color={colors.white} fill={colors.vert} />
-                  <View style={styles.miniCoord}>
-                    <Navigation size={10} color={colors.creme} />
-                    <Text style={[text.label, { color: colors.creme, fontSize: 10 }]}>
-                      {LOME.lat.toFixed(4)}° N
-                    </Text>
-                  </View>
-                </View>
-              ) : (
-                <Text style={[text.body, { color: m.me ? colors.white : colors.encre }]}>{m.text}</Text>
-              )}
-              <Text style={[text.label, { color: m.me ? '#BFE6D4' : colors.textMuted, marginTop: 4, fontSize: 10 }]}>
-                {m.time}
-              </Text>
-            </View>
+      <ScrollView
+        ref={scrollRef}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+      >
+        {loading ? (
+          <ActivityIndicator color={colors.vert} style={{ marginTop: 40 }} />
+        ) : msgs.length === 0 ? (
+          <View style={styles.empty}>
+            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
+              Aucun message. Commencez la conversation !
+            </Text>
           </View>
-        ))}
+        ) : (
+          msgs.map(m => (
+            <View key={m.id} style={[styles.bubbleRow, m.me ? styles.rowMe : styles.rowThem]}>
+              <View style={[styles.bubble, m.me ? styles.bubbleMe : styles.bubbleThem]}>
+                {m.map ? (
+                  <View style={styles.miniMap}>
+                    <MapPin size={22} color={colors.white} fill={colors.vert} />
+                    <View style={styles.miniCoord}>
+                      <Navigation size={10} color={colors.creme} />
+                      <Text style={[text.label, { color: colors.creme, fontSize: 10 }]}>
+                        {LOME.lat.toFixed(4)}° N
+                      </Text>
+                    </View>
+                  </View>
+                ) : (
+                  <Text style={[text.body, { color: m.me ? colors.white : colors.encre }]}>{m.text}</Text>
+                )}
+                <Text style={[text.label, { color: m.me ? '#BFE6D4' : colors.textMuted, marginTop: 4, fontSize: 10 }]}>
+                  {m.time}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
 
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -89,6 +117,7 @@ export default function Thread() {
             placeholderTextColor={colors.textMuted}
             value={draft}
             onChangeText={setDraft}
+            onSubmitEditing={send}
           />
           <Pressable style={styles.sendBtn} onPress={send}>
             <Send size={18} color={colors.white} />
@@ -104,10 +133,8 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   avatar: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  online: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
-  onlineDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.vert },
-  statusPill: { alignSelf: 'center', backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: 6, borderRadius: radii.pill, marginVertical: spacing.md },
-  scroll: { paddingHorizontal: spacing.lg, gap: spacing.md, paddingBottom: spacing.lg },
+  scroll: { paddingHorizontal: spacing.lg, gap: spacing.md, paddingVertical: spacing.lg },
+  empty: { alignItems: 'center', paddingTop: spacing.xxxl },
   bubbleRow: { flexDirection: 'row' },
   rowMe: { justifyContent: 'flex-end' },
   rowThem: { justifyContent: 'flex-start' },

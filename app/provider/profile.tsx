@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -7,29 +7,45 @@ import {
   ChevronRight, Bell, LogOut, Settings, Camera,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchProviderReviews } from '../../src/lib/api';
-import type { Review } from '../../src/lib/types';
-
-const PROVIDER = {
-  name: 'Kossi Plomberie',
-  category: 'Plombier',
-  rating: 4.8,
-  reviews: 128,
-  missions: 214,
-  years: 5,
-  responseRate: 96,
-  verified: true,
-  bio: 'Plombier professionnel basé à Lomé depuis 2019. Dépannage, installation, rénovation. Disponible 7j/7.',
-};
+import { fetchMyProviderProfile, fetchProviderReviews } from '../../src/lib/api';
+import { supabase } from '../../src/lib/supabase';
+import { CATEGORIES } from '../../src/lib/types';
+import type { Provider, Review } from '../../src/lib/types';
 
 export default function ProviderProfile() {
   const router = useRouter();
+  const [provider, setProvider] = useState<Provider | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [notifs, setNotifs] = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchProviderReviews('p1').then(setReviews).catch(() => {});
+    fetchMyProviderProfile()
+      .then(p => {
+        if (p) {
+          setProvider(p);
+          fetchProviderReviews(p.id).then(setReviews).catch(() => {});
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
+
+  async function logout() {
+    await supabase.auth.signOut();
+    router.replace('/onboarding/auth');
+  }
+
+  const cat = provider ? CATEGORIES.find(c => c.key === provider.category) : null;
+  const initial = provider?.name?.[0]?.toUpperCase() ?? '?';
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ActivityIndicator color={colors.vert} style={{ marginTop: 80 }} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -38,15 +54,17 @@ export default function ProviderProfile() {
         <View style={styles.hero}>
           <View style={styles.avatarWrap}>
             <View style={styles.avatar}>
-              <Text style={[text.display, { color: colors.creme }]}>K</Text>
+              <Text style={[text.display, { color: colors.creme }]}>{initial}</Text>
             </View>
             <Pressable style={styles.cameraBtn}>
               <Camera size={14} color={colors.white} />
             </Pressable>
           </View>
-          <Text style={[text.h2, { color: colors.encre }]}>{PROVIDER.name}</Text>
-          <Text style={[text.body, { color: colors.textMuted }]}>{PROVIDER.category} · Lomé</Text>
-          {PROVIDER.verified && (
+          <Text style={[text.h2, { color: colors.encre }]}>{provider?.name ?? '—'}</Text>
+          <Text style={[text.body, { color: colors.textMuted }]}>
+            {cat?.label ?? '—'} · Lomé
+          </Text>
+          {provider?.verified && (
             <View style={styles.verifiedBadge}>
               <ShieldCheck size={14} color={colors.vert} />
               <Text style={[text.label, { color: colors.vert }]}>PROFIL VÉRIFIÉ</Text>
@@ -56,20 +74,22 @@ export default function ProviderProfile() {
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          <Stat value={PROVIDER.rating.toFixed(1)} label="Note" icon={<Star size={16} color={colors.soleil} fill={colors.soleil} />} />
+          <Stat value={provider ? provider.rating.toFixed(1) : '—'} label="Note" icon={<Star size={16} color={colors.soleil} fill={colors.soleil} />} />
           <View style={styles.statDiv} />
-          <Stat value={String(PROVIDER.missions)} label="Missions" icon={<Briefcase size={16} color={colors.vert} />} />
+          <Stat value={provider ? String(provider.missions ?? 0) : '—'} label="Missions" icon={<Briefcase size={16} color={colors.vert} />} />
           <View style={styles.statDiv} />
-          <Stat value={`${PROVIDER.years} ans`} label="Expérience" icon={<Clock size={16} color={colors.vert} />} />
+          <Stat value={provider ? `${provider.yearsActive ?? 0} ans` : '—'} label="Expérience" icon={<Clock size={16} color={colors.vert} />} />
           <View style={styles.statDiv} />
-          <Stat value={`${PROVIDER.responseRate}%`} label="Réponse" icon={<TrendingUp size={16} color={colors.vert} />} />
+          <Stat value={provider ? `${provider.responseRate ?? 0}%` : '—'} label="Réponse" icon={<TrendingUp size={16} color={colors.vert} />} />
         </View>
 
         {/* Bio */}
-        <View style={styles.section}>
-          <Text style={[text.label, { color: colors.textMuted }]}>À PROPOS</Text>
-          <Text style={[text.body, { color: colors.encre, marginTop: spacing.sm }]}>{PROVIDER.bio}</Text>
-        </View>
+        {provider?.bio ? (
+          <View style={styles.section}>
+            <Text style={[text.label, { color: colors.textMuted }]}>À PROPOS</Text>
+            <Text style={[text.body, { color: colors.encre, marginTop: spacing.sm }]}>{provider.bio}</Text>
+          </View>
+        ) : null}
 
         {/* Gallery placeholder */}
         <View style={styles.section}>
@@ -78,11 +98,6 @@ export default function ProviderProfile() {
             <Pressable><Text style={[text.small, { color: colors.vert }]}>Ajouter</Text></Pressable>
           </View>
           <View style={styles.gallery}>
-            {[1, 2, 3].map(i => (
-              <View key={i} style={styles.galleryItem}>
-                <Text style={{ fontSize: 28 }}>🔧</Text>
-              </View>
-            ))}
             <Pressable style={[styles.galleryItem, styles.galleryAdd]}>
               <Text style={[text.display, { color: colors.textMuted, fontSize: 28 }]}>+</Text>
             </Pressable>
@@ -92,23 +107,29 @@ export default function ProviderProfile() {
         {/* Reviews */}
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Text style={[text.label, { color: colors.textMuted }]}>AVIS ({PROVIDER.reviews})</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>AVIS ({provider?.reviews ?? 0})</Text>
           </View>
-          <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
-            {reviews.slice(0, 3).map(rv => (
-              <View key={rv.id} style={[styles.reviewCard, shadow.card]}>
-                <View style={styles.reviewHead}>
-                  <Text style={[text.bodyMd, { color: colors.encre }]}>{rv.authorName}</Text>
-                  <View style={styles.stars}>
-                    {Array.from({ length: rv.rating }).map((_, i) => (
-                      <Star key={i} size={12} color={colors.soleil} fill={colors.soleil} />
-                    ))}
+          {reviews.length === 0 ? (
+            <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.sm }]}>
+              Aucun avis pour l'instant.
+            </Text>
+          ) : (
+            <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
+              {reviews.slice(0, 3).map(rv => (
+                <View key={rv.id} style={[styles.reviewCard, shadow.card]}>
+                  <View style={styles.reviewHead}>
+                    <Text style={[text.bodyMd, { color: colors.encre }]}>{rv.authorName}</Text>
+                    <View style={styles.stars}>
+                      {Array.from({ length: rv.rating }).map((_, i) => (
+                        <Star key={i} size={12} color={colors.soleil} fill={colors.soleil} />
+                      ))}
+                    </View>
                   </View>
+                  <Text style={[text.small, { color: colors.textMuted }]}>{rv.comment}</Text>
                 </View>
-                <Text style={[text.small, { color: colors.textMuted }]}>{rv.comment}</Text>
-              </View>
-            ))}
-          </View>
+              ))}
+            </View>
+          )}
         </View>
 
         {/* Settings */}
@@ -123,7 +144,7 @@ export default function ProviderProfile() {
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Paramètres du profil</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
-          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.replace('/onboarding/phone')}>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
             <LogOut size={20} color={colors.terre} />
             <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Se déconnecter</Text>
           </Pressable>
