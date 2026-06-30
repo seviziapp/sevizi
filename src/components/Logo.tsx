@@ -1,29 +1,36 @@
 import React from 'react';
-import Svg, { Path, Circle, Text as SvgText } from 'react-native-svg';
-import { colors } from '../theme/tokens';
+import { Image } from 'react-native';
 
-// Sèvizi mark: classic map pin (circle + downward point) + monogram S.
-export function Logo({ size = 40, fill = colors.vert, letter = colors.creme }: {
-  size?: number; fill?: string; letter?: string;
-}) {
+// Official Sèvizi mark (green map pin with S). Used as the square brand icon.
+// `fill`/`letter` are accepted for backwards compatibility but no longer used
+// now that we render the real brand asset.
+const markSource = require('../../assets/favicon.png');
+
+// favicon.png is 1700×2060 (portrait pin). Keep its aspect ratio at the given height.
+const MARK_RATIO = 1700 / 2060;
+
+export function Logo({ size = 40 }: { size?: number; fill?: string; letter?: string }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 100 120">
-      {/* Circle top of pin */}
-      <Circle cx="50" cy="45" r="35" fill={fill} />
-      {/* Downward point */}
-      <Path d="M 26 68 Q 50 110 74 68 Z" fill={fill} />
-      {/* S monogram */}
-      <SvgText
-        x="50"
-        y="58"
-        fontSize="38"
-        fontWeight="800"
-        fill={letter}
-        textAnchor="middle"
-        fontFamily="HankenGrotesk_800ExtraBold, sans-serif"
-      >
-        S
-      </SvgText>
-    </Svg>
+    <Image
+      source={markSource}
+      style={{ height: size, width: size * MARK_RATIO }}
+      resizeMode="contain"
+      accessibilityLabel="Sèvizi"
+    />
+  );
+}
+
+// Full horizontal lockup (pin + "Sèvizi" wordmark). logo.png is 2400×800 (3:1).
+const fullSource = require('../../assets/logo.png');
+const FULL_RATIO = 2400 / 800;
+
+export function LogoFull({ height = 44 }: { height?: number }) {
+  return (
+    <Image
+      source={fullSource}
+      style={{ height, width: height * FULL_RATIO }}
+      resizeMode="contain"
+      accessibilityLabel="Sèvizi"
+    />
   );
 }

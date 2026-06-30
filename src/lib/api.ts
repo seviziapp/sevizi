@@ -9,6 +9,17 @@ export const LOME: GeoPoint = { lat: 6.1719, lng: 1.2310 };
 
 const hasSupabase = !!process.env.EXPO_PUBLIC_SUPABASE_URL;
 
+// Resolve the signed-in user reliably. getSession() reads the locally persisted
+// session (and refreshes it if needed) without a network round-trip, so it works
+// even right after an OAuth redirect or page reload — unlike getUser(), which can
+// transiently return null and surface as a spurious "Non connecté".
+async function currentUser() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session?.user) return session.user;
+  const fallback = await supabase.auth.getUser();
+  return fallback.data.user ?? null;
+}
+
 // ---- Mock data ----
 
 const mockProviders: Provider[] = [
@@ -133,7 +144,7 @@ export async function createRequest(
   if (!hasSupabase) {
     return { ...input, id: 'r1', clientId: 'me', createdAt: new Date().toISOString(), status: 'ouverte', offersCount: 0 };
   }
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const { data, error } = await supabase
     .from('requests')
@@ -152,7 +163,9 @@ export async function createRequest(
 
 export async function fetchMyRequests(): Promise<ServiceRequest[]> {
   if (!hasSupabase) return mockRequests.filter(r => r.clientId === 'me');
-  const { data, error } = await supabase.from('requests').select('*').eq('client_id', (await supabase.auth.getUser()).data.user?.id).order('created_at', { ascending: false });
+  const user = await currentUser();
+  if (!user) return [];
+  const { data, error } = await supabase.from('requests').select('*').eq('client_id', user.id).order('created_at', { ascending: false });
   if (error) throw error;
   return (data ?? []) as unknown as ServiceRequest[];
 }
@@ -172,7 +185,7 @@ export async function acceptOffer(offerId: string): Promise<void> {
 
 export async function fetchNotifications(): Promise<Notification[]> {
   if (!hasSupabase) return [];
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
   const { data, error } = await supabase
     .from('notifications')
@@ -188,14 +201,14 @@ export async function fetchNotifications(): Promise<Notification[]> {
 
 export async function markAllNotificationsRead(): Promise<void> {
   if (!hasSupabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return;
   await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
 }
 
 export async function fetchCurrentJob(): Promise<Job | null> {
   if (!hasSupabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return null;
   const { data, error } = await supabase
     .from('jobs')
@@ -222,7 +235,7 @@ export async function updateJobStatus(jobId: string, status: Job['status']): Pro
 
 export async function fetchFavorites(): Promise<Provider[]> {
   if (!hasSupabase) return [mockProviders[0], mockProviders[4]];
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
   const { data, error } = await supabase
     .from('favorites')
@@ -241,21 +254,21 @@ export async function fetchFavorites(): Promise<Provider[]> {
 
 export async function addFavorite(providerId: string): Promise<void> {
   if (!hasSupabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return;
   await supabase.from('favorites').upsert({ user_id: user.id, provider_id: providerId });
 }
 
 export async function removeFavorite(providerId: string): Promise<void> {
   if (!hasSupabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return;
   await supabase.from('favorites').delete().eq('user_id', user.id).eq('provider_id', providerId);
 }
 
 export async function isFavorite(providerId: string): Promise<boolean> {
   if (!hasSupabase) return false;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return false;
   const { data } = await supabase.from('favorites').select('id').eq('user_id', user.id).eq('provider_id', providerId).single();
   return !!data;
@@ -265,7 +278,7 @@ export async function isFavorite(providerId: string): Promise<boolean> {
 
 export async function fetchThreads(): Promise<any[]> {
   if (!hasSupabase) return [];
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return [];
   const { data, error } = await supabase
     .from('messages')
@@ -289,7 +302,7 @@ export async function fetchMessages(requestId: string): Promise<any[]> {
 
 export async function sendMessage(requestId: string, body: string): Promise<void> {
   if (!hasSupabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return;
   const { error } = await supabase.from('messages').insert({ request_id: requestId, sender_id: user.id, body });
   if (error) throw error;
@@ -311,7 +324,7 @@ export type MyProfile = {
 
 export async function fetchMyProfile(): Promise<MyProfile | null> {
   if (!hasSupabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return null;
   const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
   if (!data) return null;
@@ -332,7 +345,7 @@ export async function fetchMyProfile(): Promise<MyProfile | null> {
 
 // Upload a document blob to Supabase Storage and return its public URL.
 export async function uploadDocument(blob: Blob, folder: string, filename: string): Promise<string> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
   const path = `${folder}/${user.id}-${Date.now()}.${ext}`;
@@ -344,7 +357,7 @@ export async function uploadDocument(blob: Blob, folder: string, filename: strin
 
 // Client finishes signup: first/last name, phone, email.
 export async function saveClientDetails(input: { firstName: string; lastName: string; phone: string; email: string }): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const fullName = `${input.firstName} ${input.lastName}`.trim();
   const { error } = await supabase.from('profiles').upsert({
@@ -364,7 +377,7 @@ export async function saveClientDetails(input: { firstName: string; lastName: st
 export async function saveProviderDetails(input: {
   companyName: string; ownerName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
 }): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   // profile (owner identity)
   const { error: pErr } = await supabase.from('profiles').upsert({
@@ -397,7 +410,7 @@ export async function saveProviderDetails(input: {
 
 // Client submits ID for verification.
 export async function submitClientVerification(idDocUrl: string): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
   await supabase.from('profiles').update({ id_doc_url: idDocUrl }).eq('id', user.id);
@@ -413,7 +426,7 @@ export async function submitClientVerification(idDocUrl: string): Promise<void> 
 
 // Provider submits company info + owner's license for verification.
 export async function submitProviderVerification(input: { companyInfo: string; tradeDocUrl?: string; idDocUrl?: string }): Promise<void> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const { data: provider } = await supabase.from('providers').select('id, name').eq('user_id', user.id).single();
   if (!provider) throw new Error('Profil prestataire introuvable');
@@ -433,7 +446,7 @@ export async function submitProviderVerification(input: { companyInfo: string; t
 // Current user's verification state, for showing badges / status.
 export async function fetchMyVerificationStatus(): Promise<'none' | 'pending' | 'approved' | 'rejected'> {
   if (!hasSupabase) return 'none';
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return 'none';
   const { data } = await supabase
     .from('verification_requests')
@@ -447,7 +460,7 @@ export async function fetchMyVerificationStatus(): Promise<'none' | 'pending' | 
 
 export async function fetchMyProviderProfile(): Promise<Provider | null> {
   if (!hasSupabase) return null;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return null;
   const { data } = await supabase.from('providers').select('*').eq('user_id', user.id).single();
   if (!data) return null;
@@ -464,7 +477,7 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
 export async function fetchProviderStats(): Promise<ProviderStats> {
   const empty: ProviderStats = { openRequests: 0, sentOffers: 0, completedJobs: 0, rating: 0, earnings: 0, responseRate: 0 };
   if (!hasSupabase) return empty;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) return empty;
   const { data: provider } = await supabase.from('providers').select('id, rating, response_rate').eq('user_id', user.id).single();
   if (!provider) return empty;
@@ -496,7 +509,7 @@ export async function fetchNearbyRequests(category?: ServiceCategory): Promise<S
 
 export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string }): Promise<void> {
   if (!hasSupabase) return;
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const { data: providerData } = await supabase.from('providers').select('id').eq('user_id', user.id).single();
   if (!providerData) throw new Error('Profil prestataire introuvable');
@@ -509,7 +522,9 @@ export async function sendOffer(input: { requestId: string; price: number; avail
 
 export async function toggleOnline(online: boolean): Promise<void> {
   if (!hasSupabase) return;
-  const { error } = await supabase.from('providers').update({ online }).eq('user_id', (await supabase.auth.getUser()).data.user?.id);
+  const user = await currentUser();
+  if (!user) return;
+  const { error } = await supabase.from('providers').update({ online }).eq('user_id', user.id);
   if (error) throw error;
 }
 

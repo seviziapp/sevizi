@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
-import { Logo } from '../../src/components/Logo';
+import { LogoFull } from '../../src/components/Logo';
 import { supabase } from '../../src/lib/supabase';
 
 export default function Auth() {
@@ -62,8 +62,7 @@ export default function Auth() {
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Logo */}
           <View style={styles.logoRow}>
-            <Logo size={48} />
-            <Text style={[text.display, { color: colors.encre }]}>Sèvizi</Text>
+            <LogoFull height={52} />
           </View>
 
           <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>
