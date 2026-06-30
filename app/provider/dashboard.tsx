@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
-import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob } from '../../src/lib/api';
+import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications } from '../../src/lib/api';
 import type { ProviderStats, ServiceRequest } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
 
@@ -16,13 +16,23 @@ export default function ProviderDashboard() {
   const [online, setOnline] = useState(true);
   const [providerName, setProviderName] = useState('');
   const [activeJob, setActiveJob] = useState<any>(null);
+  const [unread, setUnread] = useState(0);
+
+  const refreshLive = useCallback(() => {
+    fetchNearbyRequests().then(r => setRequests(r.slice(0, 3))).catch(() => {});
+    fetchCurrentJob().then(setActiveJob).catch(() => {});
+    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchProviderStats().then(setStats).catch(() => {});
-    fetchNearbyRequests().then(r => setRequests(r.slice(0, 3))).catch(() => {});
     fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); } }).catch(() => {});
-    fetchCurrentJob().then(setActiveJob).catch(() => {});
-  }, []);
+    refreshLive();
+    const t = setInterval(refreshLive, 20000);
+    return () => clearInterval(t);
+  }, [refreshLive]);
+
+  useFocusEffect(useCallback(() => { refreshLive(); }, [refreshLive]));
 
   async function handleToggle(v: boolean) {
     setOnline(v);
@@ -43,7 +53,11 @@ export default function ProviderDashboard() {
           </View>
           <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
             <Bell size={20} color={colors.encre} />
-            <View style={styles.badge} />
+            {unread > 0 && (
+              <View style={styles.badge}>
+                <Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text>
+              </View>
+            )}
           </Pressable>
         </View>
 
@@ -160,7 +174,7 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   bell: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  badge: { position: 'absolute', top: 10, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: colors.terre },
+  badge: { position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 8, backgroundColor: colors.terre, alignItems: 'center', justifyContent: 'center' },
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderRadius: radii.lg, borderWidth: 1 },
   toggleOnline: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
   toggleOffline: { borderColor: colors.border, backgroundColor: colors.white },

@@ -8,6 +8,15 @@
 -- notification for the right recipient automatically.
 
 -- ------------------------------------------------------------------
+-- 0. Denormalize the client's name/phone onto the job.
+--    profiles RLS only lets a user read their OWN profile, so a provider
+--    cannot look up the client's contact details. The client (who is allowed
+--    to read their own profile) writes them onto the job when accepting.
+-- ------------------------------------------------------------------
+alter table jobs add column if not exists client_name  text;
+alter table jobs add column if not exists client_phone text;
+
+-- ------------------------------------------------------------------
 -- 1. Let the request's client accept (update) offers on their request
 -- ------------------------------------------------------------------
 drop policy if exists "client accepts offer" on offers;

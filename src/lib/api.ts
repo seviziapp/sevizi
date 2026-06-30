@@ -228,12 +228,19 @@ export async function fetchMyRequestsWithOffers(): Promise<(ServiceRequest & { o
 // to "en_cours". A DB trigger then notifies the provider. Returns the new job id.
 export async function acceptOffer(offerId: string): Promise<{ jobId: string; price: number; providerName: string }> {
   if (!hasSupabase) return { jobId: 'j1', price: 0, providerName: 'Prestataire' };
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+
   const { data: offer, error: oErr } = await supabase
     .from('offers')
     .select('id, price, request_id, provider_id, request:requests(client_id), provider:providers(name)')
     .eq('id', offerId)
     .single();
   if (oErr || !offer) throw new Error('Offre introuvable');
+
+  // The client may read their own profile, so capture name/phone here and store
+  // them on the job — the provider can't read the client's profile directly.
+  const { data: me } = await supabase.from('profiles').select('full_name, phone').eq('id', user.id).single();
 
   await supabase.from('offers').update({ accepted: true }).eq('id', offerId);
 
@@ -246,6 +253,8 @@ export async function acceptOffer(offerId: string): Promise<{ jobId: string; pri
       client_id: (offer as any).request?.client_id,
       price: offer.price,
       status: 'accepte',
+      client_name: me?.full_name ?? null,
+      client_phone: me?.phone ?? null,
     })
     .select('id')
     .single();
@@ -285,25 +294,40 @@ export async function markAllNotificationsRead(): Promise<void> {
   await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
 }
 
+// The current (non-finished) job for either party — a client sees the job on
+// their request, a provider sees the job assigned to their provider profile.
 export async function fetchCurrentJob(): Promise<Job | null> {
   if (!hasSupabase) return null;
   const user = await currentUser();
   if (!user) return null;
-  const { data, error } = await supabase
+
+  // Is this user a provider? If so, also match jobs on their provider profile.
+  const { data: prov } = await supabase.from('providers').select('id').eq('user_id', user.id).maybeSingle();
+
+  let q = supabase
     .from('jobs')
-    .select('*, provider:providers(*)')
-    .eq('client_id', user.id)
+    .select('*, provider:providers(*), request:requests(description, location_label)')
     .not('status', 'eq', 'termine')
     .order('accepted_at', { ascending: false })
-    .limit(1)
-    .single();
-  if (error) return null;
-  return data ? {
+    .limit(1);
+
+  q = prov?.id
+    ? q.or(`client_id.eq.${user.id},provider_id.eq.${prov.id}`)
+    : q.eq('client_id', user.id);
+
+  const { data, error } = await q.maybeSingle();
+  if (error || !data) return null;
+
+  return {
     id: data.id, requestId: data.request_id, price: data.price,
     status: data.status, acceptedAt: data.accepted_at,
     provider: data.provider as any,
-    clientName: '', locationLabel: '', location: LOME,
-  } : null;
+    clientName: data.client_name ?? 'Client',
+    clientPhone: data.client_phone ?? undefined,
+    description: (data as any).request?.description ?? '',
+    locationLabel: (data as any).request?.location_label ?? '',
+    location: LOME,
+  };
 }
 
 export async function updateJobStatus(jobId: string, status: Job['status']): Promise<void> {
