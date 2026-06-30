@@ -21,15 +21,23 @@ export default function SendOffer() {
   const [eta, setEta] = useState('Sous 2h');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const cat = CATEGORIES.find(c => c.key === category);
 
   async function submit() {
     if (!price) return;
+    setError('');
     setLoading(true);
     try {
       await sendOffer({ requestId: requestId ?? 'r1', price: parseInt(price, 10), availability: eta, message: note || undefined });
       router.back();
+    } catch (e: any) {
+      const msg = e?.message ?? '';
+      if (msg === 'Non connecté') { router.replace('/onboarding/auth'); return; }
+      setError(msg === 'Profil prestataire introuvable'
+        ? 'Complétez votre profil prestataire avant d\'envoyer une offre.'
+        : (msg || "Impossible d'envoyer l'offre. Réessayez."));
     } finally {
       setLoading(false);
     }
@@ -124,6 +132,7 @@ export default function SendOffer() {
         </ScrollView>
 
         <View style={styles.footer}>
+          {!!error && <Text style={styles.error}>{error}</Text>}
           <Button
             label="Envoyer l'offre Express"
             icon={<Send size={18} color={colors.white} />}
@@ -153,5 +162,6 @@ const styles = StyleSheet.create({
   textarea: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.lg, minHeight: 80, ...text.body, color: colors.encre },
   preview: { gap: spacing.sm },
   previewCard: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.xs },
-  footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme },
+  footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme, gap: spacing.sm },
+  error: { color: colors.terre, fontSize: 14, textAlign: 'center' },
 });

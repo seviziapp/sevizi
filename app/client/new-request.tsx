@@ -17,11 +17,13 @@ export default function NewRequest() {
   const [category, setCategory] = useState<ServiceCategory>((catParam as ServiceCategory) ?? 'plomberie');
   const [urgent, setUrgent] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [location, setLocation] = useState<GeoPoint>(LOME);
   const [locationLabel, setLocationLabel] = useState('Bè-Kpota, Lomé');
 
   async function publish() {
     if (!desc.trim()) return;
+    setError('');
     setLoading(true);
     try {
       const req = await createRequest({
@@ -32,6 +34,14 @@ export default function NewRequest() {
         locationLabel,
       });
       router.replace({ pathname: '/client/offers', params: { requestId: req.id } });
+    } catch (e: any) {
+      const msg = e?.message ?? '';
+      if (msg === 'Non connecté') {
+        // session expired or not signed in — send them to login
+        router.replace('/onboarding/auth');
+        return;
+      }
+      setError(msg || "Impossible de publier la demande. Réessayez.");
     } finally {
       setLoading(false);
     }
@@ -104,6 +114,7 @@ export default function NewRequest() {
       </ScrollView>
 
       <View style={styles.footer}>
+        {!!error && <Text style={styles.error}>{error}</Text>}
         <Button
           label="Publier ma demande"
           icon={<ArrowRight size={20} color={colors.white} />}
@@ -155,5 +166,6 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white,
   },
   urgentActive: { borderColor: colors.terre, backgroundColor: '#F8E2DA' },
-  footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme },
+  footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme, gap: spacing.sm },
+  error: { color: colors.terre, fontSize: 14, textAlign: 'center' },
 });
