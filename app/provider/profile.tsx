@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyProviderProfile, fetchProviderReviews } from '../../src/lib/api';
@@ -138,6 +138,15 @@ export default function ProviderProfile() {
             <Bell size={20} color={colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Notifications</Text>
             <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
+          </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/verification')}>
+            <ShieldCheck size={20} color={provider?.verified ? colors.vert : colors.encre} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
+              {provider?.verified ? 'Entreprise vérifiée' : 'Vérifier mon entreprise'}
+            </Text>
+            {provider?.verified
+              ? <Check size={18} color={colors.vert} />
+              : <ChevronRight size={18} color={colors.textMuted} />}
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]}>
             <Settings size={20} color={colors.encre} />

@@ -139,11 +139,14 @@ export interface AdminStats {
 
 export interface VerificationRequest {
   id: string;
-  providerName: string;
-  category: ServiceCategory;
+  displayName: string;
+  type: 'client' | 'provider';
+  category?: ServiceCategory;
   submittedAt: string;
   status: 'pending' | 'approved' | 'rejected';
-  idDoc?: string;
+  idDocUrl?: string;
+  tradeDocUrl?: string;
+  companyInfo?: string;
 }
 
 export interface Dispute {

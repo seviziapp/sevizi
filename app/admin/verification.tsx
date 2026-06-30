@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Check, X, ShieldCheck, Clock } from 'lucide-react-native';
+import { Check, X, ShieldCheck, Clock, FileText } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchVerificationQueue, approveVerification, rejectVerification } from '../../src/lib/api';
 import { CATEGORIES, type VerificationRequest } from '../../src/lib/types';
@@ -75,24 +75,33 @@ export default function Verification() {
   );
 }
 
+function openDoc(url?: string) {
+  if (!url) return;
+  if (Platform.OS === 'web') window.open(url, '_blank');
+  else Linking.openURL(url);
+}
+
 function VerifCard({ item, onApprove, onReject, readonly }: {
   item: VerificationRequest; onApprove?: () => void; onReject?: () => void; readonly?: boolean;
 }) {
-  const cat = CATEGORIES.find(c => c.key === item.category);
+  const cat = item.category ? CATEGORIES.find(c => c.key === item.category) : null;
   const statusColor = item.status === 'approved' ? colors.vert : item.status === 'rejected' ? colors.terre : colors.soleil;
   const statusLabel = item.status === 'approved' ? 'Approuvé' : item.status === 'rejected' ? 'Rejeté' : 'En attente';
+  const isProvider = item.type === 'provider';
 
   return (
     <View style={[styles.card, shadow.card]}>
       <View style={styles.cardTop}>
-        <View style={styles.avatar}>
-          <Text style={[text.h3, { color: colors.creme }]}>{item.providerName[0]}</Text>
+        <View style={[styles.avatar, !isProvider && { backgroundColor: colors.soleil }]}>
+          <Text style={[text.h3, { color: colors.creme }]}>{(item.displayName || '?')[0]}</Text>
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={[text.bodyMd, { color: colors.encre }]}>{item.providerName}</Text>
+          <Text style={[text.bodyMd, { color: colors.encre }]}>{item.displayName}</Text>
           <View style={styles.catRow}>
-            <Text style={{ fontSize: 14 }}>{cat?.emoji}</Text>
-            <Text style={[text.small, { color: colors.textMuted }]}>{cat?.label}</Text>
+            <View style={styles.typeBadge}>
+              <Text style={[text.label, { color: colors.encre }]}>{isProvider ? 'PRESTATAIRE' : 'CLIENT'}</Text>
+            </View>
+            {cat && <Text style={[text.small, { color: colors.textMuted }]}>{cat.emoji} {cat.label}</Text>}
           </View>
           <View style={styles.metaRow}>
             <Clock size={12} color={colors.textMuted} />
@@ -104,9 +113,30 @@ function VerifCard({ item, onApprove, onReject, readonly }: {
         </View>
       </View>
 
-      {/* ID doc placeholder */}
-      <View style={styles.docPlaceholder}>
-        <Text style={[text.small, { color: colors.textMuted }]}>📄 Pièce d'identité · Document de métier</Text>
+      {/* Company info text (provider) */}
+      {!!item.companyInfo && (
+        <View style={styles.infoBox}>
+          <Text style={[text.small, { color: colors.encre }]}>{item.companyInfo}</Text>
+        </View>
+      )}
+
+      {/* Document links */}
+      <View style={styles.docRow}>
+        {item.idDocUrl && (
+          <Pressable style={styles.docChip} onPress={() => openDoc(item.idDocUrl)}>
+            <FileText size={14} color={colors.vert} />
+            <Text style={[text.label, { color: colors.vert }]}>Pièce d'identité</Text>
+          </Pressable>
+        )}
+        {item.tradeDocUrl && (
+          <Pressable style={styles.docChip} onPress={() => openDoc(item.tradeDocUrl)}>
+            <FileText size={14} color={colors.vert} />
+            <Text style={[text.label, { color: colors.vert }]}>Licence / métier</Text>
+          </Pressable>
+        )}
+        {!item.idDocUrl && !item.tradeDocUrl && (
+          <Text style={[text.label, { color: colors.textMuted }]}>Aucun document joint</Text>
+        )}
       </View>
 
       {!readonly && (
@@ -134,10 +164,13 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.md, borderWidth: 1, borderColor: colors.border },
   cardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
   avatar: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
-  catRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
+  catRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: 4 },
+  typeBadge: { backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   statusBadge: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
-  docPlaceholder: { backgroundColor: colors.surface, borderRadius: radii.sm, padding: spacing.md, borderWidth: 1, borderStyle: 'dashed', borderColor: colors.border },
+  infoBox: { backgroundColor: colors.surface, borderRadius: radii.sm, padding: spacing.md },
+  docRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  docChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F2FBF6', borderWidth: 1, borderColor: colors.vert, borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },
   actions: { flexDirection: 'row', gap: spacing.md },
   rejectBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 44, borderRadius: radii.md, borderWidth: 1, borderColor: colors.terre },
   approveBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 44, borderRadius: radii.md, backgroundColor: colors.vert },

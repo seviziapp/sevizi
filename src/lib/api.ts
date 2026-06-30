@@ -297,7 +297,19 @@ export async function sendMessage(requestId: string, body: string): Promise<void
 
 // ---- PROFILE ----
 
-export async function fetchMyProfile(): Promise<{ id: string; fullName: string; phone: string; role: string } | null> {
+export type MyProfile = {
+  id: string;
+  fullName: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email: string;
+  role: string;
+  verified: boolean;
+  onboarded: boolean;
+};
+
+export async function fetchMyProfile(): Promise<MyProfile | null> {
   if (!hasSupabase) return null;
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
@@ -306,9 +318,131 @@ export async function fetchMyProfile(): Promise<{ id: string; fullName: string; 
   return {
     id: data.id,
     fullName: data.full_name ?? user.user_metadata?.full_name ?? user.email ?? 'Utilisateur',
+    firstName: data.first_name ?? '',
+    lastName: data.last_name ?? '',
     phone: data.phone ?? user.phone ?? '',
+    email: data.email ?? user.email ?? '',
     role: data.role,
+    verified: !!data.verified,
+    onboarded: !!data.onboarded,
   };
+}
+
+// ---- SIGNUP DETAILS + VERIFICATION ----
+
+// Upload a document blob to Supabase Storage and return its public URL.
+export async function uploadDocument(blob: Blob, folder: string, filename: string): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
+  const path = `${folder}/${user.id}-${Date.now()}.${ext}`;
+  const { error } = await supabase.storage.from('documents').upload(path, blob, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from('documents').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// Client finishes signup: first/last name, phone, email.
+export async function saveClientDetails(input: { firstName: string; lastName: string; phone: string; email: string }): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  const fullName = `${input.firstName} ${input.lastName}`.trim();
+  const { error } = await supabase.from('profiles').upsert({
+    id: user.id,
+    role: 'client',
+    first_name: input.firstName,
+    last_name: input.lastName,
+    full_name: fullName,
+    phone: input.phone,
+    email: input.email,
+    onboarded: true,
+  });
+  if (error) throw error;
+}
+
+// Provider finishes signup: company name, owner name, category, phone.
+export async function saveProviderDetails(input: {
+  companyName: string; ownerName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
+}): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  // profile (owner identity)
+  const { error: pErr } = await supabase.from('profiles').upsert({
+    id: user.id,
+    role: 'prestataire',
+    full_name: input.ownerName,
+    phone: input.phone,
+    email: input.email,
+    onboarded: true,
+  });
+  if (pErr) throw pErr;
+  // provider business row (create if missing, else update)
+  const { data: existing } = await supabase.from('providers').select('id').eq('user_id', user.id).single();
+  if (existing) {
+    const { error } = await supabase.from('providers').update({
+      name: input.companyName, category: input.category, bio: input.bio ?? null,
+    }).eq('id', existing.id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from('providers').insert({
+      user_id: user.id,
+      name: input.companyName,
+      category: input.category,
+      bio: input.bio ?? null,
+      geo: `POINT(${LOME.lng} ${LOME.lat})`,
+    });
+    if (error) throw error;
+  }
+}
+
+// Client submits ID for verification.
+export async function submitClientVerification(idDocUrl: string): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+  await supabase.from('profiles').update({ id_doc_url: idDocUrl }).eq('id', user.id);
+  const { error } = await supabase.from('verification_requests').insert({
+    user_id: user.id,
+    type: 'client',
+    display_name: profile?.full_name ?? 'Client',
+    id_doc_url: idDocUrl,
+    status: 'pending',
+  });
+  if (error) throw error;
+}
+
+// Provider submits company info + owner's license for verification.
+export async function submitProviderVerification(input: { companyInfo: string; tradeDocUrl?: string; idDocUrl?: string }): Promise<void> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: provider } = await supabase.from('providers').select('id, name').eq('user_id', user.id).single();
+  if (!provider) throw new Error('Profil prestataire introuvable');
+  const { error } = await supabase.from('verification_requests').insert({
+    user_id: user.id,
+    provider_id: provider.id,
+    type: 'provider',
+    display_name: provider.name,
+    company_info: input.companyInfo,
+    trade_doc_url: input.tradeDocUrl ?? null,
+    id_doc_url: input.idDocUrl ?? null,
+    status: 'pending',
+  });
+  if (error) throw error;
+}
+
+// Current user's verification state, for showing badges / status.
+export async function fetchMyVerificationStatus(): Promise<'none' | 'pending' | 'approved' | 'rejected'> {
+  if (!hasSupabase) return 'none';
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return 'none';
+  const { data } = await supabase
+    .from('verification_requests')
+    .select('status')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+  return (data?.status as any) ?? 'none';
 }
 
 export async function fetchMyProviderProfile(): Promise<Provider | null> {
@@ -408,18 +542,33 @@ export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
     .order('created_at', { ascending: false });
   if (error) return [];
   return (data ?? []).map((v: any) => ({
-    id: v.id, providerName: v.provider?.name ?? '', category: v.provider?.category ?? '',
-    submittedAt: v.created_at, status: v.status,
+    id: v.id,
+    type: v.type ?? 'provider',
+    displayName: v.display_name ?? v.provider?.name ?? 'Sans nom',
+    category: v.provider?.category,
+    submittedAt: v.created_at,
+    status: v.status,
+    idDocUrl: v.id_doc_url ?? undefined,
+    tradeDocUrl: v.trade_doc_url ?? undefined,
+    companyInfo: v.company_info ?? undefined,
   }));
 }
 
 export async function approveVerification(id: string): Promise<void> {
   if (!hasSupabase) return;
-  const { data: vr } = await supabase.from('verification_requests').select('provider_id').eq('id', id).single();
-  await Promise.all([
-    supabase.from('verification_requests').update({ status: 'approved', reviewed_at: new Date().toISOString() }).eq('id', id),
-    vr && supabase.from('providers').update({ verified: true }).eq('id', vr.provider_id),
-  ]);
+  const { data: vr } = await supabase
+    .from('verification_requests')
+    .select('provider_id, user_id, type')
+    .eq('id', id)
+    .single();
+  await supabase.from('verification_requests')
+    .update({ status: 'approved', reviewed_at: new Date().toISOString() })
+    .eq('id', id);
+  if (vr?.type === 'client' && vr.user_id) {
+    await supabase.from('profiles').update({ verified: true }).eq('id', vr.user_id);
+  } else if (vr?.provider_id) {
+    await supabase.from('providers').update({ verified: true }).eq('id', vr.provider_id);
+  }
 }
 
 export async function rejectVerification(id: string): Promise<void> {

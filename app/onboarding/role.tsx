@@ -58,13 +58,13 @@ export default function RoleScreen() {
                 await supabase.from('profiles').upsert({
                   id: user.id,
                   role,
-                  full_name: user.user_metadata?.full_name ?? null,
-                  phone: user.phone ?? null,
+                  email: user.email ?? null,
+                  onboarded: false,
                 });
               }
             } catch {}
             setLoading(false);
-            router.replace(role === 'client' ? '/client/home' : '/provider/dashboard');
+            router.replace(role === 'client' ? '/onboarding/client-details' : '/onboarding/provider-details');
           }}
         />
       </View>

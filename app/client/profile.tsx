@@ -12,7 +12,7 @@ import { fetchMyProfile } from '../../src/lib/api';
 
 export default function Profile() {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ fullName: string; phone: string; role: string } | null>(null);
+  const [profile, setProfile] = useState<{ fullName: string; phone: string; role: string; verified: boolean } | null>(null);
 
   useEffect(() => {
     fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(() => {});
@@ -62,8 +62,16 @@ export default function Profile() {
           </View>
           <Text style={[text.h2, { color: colors.encre }]}>{displayName}</Text>
           {!!displayPhone && <Text style={[text.small, { color: colors.textMuted }]}>{displayPhone}</Text>}
-          <View style={styles.roleBadge}>
-            <Text style={[text.label, { color: colors.vert }]}>{(profile?.role ?? 'client').toUpperCase()}</Text>
+          <View style={styles.badgeRow}>
+            <View style={styles.roleBadge}>
+              <Text style={[text.label, { color: colors.vert }]}>{(profile?.role ?? 'client').toUpperCase()}</Text>
+            </View>
+            {profile?.verified && (
+              <View style={styles.verifiedBadge}>
+                <ShieldCheck size={12} color={colors.vert} />
+                <Text style={[text.label, { color: colors.vert }]}>VÉRIFIÉ</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -105,7 +113,9 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
   head: { alignItems: 'center', gap: spacing.xs, marginTop: spacing.lg },
   avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
-  roleBadge: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.pill, marginTop: spacing.xs },
+  badgeRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  roleBadge: { backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.pill },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F2FBF6', borderWidth: 1, borderColor: colors.vert, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.pill },
   list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   itemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
