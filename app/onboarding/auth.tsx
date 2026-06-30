@@ -27,8 +27,17 @@ export default function Auth() {
         const { error: e } = await supabase.auth.signInWithPassword({ email, password });
         if (e) throw e;
       } else {
-        const { error: e } = await supabase.auth.signUp({ email, password });
+        const { data, error: e } = await supabase.auth.signUp({ email, password });
         if (e) throw e;
+        // If Supabase requires email confirmation, signUp returns no session.
+        // Don't drop the user into the app with no session (it would fail with
+        // "Non connecté"); ask them to confirm, then log in.
+        if (!data.session) {
+          setMode('login');
+          setError('Compte créé ✅ Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
+          setLoading(false);
+          return;
+        }
       }
       router.replace('/');
     } catch (e: any) {
