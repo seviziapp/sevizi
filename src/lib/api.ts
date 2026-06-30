@@ -318,10 +318,19 @@ export async function fetchCurrentJob(): Promise<Job | null> {
   const { data, error } = await q.maybeSingle();
   if (error || !data) return null;
 
+  const p: any = (data as any).provider;
+  const provider: Provider | undefined = p ? {
+    id: p.id, name: p.name ?? 'Prestataire', category: p.category,
+    rating: p.rating ?? 0, reviews: p.reviews ?? 0,
+    verified: !!p.verified, online: !!p.online,
+    missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
+    bio: p.bio, distanceKm: 0, location: LOME,
+  } : undefined;
+
   return {
     id: data.id, requestId: data.request_id, price: data.price,
     status: data.status, acceptedAt: data.accepted_at,
-    provider: data.provider as any,
+    provider,
     clientName: data.client_name ?? 'Client',
     clientPhone: data.client_phone ?? undefined,
     description: (data as any).request?.description ?? '',

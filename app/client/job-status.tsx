@@ -34,13 +34,16 @@ export default function JobStatus() {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
           <Text style={{ fontSize: 48 }}>🔍</Text>
           <Text style={[text.body, { color: colors.textMuted }]}>Aucune mission en cours.</Text>
-          <Pressable style={styles.backBtn} onPress={() => router.back()}>
-            <Text style={[text.bodyMd, { color: colors.vert }]}>Retour</Text>
+          <Pressable style={styles.backBtn} onPress={() => router.replace('/client/home')}>
+            <Text style={[text.bodyMd, { color: colors.vert }]}>Retour à l'accueil</Text>
           </Pressable>
         </View>
       </SafeAreaView>
     );
   }
+
+  const providerName = job.provider?.name ?? 'Prestataire';
+  const providerRating = job.provider?.rating ?? 0;
 
   if (showReview) {
     return (
@@ -49,7 +52,7 @@ export default function JobStatus() {
           <Text style={{ fontSize: 56 }}>⭐</Text>
           <Text style={[text.h1, { color: colors.encre, textAlign: 'center' }]}>Mission terminée !</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Notez votre expérience avec {job.provider.name}
+            Notez votre expérience avec {providerName}
           </Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map(i => (
@@ -83,24 +86,21 @@ export default function JobStatus() {
         {/* Provider card */}
         <View style={[styles.providerCard, shadow.card]}>
           <View style={styles.providerAvatar}>
-            <Text style={[text.h2, { color: colors.creme }]}>K</Text>
+            <Text style={[text.h2, { color: colors.creme }]}>{providerName[0]?.toUpperCase() ?? 'P'}</Text>
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[text.bodyMd, { color: colors.encre }]}>{job.provider.name}</Text>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName}</Text>
             <View style={styles.metaRow}>
               <Star size={12} color={colors.soleil} fill={colors.soleil} />
-              <Text style={[text.label, { color: colors.textMuted }]}>{job.provider.rating.toFixed(1)}</Text>
-              <Text style={[text.label, { color: colors.textMuted }]}>· {job.provider.distanceKm.toFixed(1)} km</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{providerRating.toFixed(1)}</Text>
+              {!!job.description && (
+                <Text style={[text.label, { color: colors.textMuted }]} numberOfLines={1}>· {job.description}</Text>
+              )}
             </View>
           </View>
-          <View style={styles.actions}>
-            <Pressable style={styles.actionBtn}>
-              <Phone size={18} color={colors.vert} />
-            </Pressable>
-            <Pressable style={styles.actionBtn}>
-              <Navigation size={18} color={colors.vert} />
-            </Pressable>
-          </View>
+          <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/client/thread', params: { requestId: job.requestId, providerName } })}>
+            <Phone size={18} color={colors.vert} />
+          </Pressable>
         </View>
 
         {/* Price & payment */}

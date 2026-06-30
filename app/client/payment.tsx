@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, Phone, Banknote } from 'lucide-react-native';
@@ -8,10 +8,13 @@ import { Button } from '../../src/components/Button';
 import { setJobPaymentMethod } from '../../src/lib/api';
 import type { PaymentMethod } from '../../src/lib/types';
 
-const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji: string; color: string }[] = [
-  { key: 'cash',  label: 'Espèces',      subtitle: 'Paiement à la fin de la mission', emoji: '💵', color: '#10B981' },
-  { key: 'flooz', label: 'Flooz',        subtitle: '',                                emoji: '📱', color: '#F97316' },
-  { key: 'mixx',  label: 'Mixx by Yas',  subtitle: '',                                emoji: '📲', color: '#3B82F6' },
+const FLOOZ_LOGO = require('../../assets/flooz.png');
+const MIXX_LOGO = require('../../assets/mixx.png');
+
+const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji?: string; logo?: any; color: string }[] = [
+  { key: 'cash',  label: 'Espèces',      subtitle: 'Paiement à la fin de la mission', emoji: '💵',        color: '#10B981' },
+  { key: 'flooz', label: 'Flooz',        subtitle: '',                                logo: FLOOZ_LOGO,  color: '#F97316' },
+  { key: 'mixx',  label: 'Mixx by Yas',  subtitle: '',                                logo: MIXX_LOGO,   color: '#3B82F6' },
 ];
 
 export default function Payment() {
@@ -63,8 +66,10 @@ export default function Payment() {
               style={[styles.methodCard, method === m.key && styles.methodCardActive]}
               onPress={() => setMethod(m.key)}
             >
-              <View style={[styles.methodIcon, { backgroundColor: m.color + '20' }]}>
-                <Text style={{ fontSize: 22 }}>{m.emoji}</Text>
+              <View style={[styles.methodIcon, { backgroundColor: m.logo ? colors.white : m.color + '20' }]}>
+                {m.logo
+                  ? <Image source={m.logo} style={{ width: 34, height: 34 }} resizeMode="contain" />
+                  : <Text style={{ fontSize: 22 }}>{m.emoji}</Text>}
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[text.bodyMd, { color: colors.encre }]}>{m.label}</Text>
