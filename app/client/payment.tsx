@@ -9,9 +9,9 @@ import { setJobPaymentMethod } from '../../src/lib/api';
 import type { PaymentMethod } from '../../src/lib/types';
 
 const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji: string; color: string }[] = [
-  { key: 'cash',  label: 'Espèces',     subtitle: 'Paiement à la fin de la mission',       emoji: '💵', color: '#10B981' },
-  { key: 'flooz', label: 'Flooz',        subtitle: 'Mobile Money Togocel',                  emoji: '📱', color: '#F97316' },
-  { key: 'mixx',  label: 'Mixx by Moov', subtitle: 'Mobile Money Moov Africa',              emoji: '📲', color: '#3B82F6' },
+  { key: 'cash',  label: 'Espèces',      subtitle: 'Paiement à la fin de la mission', emoji: '💵', color: '#10B981' },
+  { key: 'flooz', label: 'Flooz',        subtitle: '',                                emoji: '📱', color: '#F97316' },
+  { key: 'mixx',  label: 'Mixx by Yas',  subtitle: '',                                emoji: '📲', color: '#3B82F6' },
 ];
 
 export default function Payment() {
@@ -68,7 +68,7 @@ export default function Payment() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[text.bodyMd, { color: colors.encre }]}>{m.label}</Text>
-                <Text style={[text.small, { color: colors.textMuted }]}>{m.subtitle}</Text>
+                {!!m.subtitle && <Text style={[text.small, { color: colors.textMuted }]}>{m.subtitle}</Text>}
               </View>
               <View style={[styles.radio, method === m.key && styles.radioActive]}>
                 {method === m.key && <Check size={12} color={colors.white} strokeWidth={3} />}
@@ -80,7 +80,7 @@ export default function Payment() {
         {/* Mobile money phone input */}
         {(method === 'flooz' || method === 'mixx') && (
           <View style={styles.field}>
-            <Text style={[text.label, { color: colors.textMuted }]}>NUMÉRO {method === 'flooz' ? 'TOGOCEL' : 'MOOV'}</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>NUMÉRO {method === 'flooz' ? 'MOOV' : 'YAS'}</Text>
             <View style={styles.phoneInput}>
               <Phone size={16} color={colors.textMuted} />
               <TextInput
