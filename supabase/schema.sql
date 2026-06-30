@@ -19,8 +19,14 @@ create type notif_type as enum ('offer','accepted','arrived','completed','review
 create table profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   full_name text,
+  first_name text,
+  last_name text,
+  email text,
   phone text,
   role user_role not null default 'client',
+  verified boolean default false,   -- client ID verification
+  id_doc_url text,
+  onboarded boolean default false,  -- finished the signup detail form
   location_label text,
   location_geo geography(point, 4326),
   created_at timestamptz default now()
@@ -138,7 +144,11 @@ create index notifs_user_idx on notifications(user_id);
 -- ---- Verification requests ----
 create table verification_requests (
   id uuid primary key default gen_random_uuid(),
-  provider_id uuid not null references providers(id) on delete cascade,
+  provider_id uuid references providers(id) on delete cascade,   -- null for client requests
+  user_id uuid references auth.users(id) on delete cascade,
+  type text not null default 'provider' check (type in ('client','provider')),
+  display_name text,            -- company name (provider) or full name (client)
+  company_info text,            -- registration no., address, etc. (provider)
   id_doc_url text,
   trade_doc_url text,
   status text not null default 'pending' check (status in ('pending','approved','rejected')),
@@ -251,3 +261,7 @@ create policy "own favorites"        on favorites for all   using (auth.uid() = 
 create policy "own notifications"    on notifications for all using (auth.uid() = user_id);
 -- Disputes
 create policy "dispute parties"      on disputes  for all   using (auth.uid() = reporter_id);
+-- Verification requests
+create policy "submit own verification" on verification_requests for insert with check (auth.uid() = user_id);
+create policy "read verifications"      on verification_requests for select using (true);
+create policy "update verifications"    on verification_requests for update using (true);
