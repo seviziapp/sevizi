@@ -31,6 +31,8 @@ export default function Notifications() {
 
   useEffect(() => {
     fetchNotifications().then(setNotifs).catch(() => {});
+    const t = setInterval(() => { fetchNotifications().then(setNotifs).catch(() => {}); }, 15000);
+    return () => clearInterval(t);
   }, []);
 
   async function readAll() {

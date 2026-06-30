@@ -1,16 +1,17 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Search, Bell, MapPin, ChevronDown, Plus } from 'lucide-react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { Search, Bell, MapPin, ChevronDown, Plus, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES } from '../../src/lib/types';
-import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications } from '../../src/lib/api';
-import type { Provider, Job } from '../../src/lib/types';
+import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications, fetchMyRequestsWithOffers } from '../../src/lib/api';
+import type { Provider, Job, ServiceRequest } from '../../src/lib/types';
 
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
+type OpenReq = ServiceRequest & { offersCount: number };
 
 export default function Home() {
   const router = useRouter();
@@ -18,13 +19,25 @@ export default function Home() {
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [userName, setUserName] = useState('');
   const [unread, setUnread] = useState(0);
+  const [openRequests, setOpenRequests] = useState<OpenReq[]>([]);
+
+  const refreshLive = useCallback(() => {
+    fetchCurrentJob().then(setActiveJob).catch(() => {});
+    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
+    fetchMyRequestsWithOffers().then(rs => setOpenRequests(rs.filter(r => r.status === 'ouverte'))).catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetchNearbyProviders().then(setProviders).catch(() => {});
-    fetchCurrentJob().then(setActiveJob).catch(() => {});
     fetchMyProfile().then(p => { if (p) setUserName(p.fullName.split(' ')[0]); }).catch(() => {});
-    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
-  }, []);
+    refreshLive();
+    // poll so new offers / notifications surface without a manual refresh
+    const t = setInterval(refreshLive, 20000);
+    return () => clearInterval(t);
+  }, [refreshLive]);
+
+  // also refresh when returning to the tab (e.g. right after posting a request)
+  useFocusEffect(useCallback(() => { refreshLive(); }, [refreshLive]));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -66,6 +79,40 @@ export default function Home() {
             </View>
             <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
           </Pressable>
+        )}
+
+        {/* My open requests — offers currently coming in */}
+        {openRequests.length > 0 && (
+          <View style={{ gap: spacing.sm }}>
+            <View style={styles.sectionHead}>
+              <Text style={[text.h3, { color: colors.encre }]}>Mes demandes</Text>
+              <Pressable onPress={() => router.push('/client/requests')}>
+                <Text style={[text.small, { color: colors.vert }]}>Tout voir</Text>
+              </Pressable>
+            </View>
+            {openRequests.slice(0, 3).map(r => {
+              const cat = CATEGORIES.find(c => c.key === r.category);
+              return (
+                <Pressable
+                  key={r.id}
+                  style={[styles.reqRow, shadow.card]}
+                  onPress={() => router.push({ pathname: '/client/offers', params: { requestId: r.id } })}
+                >
+                  <View style={styles.reqIcon}><Text style={{ fontSize: 20 }}>{cat?.emoji ?? '🔧'}</Text></View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{r.description}</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>{cat?.label} · Ouverte</Text>
+                  </View>
+                  <View style={[styles.offersPill, r.offersCount > 0 && styles.offersPillActive]}>
+                    <Text style={[text.label, { color: r.offersCount > 0 ? colors.white : colors.textMuted }]}>
+                      {r.offersCount} offre{r.offersCount > 1 ? 's' : ''}
+                    </Text>
+                  </View>
+                  <ChevronRight size={18} color={colors.textMuted} />
+                </Pressable>
+              );
+            })}
+          </View>
         )}
 
         {/* Categories grid */}
@@ -146,6 +193,10 @@ const styles = StyleSheet.create({
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 52 },
   jobBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.encre, borderRadius: radii.lg, padding: spacing.md },
   jobDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.vert },
+  reqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
+  reqIcon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  offersPill: { backgroundColor: colors.surface, borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  offersPillActive: { backgroundColor: colors.vert },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   catGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   cat: { alignItems: 'center', gap: spacing.xs, width: '22%' },

@@ -5,6 +5,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Check, Phone, Banknote } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
+import { setJobPaymentMethod } from '../../src/lib/api';
 import type { PaymentMethod } from '../../src/lib/types';
 
 const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji: string; color: string }[] = [
@@ -15,7 +16,7 @@ const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji: str
 
 export default function Payment() {
   const router = useRouter();
-  const { amount, providerName } = useLocalSearchParams<{ amount?: string; providerName?: string }>();
+  const { amount, providerName, jobId } = useLocalSearchParams<{ amount?: string; providerName?: string; jobId?: string }>();
   const [method, setMethod] = useState<PaymentMethod>('cash');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
@@ -24,7 +25,9 @@ export default function Payment() {
 
   async function confirm() {
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1000));
+    try {
+      if (jobId) await setJobPaymentMethod(jobId, method);
+    } catch {}
     setLoading(false);
     router.replace('/client/job-status');
   }

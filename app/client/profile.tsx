@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   MapPin, Bell, ShieldCheck, HelpCircle, LogOut, ChevronRight,
-  Heart, Briefcase, Star, Settings,
+  Heart, Briefcase, Star, Settings, ClipboardList,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
@@ -39,6 +39,7 @@ export default function Profile() {
     {
       title: 'Mes missions',
       items: [
+        { icon: <ClipboardList size={20} color={colors.encre} />, label: 'Mes demandes', onPress: () => router.push('/client/requests') },
         { icon: <Briefcase size={20} color={colors.encre} />, label: 'Mission en cours', onPress: () => router.push('/client/job-status') },
         { icon: <Star size={20} color={colors.encre} />, label: 'Mes avis laissés', onPress: () => router.push('/client/my-reviews') },
       ],

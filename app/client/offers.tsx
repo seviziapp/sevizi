@@ -1,25 +1,53 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Wrench, Star, MapPin, ShieldCheck } from 'lucide-react-native';
+import { ArrowLeft, Wrench, Star, MapPin, ShieldCheck, Clock, Hourglass } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { fetchOffers, acceptOffer } from '../../src/lib/api';
-import type { Offer } from '../../src/lib/types';
+import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
+import type { Offer, ServiceRequest } from '../../src/lib/types';
 
 export default function Offers() {
   const router = useRouter();
   const { requestId } = useLocalSearchParams<{ requestId?: string }>();
+  const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [offers, setOffers] = useState<Offer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [accepting, setAccepting] = useState<string | null>(null);
+
+  const rid = requestId ?? '';
+
+  async function load() {
+    const [req, offs] = await Promise.all([
+      rid ? fetchRequest(rid) : Promise.resolve(null),
+      rid ? fetchOffers(rid) : Promise.resolve([]),
+    ]);
+    setRequest(req);
+    setOffers(offs);
+    setLoading(false);
+  }
 
   useEffect(() => {
-    fetchOffers(requestId ?? 'r1').then(setOffers).catch(() => {});
-  }, [requestId]);
+    load().catch(() => setLoading(false));
+    // poll while waiting so new offers appear without leaving the screen
+    const t = setInterval(() => { fetchOffers(rid).then(setOffers).catch(() => {}); }, 12000);
+    return () => clearInterval(t);
+  }, [rid]);
+
+  // cheapest offer gets the "best price" tag
+  const cheapestId = offers.length
+    ? offers.reduce((min, o) => (o.price < min.price ? o : min), offers[0]).id
+    : null;
 
   async function accept(o: Offer) {
-    await acceptOffer(o.id);
-    router.push({ pathname: '/client/payment', params: { amount: String(o.price), providerName: o.provider.name } });
+    setAccepting(o.id);
+    try {
+      const { jobId } = await acceptOffer(o.id);
+      router.push({ pathname: '/client/payment', params: { jobId, amount: String(o.price), providerName: o.provider.name } });
+    } catch (e) {
+      setAccepting(null);
+    }
   }
 
   return (
@@ -29,30 +57,52 @@ export default function Offers() {
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Offres reçues</Text>
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.notice}>
         <View style={styles.noticeDot} />
-        <Text style={[text.small, { color: colors.vertDark }]}>
-          {offers.length} prestataires ont répondu · fuite cuisine
+        <Text style={[text.small, { color: colors.vertDark }]} numberOfLines={1}>
+          {loading ? 'Chargement…'
+            : `${offers.length} ${offers.length > 1 ? 'prestataires ont répondu' : 'prestataire a répondu'}${request ? ` · ${request.description}` : ''}`}
         </Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {offers.map((o) => (
-          <OfferCard key={o.id} offer={o} onAccept={() => accept(o)}
-            onMessage={() => router.push({ pathname: '/client/thread', params: { providerName: o.provider.name } })} />
-        ))}
-      </ScrollView>
+      {loading ? (
+        <ActivityIndicator color={colors.vert} style={{ marginTop: 40 }} />
+      ) : offers.length === 0 ? (
+        <View style={styles.empty}>
+          <Hourglass size={44} color={colors.border} />
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>En attente d'offres…</Text>
+          <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
+            Votre demande est visible par les prestataires proches.{'\n'}Vous serez notifié dès qu'une offre arrive.
+          </Text>
+        </View>
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {offers.map((o) => (
+            <OfferCard
+              key={o.id}
+              offer={o}
+              best={o.id === cheapestId}
+              accepting={accepting === o.id}
+              disabled={!!accepting && accepting !== o.id}
+              onAccept={() => accept(o)}
+              onMessage={() => router.push({ pathname: '/client/thread', params: { requestId: rid, providerName: o.provider.name } })}
+            />
+          ))}
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
-function OfferCard({ offer, onAccept, onMessage }: { offer: Offer; onAccept: () => void; onMessage: () => void }) {
-  const featured = offer.bestPrice;
+function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage }: {
+  offer: Offer; best: boolean; accepting: boolean; disabled: boolean; onAccept: () => void; onMessage: () => void;
+}) {
   return (
-    <View style={[styles.card, featured && styles.cardFeatured, shadow.card]}>
-      {featured && (
+    <View style={[styles.card, best && styles.cardFeatured, shadow.card]}>
+      {best && (
         <View style={styles.bestTag}>
           <Text style={[text.label, { color: colors.encre }]}>MEILLEUR PRIX</Text>
         </View>
@@ -65,13 +115,15 @@ function OfferCard({ offer, onAccept, onMessage }: { offer: Offer; onAccept: () 
           <Text style={[text.h3, { color: colors.encre }]}>{offer.provider.name}</Text>
           <View style={styles.metaRow}>
             <View style={styles.meta}>
-              <MapPin size={13} color={colors.textMuted} />
-              <Text style={[text.label, { color: colors.textMuted }]}>{offer.provider.distanceKm.toFixed(1)} km</Text>
-            </View>
-            <View style={styles.meta}>
               <Star size={13} color={colors.soleil} fill={colors.soleil} />
               <Text style={[text.label, { color: colors.textMuted }]}>{offer.provider.rating.toFixed(1)}</Text>
             </View>
+            {offer.availability ? (
+              <View style={styles.meta}>
+                <Clock size={13} color={colors.textMuted} />
+                <Text style={[text.label, { color: colors.textMuted }]}>{offer.availability}</Text>
+              </View>
+            ) : null}
             {offer.provider.verified && (
               <View style={styles.meta}>
                 <ShieldCheck size={13} color={colors.vert} />
@@ -91,36 +143,28 @@ function OfferCard({ offer, onAccept, onMessage }: { offer: Offer; onAccept: () 
         </Text>
       )}
 
-      {featured && (
-        <View style={styles.actions}>
-          <Button label="Message" variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} />
-          <Button label="Accepter" full={false} style={{ flex: 1 }} onPress={onAccept} />
-        </View>
-      )}
+      <View style={styles.actions}>
+        <Button label="Message" variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
+        <Button label="Accepter" full={false} style={{ flex: 1 }} onPress={onAccept} loading={accepting} disabled={disabled} />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: {
-    width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white,
-    borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
-  },
-  notice: {
-    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    marginHorizontal: spacing.xl, backgroundColor: colors.surface,
-    paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.md,
-  },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.xl, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.md },
   noticeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.vert },
   scroll: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxxl },
+  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl, marginTop: -spacing.xxxl },
   card: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   cardFeatured: { borderColor: colors.vert, borderWidth: 2 },
   bestTag: { alignSelf: 'flex-end', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.sm, marginBottom: spacing.sm },
   cardTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   iconWrap: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.xs },
+  metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.xs, flexWrap: 'wrap' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },
 });

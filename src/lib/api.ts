@@ -172,14 +172,93 @@ export async function fetchMyRequests(): Promise<ServiceRequest[]> {
 
 export async function fetchOffers(requestId: string): Promise<Offer[]> {
   if (!hasSupabase) return mockOffers;
-  const { data, error } = await supabase.from('offers').select('*, provider:providers(*)').eq('request_id', requestId).order('price');
+  const { data, error } = await supabase
+    .from('offers')
+    .select('*, provider:providers(*)')
+    .eq('request_id', requestId)
+    .order('price');
   if (error) throw error;
-  return (data ?? []) as unknown as Offer[];
+  return (data ?? []).map((o: any) => ({
+    id: o.id,
+    requestId: o.request_id,
+    price: o.price,
+    availability: o.availability ?? '',
+    message: o.message ?? undefined,
+    provider: {
+      id: o.provider?.id, name: o.provider?.name ?? 'Prestataire', category: o.provider?.category,
+      rating: o.provider?.rating ?? 0, reviews: o.provider?.reviews ?? 0,
+      verified: !!o.provider?.verified, online: !!o.provider?.online,
+      distanceKm: 0, location: LOME,
+    },
+  })) as unknown as Offer[];
 }
 
-export async function acceptOffer(offerId: string): Promise<void> {
+// A single request (for the offers screen header / status).
+export async function fetchRequest(requestId: string): Promise<ServiceRequest | null> {
+  if (!hasSupabase) return mockRequests.find(r => r.id === requestId) ?? null;
+  const { data } = await supabase.from('requests').select('*').eq('id', requestId).single();
+  if (!data) return null;
+  return {
+    id: data.id, clientId: data.client_id, description: data.description, category: data.category,
+    urgent: data.urgent, locationLabel: data.location_label, createdAt: data.created_at,
+    status: data.status, location: LOME,
+  };
+}
+
+// The client's own requests, with how many offers each has received.
+export async function fetchMyRequestsWithOffers(): Promise<(ServiceRequest & { offersCount: number })[]> {
+  if (!hasSupabase) return [];
+  const user = await currentUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('requests')
+    .select('*, offers(count)')
+    .eq('client_id', user.id)
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id, clientId: r.client_id, description: r.description, category: r.category,
+    urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
+    status: r.status, location: LOME,
+    offersCount: r.offers?.[0]?.count ?? 0,
+  }));
+}
+
+// Client accepts an offer: marks it accepted, creates the job, moves the request
+// to "en_cours". A DB trigger then notifies the provider. Returns the new job id.
+export async function acceptOffer(offerId: string): Promise<{ jobId: string; price: number; providerName: string }> {
+  if (!hasSupabase) return { jobId: 'j1', price: 0, providerName: 'Prestataire' };
+  const { data: offer, error: oErr } = await supabase
+    .from('offers')
+    .select('id, price, request_id, provider_id, request:requests(client_id), provider:providers(name)')
+    .eq('id', offerId)
+    .single();
+  if (oErr || !offer) throw new Error('Offre introuvable');
+
+  await supabase.from('offers').update({ accepted: true }).eq('id', offerId);
+
+  const { data: job, error: jErr } = await supabase
+    .from('jobs')
+    .insert({
+      offer_id: offer.id,
+      request_id: offer.request_id,
+      provider_id: offer.provider_id,
+      client_id: (offer as any).request?.client_id,
+      price: offer.price,
+      status: 'accepte',
+    })
+    .select('id')
+    .single();
+  if (jErr) throw jErr;
+
+  await supabase.from('requests').update({ status: 'en_cours' }).eq('id', offer.request_id);
+
+  return { jobId: job.id, price: offer.price, providerName: (offer as any).provider?.name ?? 'Prestataire' };
+}
+
+export async function setJobPaymentMethod(jobId: string, method: 'cash' | 'flooz' | 'mixx'): Promise<void> {
   if (!hasSupabase) return;
-  const { error } = await supabase.from('offers').update({ accepted: true }).eq('id', offerId);
+  const { error } = await supabase.from('jobs').update({ payment_method: method }).eq('id', jobId);
   if (error) throw error;
 }
 

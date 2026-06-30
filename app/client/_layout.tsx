@@ -1,16 +1,17 @@
 import React from 'react';
 import { Tabs, useRouter, usePathname } from 'expo-router';
 import { View, Pressable, StyleSheet, Text, Platform, useWindowDimensions } from 'react-native';
-import { Home, Map, Plus, MessageCircle, User, LayoutGrid } from 'lucide-react-native';
+import { Home, Map, Plus, MessageCircle, User, LayoutGrid, ClipboardList } from 'lucide-react-native';
 import { colors, radii, shadow, spacing, text } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 
 const NAV_ITEMS = [
-  { label: 'Accueil',    icon: Home,          route: '/client/home' },
-  { label: 'Carte',      icon: Map,           route: '/client/map' },
-  { label: 'Messages',   icon: MessageCircle, route: '/client/messages' },
-  { label: 'Catégories', icon: LayoutGrid,    route: '/client/categories' },
-  { label: 'Profil',     icon: User,          route: '/client/profile' },
+  { label: 'Accueil',     icon: Home,          route: '/client/home' },
+  { label: 'Mes demandes', icon: ClipboardList, route: '/client/requests' },
+  { label: 'Carte',       icon: Map,           route: '/client/map' },
+  { label: 'Messages',    icon: MessageCircle, route: '/client/messages' },
+  { label: 'Catégories',  icon: LayoutGrid,    route: '/client/categories' },
+  { label: 'Profil',      icon: User,          route: '/client/profile' },
 ];
 
 function DesktopSidebar() {
@@ -79,8 +80,11 @@ export default function ClientLayout() {
       />
       <Tabs.Screen name="messages" options={{ tabBarIcon: ({ color }) => <MessageCircle size={24} color={color} /> }} />
       <Tabs.Screen name="profile"  options={{ tabBarIcon: ({ color }) => <User size={24} color={color} /> }} />
+      <Tabs.Screen name="requests"      options={{ href: null }} />
       <Tabs.Screen name="offers"        options={{ href: null }} />
       <Tabs.Screen name="thread"        options={{ href: null }} />
+      <Tabs.Screen name="my-reviews"    options={{ href: null }} />
+      <Tabs.Screen name="security"      options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="job-status"    options={{ href: null }} />
       <Tabs.Screen name="payment"       options={{ href: null }} />
