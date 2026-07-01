@@ -392,8 +392,12 @@ export async function fetchCurrentJob(opts?: { includeCompleted?: boolean }): Pr
 
 export async function updateJobStatus(jobId: string, status: Job['status']): Promise<void> {
   if (!hasSupabase) return;
-  const { error } = await supabase.from('jobs').update({ status }).eq('id', jobId);
-  if (error) throw error;
+  const { data, error } = await supabase.from('jobs').update({ status }).eq('id', jobId).select('id');
+  if (error) throw new Error(error.message);
+  // RLS can silently match zero rows — surface that instead of pretending success.
+  if (!data || data.length === 0) {
+    throw new Error("Impossible de mettre à jour la mission (accès refusé). Reconnectez-vous et réessayez.");
+  }
 }
 
 export async function fetchFavorites(): Promise<Provider[]> {
@@ -569,37 +573,32 @@ export async function saveClientDetails(input: { firstName: string; lastName: st
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const fullName = `${input.firstName} ${input.lastName}`.trim();
+  // Try the full column set; if the extended columns aren't present yet
+  // (migration not run), fall back to the base columns so signup still saves.
   const { error } = await supabase.from('profiles').upsert({
-    id: user.id,
-    role: 'client',
-    first_name: input.firstName,
-    last_name: input.lastName,
-    full_name: fullName,
-    phone: input.phone,
-    email: input.email,
-    onboarded: true,
+    id: user.id, role: 'client',
+    first_name: input.firstName, last_name: input.lastName, full_name: fullName,
+    phone: input.phone, email: input.email, onboarded: true,
   });
-  if (error) throw error;
+  if (error) {
+    const { error: e2 } = await supabase.from('profiles').upsert({
+      id: user.id, role: 'client', full_name: fullName, phone: input.phone,
+    });
+    if (e2) throw e2;
+  }
 }
 
-// Provider finishes signup: company name, owner name, category, phone.
+// Provider finishes signup: company name, owner first/last name, category, phone.
 export async function saveProviderDetails(input: {
-  companyName: string; ownerName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
+  companyName: string; firstName: string; lastName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
 }): Promise<void> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
-  // profile (owner identity)
-  const { error: pErr } = await supabase.from('profiles').upsert({
-    id: user.id,
-    role: 'prestataire',
-    full_name: input.ownerName,
-    phone: input.phone,
-    email: input.email,
-    onboarded: true,
-  });
-  if (pErr) throw pErr;
-  // provider business row (create if missing, else update)
-  const { data: existing } = await supabase.from('providers').select('id').eq('user_id', user.id).single();
+  const fullName = `${input.firstName} ${input.lastName}`.trim();
+
+  // 1) Business row FIRST — uses only base columns, so onboarding completes
+  //    (index checks for this row) even if profile columns are missing.
+  const { data: existing } = await supabase.from('providers').select('id').eq('user_id', user.id).maybeSingle();
   if (existing) {
     const { error } = await supabase.from('providers').update({
       name: input.companyName, category: input.category, bio: input.bio ?? null,
@@ -607,13 +606,22 @@ export async function saveProviderDetails(input: {
     if (error) throw error;
   } else {
     const { error } = await supabase.from('providers').insert({
-      user_id: user.id,
-      name: input.companyName,
-      category: input.category,
-      bio: input.bio ?? null,
-      geo: `POINT(${LOME.lng} ${LOME.lat})`,
+      user_id: user.id, name: input.companyName, category: input.category,
+      bio: input.bio ?? null, geo: `POINT(${LOME.lng} ${LOME.lat})`,
     });
     if (error) throw error;
+  }
+
+  // 2) Owner identity on the profile — full set, else base columns.
+  const { error: pErr } = await supabase.from('profiles').upsert({
+    id: user.id, role: 'prestataire',
+    first_name: input.firstName, last_name: input.lastName, full_name: fullName,
+    phone: input.phone, email: input.email, onboarded: true,
+  });
+  if (pErr) {
+    await supabase.from('profiles').upsert({
+      id: user.id, role: 'prestataire', full_name: fullName, phone: input.phone,
+    });
   }
 }
 

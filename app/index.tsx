@@ -17,24 +17,33 @@ export default function Index() {
     async function resolve() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { setDest('/onboarding/auth'); return; }
+      const uid = session.user.id;
 
+      // Only select columns guaranteed to exist so this never fails and
+      // wrongly re-runs onboarding.
       const { data: profile } = await supabase
         .from('profiles')
-        .select('role, onboarded')
-        .eq('id', session.user.id)
-        .single();
+        .select('role, full_name')
+        .eq('id', uid)
+        .maybeSingle();
 
-      // No profile yet → pick a role
+      // No profile / no role yet → pick a role
       if (!profile || !profile.role) { setDest('/onboarding/role'); return; }
 
-      // Role chosen but signup details not completed → finish the right form
-      if (!profile.onboarded) {
-        setDest(profile.role === 'prestataire' ? '/onboarding/provider-details' : '/onboarding/client-details');
+      if (profile.role === 'prestataire') {
+        // A provider is "set up" once their business row exists — check real
+        // data, not an onboarded flag, so we never re-ask after it's saved.
+        const { data: prov } = await supabase
+          .from('providers')
+          .select('id')
+          .eq('user_id', uid)
+          .maybeSingle();
+        setDest(prov ? '/provider/dashboard' : '/onboarding/provider-details');
         return;
       }
 
-      // Fully set up
-      setDest(profile.role === 'prestataire' ? '/provider/dashboard' : '/client/home');
+      // Client is set up once they have a name.
+      setDest(profile.full_name ? '/client/home' : '/onboarding/client-details');
     }
     resolve();
   }, []);

@@ -30,7 +30,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchNearbyProviders().then(setProviders).catch(() => {});
-    fetchMyProfile().then(p => { if (p) { setUserName(p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
+    fetchMyProfile().then(p => { if (p) { setUserName(p.firstName || p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
     refreshLive();
     // poll so new offers / notifications surface without a manual refresh
     const t = setInterval(refreshLive, 20000);

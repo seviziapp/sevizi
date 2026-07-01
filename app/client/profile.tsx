@@ -12,13 +12,13 @@ import { fetchMyProfile } from '../../src/lib/api';
 
 export default function Profile() {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ fullName: string; phone: string; role: string; verified: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ fullName: string; firstName: string; phone: string; role: string; verified: boolean } | null>(null);
 
   useEffect(() => {
     fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(() => {});
   }, []);
 
-  const displayName = profile?.fullName ?? 'Utilisateur';
+  const displayName = profile?.firstName || profile?.fullName?.split(' ')[0] || 'Utilisateur';
   const displayPhone = profile?.phone ?? '';
   const initial = displayName[0]?.toUpperCase() ?? 'U';
 

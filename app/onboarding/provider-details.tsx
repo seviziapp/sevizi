@@ -15,7 +15,8 @@ import { CATEGORIES, type ServiceCategory } from '../../src/lib/types';
 export default function ProviderDetails() {
   const router = useRouter();
   const [companyName, setCompanyName] = useState('');
-  const [ownerName, setOwnerName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [category, setCategory] = useState<ServiceCategory>('plomberie');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -27,11 +28,11 @@ export default function ProviderDetails() {
     supabase.auth.getUser().then(({ data: { user } }) => {
       if (user?.email) setEmail(user.email);
       const full = user?.user_metadata?.full_name as string | undefined;
-      if (full) setOwnerName(full);
+      if (full) { const [f, ...rest] = full.split(' '); setFirstName(f); setLastName(rest.join(' ')); }
     });
   }, []);
 
-  const valid = companyName.trim() && ownerName.trim() && phone.trim().length >= 8 && email.trim();
+  const valid = companyName.trim() && firstName.trim() && lastName.trim() && phone.trim().length >= 8 && email.trim();
 
   async function submit() {
     if (!valid) { setError('Remplissez les champs obligatoires.'); return; }
@@ -39,7 +40,7 @@ export default function ProviderDetails() {
     setLoading(true);
     try {
       await saveProviderDetails({
-        companyName: companyName.trim(), ownerName: ownerName.trim(),
+        companyName: companyName.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
         category, phone: phone.trim(), email: email.trim(), bio: bio.trim() || undefined,
       });
       router.replace('/provider/dashboard');
@@ -61,7 +62,8 @@ export default function ProviderDetails() {
           </Text>
 
           <Field icon={<Building2 size={18} color={colors.textMuted} />} placeholder="Nom de l'entreprise" value={companyName} onChangeText={setCompanyName} />
-          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Votre nom complet" value={ownerName} onChangeText={setOwnerName} />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Prénom" value={firstName} onChangeText={setFirstName} />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Nom" value={lastName} onChangeText={setLastName} />
 
           <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>CATÉGORIE DE SERVICE</Text>
           <View style={styles.chips}>
