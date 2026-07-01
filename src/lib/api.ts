@@ -439,28 +439,62 @@ export async function isFavorite(providerId: string): Promise<boolean> {
 
 // ---- MESSAGES ----
 
-export async function fetchThreads(): Promise<any[]> {
+// Each of the user's missions is a conversation thread (keyed by request), with
+// the other party's name and the latest message preview.
+export async function fetchThreads(): Promise<
+  { id: string; providerName: string; lastMessage: string; lastMessageAt: string | null; unreadCount: number }[]
+> {
   if (!hasSupabase) return [];
   const user = await currentUser();
   if (!user) return [];
-  const { data, error } = await supabase
-    .from('messages')
-    .select('*, request:requests(id, description, client_id, category)')
-    .or(`request.client_id.eq.${user.id},sender_id.eq.${user.id}`)
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return data ?? [];
+  const { data: prov } = await supabase.from('providers').select('id').eq('user_id', user.id).maybeSingle();
+
+  let jq = supabase.from('jobs').select('request_id, client_id, provider_id, client_name, provider:providers(name)');
+  jq = prov?.id ? jq.or(`client_id.eq.${user.id},provider_id.eq.${prov.id}`) : jq.eq('client_id', user.id);
+  const { data: jobs, error } = await jq;
+  if (error || !jobs) return [];
+
+  const threads = await Promise.all(jobs.map(async (j: any) => {
+    const { data: last } = await supabase
+      .from('messages').select('body, created_at')
+      .eq('request_id', j.request_id)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle();
+    const isClient = j.client_id === user.id;
+    return {
+      id: j.request_id,
+      providerName: isClient ? (j.provider?.name ?? 'Prestataire') : (j.client_name ?? 'Client'),
+      lastMessage: last?.body ?? '',
+      lastMessageAt: last?.created_at ?? null,
+      unreadCount: 0,
+    };
+  }));
+
+  return threads.sort((a, b) => (b.lastMessageAt ?? '').localeCompare(a.lastMessageAt ?? ''));
 }
 
-export async function fetchMessages(requestId: string): Promise<any[]> {
+export async function fetchMessages(requestId: string): Promise<{ id: string; fromMe: boolean; text: string; createdAt: string }[]> {
   if (!hasSupabase) return [];
+  const user = await currentUser();
   const { data, error } = await supabase
     .from('messages')
     .select('*')
     .eq('request_id', requestId)
     .order('created_at', { ascending: true });
   if (error) return [];
-  return data ?? [];
+  return (data ?? []).map((m: any) => ({
+    id: m.id,
+    fromMe: m.sender_id === user?.id,
+    text: m.body ?? '',
+    createdAt: m.created_at,
+  }));
+}
+
+// Resolve the request thread for the current user's active/most-recent job,
+// so messaging works even when a thread is opened without an explicit id.
+export async function resolveActiveThread(): Promise<{ requestId: string; otherName: string } | null> {
+  const job = await fetchCurrentJob({ includeCompleted: true });
+  if (!job) return null;
+  return { requestId: job.requestId, otherName: job.provider?.name ?? job.clientName ?? 'Prestataire' };
 }
 
 export async function sendMessage(requestId: string, body: string): Promise<void> {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MapPin, Phone, Navigation, Star, CheckCircle } from 'lucide-react-native';
@@ -63,6 +63,15 @@ export default function JobStatus() {
 
   const providerName = job.provider?.name ?? 'Prestataire';
   const providerRating = job.provider?.rating ?? 0;
+
+  function navigate() {
+    const query = job?.locationLabel?.trim() || `${job?.location.lat},${job?.location.lng}`;
+    const encoded = encodeURIComponent(query);
+    const url = Platform.OS === 'web'
+      ? `https://www.google.com/maps/search/?api=1&query=${encoded}`
+      : Platform.OS === 'ios' ? `maps:?q=${encoded}` : `geo:0,0?q=${encoded}`;
+    Linking.openURL(url).catch(() => {});
+  }
 
   if (showReview) {
     return (
@@ -153,7 +162,7 @@ export default function JobStatus() {
               {LOME.lat.toFixed(4)}° N · {LOME.lng.toFixed(4)}° E
             </Text>
           </View>
-          <Pressable style={styles.navBtn}>
+          <Pressable style={styles.navBtn} onPress={navigate}>
             <Navigation size={16} color={colors.white} />
             <Text style={[text.small, { color: colors.white }]}>Naviguer</Text>
           </Pressable>

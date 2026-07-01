@@ -6,45 +6,71 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, Wrench, MapPin, Navigation, Send } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
-import { LOME, fetchMessages, sendMessage } from '../../src/lib/api';
+import { LOME, fetchMessages, sendMessage, resolveActiveThread } from '../../src/lib/api';
 
 type Bubble = { id: string; me: boolean; text?: string; map?: boolean; time: string };
 
 export default function Thread() {
   const router = useRouter();
-  const { requestId, providerName } = useLocalSearchParams<{ requestId?: string; providerName?: string }>();
+  const params = useLocalSearchParams<{ requestId?: string; providerName?: string }>();
+  const [requestId, setRequestId] = useState<string | undefined>(params.requestId);
+  const [otherName, setOtherName] = useState<string>(params.providerName ?? 'Prestataire');
   const [msgs, setMsgs] = useState<Bubble[]>([]);
   const [draft, setDraft] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
 
+  function toBubbles(data: { id: string; fromMe: boolean; text: string; createdAt: string }[]): Bubble[] {
+    return data.map(m => ({
+      id: m.id, me: m.fromMe, text: m.text,
+      time: new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+    }));
+  }
+
   useEffect(() => {
-    if (!requestId) { setLoading(false); return; }
-    fetchMessages(requestId)
-      .then((data: any[]) => {
-        setMsgs(data.map(m => ({
-          id: m.id,
-          me: m.fromMe,
-          text: m.text,
-          time: new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        })));
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      // If we weren't given a request id, fall back to the active mission thread.
+      let rid = params.requestId;
+      if (!rid) {
+        const active = await resolveActiveThread().catch(() => null);
+        if (active) { rid = active.requestId; if (!params.providerName) setOtherName(active.otherName); }
+      }
+      if (cancelled) return;
+      setRequestId(rid);
+      if (rid) {
+        try { setMsgs(toBubbles(await fetchMessages(rid))); } catch {}
+      }
+      setLoading(false);
+    })();
+    return () => { cancelled = true; };
+  }, [params.requestId]);
+
+  // poll for new incoming messages
+  useEffect(() => {
+    if (!requestId) return;
+    const t = setInterval(() => { fetchMessages(requestId).then(d => setMsgs(toBubbles(d))).catch(() => {}); }, 8000);
+    return () => clearInterval(t);
   }, [requestId]);
 
   async function send() {
-    if (!draft.trim() || !requestId) return;
+    if (!draft.trim() || !requestId || sending) return;
     const body = draft.trim();
     setDraft('');
+    setSending(true);
     const tempId = String(Date.now());
     const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
     setMsgs(prev => [...prev, { id: tempId, me: true, text: body, time: now }]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     try {
       await sendMessage(requestId, body);
+      setMsgs(toBubbles(await fetchMessages(requestId)));
     } catch {
       setMsgs(prev => prev.filter(m => m.id !== tempId));
+      setDraft(body);
+    } finally {
+      setSending(false);
     }
   }
 
@@ -62,7 +88,7 @@ export default function Thread() {
         </Pressable>
         <View style={styles.avatar}><Wrench size={18} color={colors.vert} /></View>
         <View>
-          <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName ?? 'Prestataire'}</Text>
+          <Text style={[text.bodyMd, { color: colors.encre }]}>{otherName}</Text>
         </View>
       </View>
 
@@ -74,6 +100,12 @@ export default function Thread() {
       >
         {loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: 40 }} />
+        ) : !requestId ? (
+          <View style={styles.empty}>
+            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
+              La messagerie s'ouvre une fois une mission en cours.{'\n'}Acceptez une offre pour discuter avec le prestataire.
+            </Text>
+          </View>
         ) : msgs.length === 0 ? (
           <View style={styles.empty}>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
@@ -113,13 +145,14 @@ export default function Thread() {
           </Pressable>
           <TextInput
             style={styles.input}
-            placeholder="Message…"
+            placeholder={requestId ? 'Message…' : 'Aucune conversation active'}
             placeholderTextColor={colors.textMuted}
             value={draft}
             onChangeText={setDraft}
             onSubmitEditing={send}
+            editable={!!requestId}
           />
-          <Pressable style={styles.sendBtn} onPress={send}>
+          <Pressable style={[styles.sendBtn, (!requestId || sending) && { opacity: 0.5 }]} onPress={send} disabled={!requestId || sending}>
             <Send size={18} color={colors.white} />
           </Pressable>
         </View>

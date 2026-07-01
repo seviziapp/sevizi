@@ -84,11 +84,13 @@ export default function ActiveJob() {
   }
 
   function navigate() {
-    if (!job?.location) return;
-    const url = Platform.OS === 'ios'
-      ? `maps:?daddr=${job.location.lat},${job.location.lng}`
-      : `geo:${job.location.lat},${job.location.lng}?q=${job.location.lat},${job.location.lng}`;
-    Linking.openURL(url);
+    if (!job) return;
+    const query = job.locationLabel?.trim() || `${job.location.lat},${job.location.lng}`;
+    const encoded = encodeURIComponent(query);
+    const url = Platform.OS === 'web'
+      ? `https://www.google.com/maps/search/?api=1&query=${encoded}`
+      : Platform.OS === 'ios' ? `maps:?q=${encoded}` : `geo:0,0?q=${encoded}`;
+    Linking.openURL(url).catch(() => {});
   }
 
   const clientName = job?.clientName ?? 'Client';
