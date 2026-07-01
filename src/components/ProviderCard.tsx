@@ -1,18 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
-import { Wrench, Star, MapPin, ShieldCheck } from 'lucide-react-native';
+import { Wrench, Star, MapPin, ShieldCheck, Heart } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../theme/tokens';
 import { Provider } from '../lib/types';
+import { isFavorite, addFavorite, removeFavorite } from '../lib/api';
 
 export function ProviderCard({
-  provider, price, subtitle, onPress, highlighted,
+  provider, price, subtitle, onPress, highlighted, showFavorite = true, onFavoriteChange,
 }: {
   provider: Provider;
   price?: number;
   subtitle?: string;
   onPress?: () => void;
   highlighted?: boolean;
+  showFavorite?: boolean;
+  onFavoriteChange?: (faved: boolean) => void;
 }) {
+  const [faved, setFaved] = useState(false);
+
+  useEffect(() => {
+    if (showFavorite) isFavorite(provider.id).then(setFaved).catch(() => {});
+  }, [provider.id, showFavorite]);
+
+  async function toggleFav(e?: any) {
+    e?.stopPropagation?.();
+    const next = !faved;
+    setFaved(next);
+    onFavoriteChange?.(next);
+    try {
+      if (next) await addFavorite(provider.id);
+      else await removeFavorite(provider.id);
+    } catch {
+      setFaved(!next);
+    }
+  }
+
   return (
     <Pressable
       onPress={onPress}
@@ -64,6 +86,12 @@ export function ProviderCard({
           )}
         </View>
       </View>
+
+      {showFavorite && (
+        <Pressable style={styles.favBtn} onPress={toggleFav} hitSlop={8}>
+          <Heart size={20} color={faved ? colors.terre : colors.textMuted} fill={faved ? colors.terre : 'none'} />
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -86,6 +114,7 @@ const styles = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
+  favBtn: { alignSelf: 'flex-start', width: 32, height: 32, alignItems: 'center', justifyContent: 'center' },
   metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

@@ -41,6 +41,7 @@ export default function Favorites() {
               provider={p}
               subtitle={CATEGORIES.find(c => c.key === p.category)?.label}
               onPress={() => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } })}
+              onFavoriteChange={(faved) => { if (!faved) setFavorites(fs => fs.filter(x => x.id !== p.id)); }}
             />
             {/* Rebook button */}
             <Pressable
