@@ -94,6 +94,14 @@ function DisputeCard({ dispute, onResolve }: { dispute: Dispute; onResolve?: () 
         </View>
       </View>
 
+      {!!dispute.reporterName && (
+        <View style={styles.reporterRow}>
+          <Text style={[text.label, { color: colors.terre }]}>
+            Signalé par {dispute.reporterName}{dispute.reporterRole ? ` · ${dispute.reporterRole === 'prestataire' ? 'Prestataire' : 'Client'}` : ''}
+          </Text>
+        </View>
+      )}
+
       <View style={styles.reasonBox}>
         <Text style={[text.small, { color: colors.textMuted }]}>Motif :</Text>
         <Text style={[text.body, { color: colors.encre }]}>{dispute.reason}</Text>
@@ -131,6 +139,7 @@ const styles = StyleSheet.create({
   statusBadge: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   statusOpen: { borderColor: colors.terre, backgroundColor: '#F8E2DA' },
   statusDone: { borderColor: colors.vert, backgroundColor: colors.surface },
+  reporterRow: { alignSelf: 'flex-start', backgroundColor: '#F8E2DA', borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
   reasonBox: { backgroundColor: colors.creme, borderRadius: radii.sm, padding: spacing.md, gap: 4 },
   actions: { flexDirection: 'row', gap: spacing.md },
   viewBtn: { flex: 1, height: 44, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },

@@ -153,6 +153,8 @@ export interface Dispute {
   id: string;
   clientName: string;
   providerName: string;
+  reporterName: string;
+  reporterRole: 'client' | 'prestataire' | '';
   reason: string;
   createdAt: string;
   status: 'ouvert' | 'resolu';

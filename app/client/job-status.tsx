@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Phone, Navigation, Star, CheckCircle } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Phone, Navigation, Star, CheckCircle, AlertTriangle } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus, submitReview } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
@@ -204,6 +204,12 @@ export default function JobStatus() {
             </Text>
           </View>
         )}
+
+        {/* Signal a problem → admin */}
+        <Pressable style={styles.reportBtn} onPress={() => router.push({ pathname: '/shared/report-problem', params: { jobId: job.id } })}>
+          <AlertTriangle size={16} color={colors.terre} />
+          <Text style={[text.bodyMd, { color: colors.terre }]}>Signaler un problème</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -235,6 +241,7 @@ const styles = StyleSheet.create({
   stepContentActive: { backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md, marginLeft: -spacing.sm },
   reviewBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.vert, borderRadius: radii.md, height: 52 },
   bottomNote: { backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: '#F8C6B6' },
   backBtn: { paddingHorizontal: spacing.xl, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   reviewScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.xl },
   starsRow: { flexDirection: 'row', gap: spacing.md },

@@ -853,16 +853,36 @@ export async function fetchDisputes(): Promise<Dispute[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('disputes')
-    .select('*, job:jobs(client_id, provider_id)')
+    .select('*, job:jobs(client_name, provider:providers(name))')
     .order('created_at', { ascending: false });
   if (error) return [];
   return (data ?? []).map((d: any) => ({
     id: d.id, reason: d.reason, status: d.status, createdAt: d.created_at,
-    clientName: d.reporter_id ?? '', providerName: '',
+    clientName: d.job?.client_name ?? 'Client',
+    providerName: d.job?.provider?.name ?? 'Prestataire',
+    reporterName: d.reporter_name ?? 'Utilisateur',
+    reporterRole: (d.reporter_role ?? '') as any,
   }));
 }
 
 export async function resolveDispute(id: string): Promise<void> {
   if (!hasSupabase) return;
   await supabase.from('disputes').update({ status: 'resolu', resolved_at: new Date().toISOString() }).eq('id', id);
+}
+
+// A client or provider signals a problem on their mission → goes to the admin.
+export async function reportDispute(jobId: string, reason: string): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: me } = await supabase.from('profiles').select('full_name, role').eq('id', user.id).single();
+  const { error } = await supabase.from('disputes').insert({
+    job_id: jobId,
+    reporter_id: user.id,
+    reason,
+    reporter_name: me?.full_name ?? 'Utilisateur',
+    reporter_role: me?.role ?? null,
+    status: 'ouvert',
+  });
+  if (error) throw error;
 }

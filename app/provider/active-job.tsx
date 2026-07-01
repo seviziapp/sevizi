@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight, Briefcase } from 'lucide-react-native';
+import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight, Briefcase, AlertTriangle } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
@@ -187,6 +187,12 @@ export default function ActiveJob() {
             </Pressable>
           </View>
         )}
+
+        {/* Signal a problem → admin */}
+        <Pressable style={styles.reportBtn} onPress={() => router.push({ pathname: '/shared/report-problem', params: { jobId: job.id } })}>
+          <AlertTriangle size={16} color={colors.terre} />
+          <Text style={[text.bodyMd, { color: colors.terre }]}>Signaler un problème</Text>
+        </Pressable>
       </ScrollView>
     </SafeAreaView>
   );
@@ -217,4 +223,5 @@ const styles = StyleSheet.create({
   emptyBtn: { backgroundColor: colors.vert, borderRadius: radii.md, height: 48, paddingHorizontal: spacing.xl, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
   doneCard: { backgroundColor: colors.surface, borderRadius: radii.xl, padding: spacing.xl, alignItems: 'center', gap: spacing.sm },
   backHomeBtn: { height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
+  reportBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: '#F8C6B6' },
 });
