@@ -150,10 +150,41 @@ export async function fetchProviderCompletedCount(providerId: string): Promise<n
 }
 
 export async function fetchProviderReviews(providerId: string): Promise<Review[]> {
-  if (!hasSupabase) return mockReviews;
+  if (!hasSupabase) return [];
   const { data, error } = await supabase.from('reviews').select('*').eq('provider_id', providerId).order('created_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    authorName: r.author_name ?? 'Client',
+    rating: r.rating,
+    comment: r.comment ?? '',
+    createdAt: r.created_at,
+  }));
+}
+
+// Client leaves a review after a completed mission. A DB trigger then
+// recomputes the provider's average rating and notifies them.
+export async function submitReview(input: { jobId: string; providerId: string; rating: number; comment?: string }): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: me } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+  const { error } = await supabase.from('reviews').insert({
+    job_id: input.jobId,
+    provider_id: input.providerId,
+    author_id: user.id,
+    author_name: me?.full_name ?? 'Client',
+    rating: input.rating,
+    comment: input.comment?.trim() || null,
+  });
   if (error) throw error;
-  return (data ?? []) as unknown as Review[];
+}
+
+// Whether the current user already reviewed a given job.
+export async function hasReviewedJob(jobId: string): Promise<boolean> {
+  if (!hasSupabase) return false;
+  const { data } = await supabase.from('reviews').select('id').eq('job_id', jobId).maybeSingle();
+  return !!data;
 }
 
 export async function createRequest(
@@ -312,9 +343,10 @@ export async function markAllNotificationsRead(): Promise<void> {
   await supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
 }
 
-// The current (non-finished) job for either party — a client sees the job on
-// their request, a provider sees the job assigned to their provider profile.
-export async function fetchCurrentJob(): Promise<Job | null> {
+// The current job for either party — a client sees the job on their request, a
+// provider sees the job assigned to their provider profile. By default excludes
+// finished missions; pass { includeCompleted: true } for the review flow.
+export async function fetchCurrentJob(opts?: { includeCompleted?: boolean }): Promise<Job | null> {
   if (!hasSupabase) return null;
   const user = await currentUser();
   if (!user) return null;
@@ -325,9 +357,10 @@ export async function fetchCurrentJob(): Promise<Job | null> {
   let q = supabase
     .from('jobs')
     .select('*, provider:providers(*), request:requests(description, location_label)')
-    .not('status', 'eq', 'termine')
     .order('accepted_at', { ascending: false })
     .limit(1);
+
+  if (!opts?.includeCompleted) q = q.not('status', 'eq', 'termine');
 
   q = prov?.id
     ? q.or(`client_id.eq.${user.id},provider_id.eq.${prov.id}`)

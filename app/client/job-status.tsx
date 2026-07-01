@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, MapPin, Phone, Navigation, Star, CheckCircle } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
+import { fetchCurrentJob, updateJobStatus, submitReview } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
 import { LOME } from '../../src/lib/api';
 
@@ -21,10 +21,29 @@ export default function JobStatus() {
   const [job, setJob] = useState<Job | null>(null);
   const [showReview, setShowReview] = useState(false);
   const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
-    fetchCurrentJob().then(setJob).catch(() => {});
+    fetchCurrentJob({ includeCompleted: true }).then(setJob).catch(() => {});
   }, []);
+
+  async function sendReview() {
+    if (!job || !job.provider || rating === 0) return;
+    setReviewError('');
+    setSubmitting(true);
+    try {
+      await submitReview({ jobId: job.id, providerId: job.provider.id, rating, comment });
+      router.replace('/client/home');
+    } catch (e: any) {
+      const msg = e?.message ?? '';
+      // duplicate review (unique constraint) — treat as already done
+      if (/duplicate|unique/i.test(msg)) { router.replace('/client/home'); return; }
+      setReviewError(msg || "Impossible d'envoyer l'avis. Réessayez.");
+      setSubmitting(false);
+    }
+  }
 
   const currentIdx = STEPS.findIndex(s => s.key === (job?.status ?? 'accepte'));
 
@@ -61,10 +80,26 @@ export default function JobStatus() {
               </Pressable>
             ))}
           </View>
-          <Pressable style={styles.submitReview} onPress={() => router.replace('/client/home')}>
-            <Text style={[text.bodyMd, { color: colors.white }]}>Envoyer mon avis</Text>
+          <TextInput
+            style={styles.reviewInput}
+            placeholder="Ajoutez un commentaire (facultatif)…"
+            placeholderTextColor={colors.textMuted}
+            value={comment}
+            onChangeText={setComment}
+            multiline
+            textAlignVertical="top"
+          />
+          {!!reviewError && <Text style={styles.reviewError}>{reviewError}</Text>}
+          <Pressable
+            style={[styles.submitReview, (rating === 0 || submitting) && { opacity: 0.5 }]}
+            onPress={sendReview}
+            disabled={rating === 0 || submitting}
+          >
+            {submitting
+              ? <ActivityIndicator color={colors.white} />
+              : <Text style={[text.bodyMd, { color: colors.white }]}>Envoyer mon avis</Text>}
           </Pressable>
-          <Pressable onPress={() => router.replace('/client/home')}>
+          <Pressable onPress={() => router.replace('/client/home')} disabled={submitting}>
             <Text style={[text.small, { color: colors.textMuted }]}>Passer</Text>
           </Pressable>
         </View>
@@ -194,5 +229,11 @@ const styles = StyleSheet.create({
   backBtn: { paddingHorizontal: spacing.xl, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   reviewScreen: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.xl },
   starsRow: { flexDirection: 'row', gap: spacing.md },
-  submitReview: { backgroundColor: colors.vert, borderRadius: radii.md, height: 52, paddingHorizontal: spacing.xxxl, alignItems: 'center', justifyContent: 'center' },
+  reviewInput: {
+    width: '100%', backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
+    borderRadius: radii.md, padding: spacing.lg, minHeight: 88,
+    fontSize: 15, fontFamily: 'HankenGrotesk_400Regular', color: colors.encre, outlineStyle: 'none',
+  } as any,
+  reviewError: { color: colors.terre, fontSize: 14, textAlign: 'center' },
+  submitReview: { backgroundColor: colors.vert, borderRadius: radii.md, height: 52, paddingHorizontal: spacing.xxxl, alignItems: 'center', justifyContent: 'center', minWidth: 220 },
 });
