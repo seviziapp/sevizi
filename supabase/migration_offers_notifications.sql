@@ -84,6 +84,10 @@ begin
   values (new.client_id,
           (case new.status when 'arrive' then 'arrived' when 'termine' then 'completed' else 'accepted' end)::notif_type,
           v_label, '', '/client/job-status');
+  -- Close the request once the mission is finished so it leaves "open missions".
+  if new.status = 'termine' then
+    update requests set status = 'terminee' where id = new.request_id;
+  end if;
   return new;
 end; $$;
 drop trigger if exists trg_notify_job_status on jobs;
