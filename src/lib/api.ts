@@ -598,11 +598,14 @@ export async function saveProviderDetails(input: {
 
   // 1) Business row FIRST — uses only base columns, so onboarding completes
   //    (index checks for this row) even if profile columns are missing.
-  const { data: existing } = await supabase.from('providers').select('id').eq('user_id', user.id).maybeSingle();
+  //    limit(1) (not maybeSingle) so an existing duplicate doesn't error and
+  //    cause yet another row to be inserted.
+  const { data: existingRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
+  const existing = existingRows?.[0];
   if (existing) {
     const { error } = await supabase.from('providers').update({
       name: input.companyName, category: input.category, bio: input.bio ?? null,
-    }).eq('id', existing.id);
+    }).eq('user_id', user.id);
     if (error) throw error;
   } else {
     const { error } = await supabase.from('providers').insert({
@@ -679,7 +682,9 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
   if (!hasSupabase) return null;
   const user = await currentUser();
   if (!user) return null;
-  const { data } = await supabase.from('providers').select('*').eq('user_id', user.id).single();
+  // limit(1) (not single) so duplicate rows don't throw and read as "no provider".
+  const { data: rows } = await supabase.from('providers').select('*').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1);
+  const data = rows?.[0];
   if (!data) return null;
   return {
     id: data.id, name: data.name, category: data.category, rating: data.rating ?? 0,

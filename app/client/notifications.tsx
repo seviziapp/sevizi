@@ -30,12 +30,15 @@ export default function Notifications() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
 
   useEffect(() => {
-    // Viewing the inbox marks everything read so the bell badge clears.
+    // Viewing the inbox marks everything read — in the DB (so the bell badge
+    // clears) and locally (so the dots / "non lues" banner clear immediately).
     fetchNotifications().then(ns => {
-      setNotifs(ns);
+      setNotifs(ns.map(n => ({ ...n, read: true })));
       if (ns.some(n => !n.read)) markAllNotificationsRead().catch(() => {});
     }).catch(() => {});
-    const t = setInterval(() => { fetchNotifications().then(setNotifs).catch(() => {}); }, 15000);
+    const t = setInterval(() => {
+      fetchNotifications().then(d => setNotifs(d.map(n => ({ ...n, read: true })))).catch(() => {});
+    }, 15000);
     return () => clearInterval(t);
   }, []);
 

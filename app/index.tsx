@@ -31,14 +31,15 @@ export default function Index() {
       if (!profile || !profile.role) { setDest('/onboarding/role'); return; }
 
       if (profile.role === 'prestataire') {
-        // A provider is "set up" once their business row exists — check real
-        // data, not an onboarded flag, so we never re-ask after it's saved.
-        const { data: prov } = await supabase
+        // A provider is "set up" once their business row exists. Use limit(1)
+        // (not maybeSingle) so duplicate provider rows don't error out and get
+        // treated as "no provider" — which would re-ask onboarding forever.
+        const { data: provs } = await supabase
           .from('providers')
           .select('id')
           .eq('user_id', uid)
-          .maybeSingle();
-        setDest(prov ? '/provider/dashboard' : '/onboarding/provider-details');
+          .limit(1);
+        setDest(provs && provs.length > 0 ? '/provider/dashboard' : '/onboarding/provider-details');
         return;
       }
 
