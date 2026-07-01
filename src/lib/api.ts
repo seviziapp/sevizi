@@ -709,22 +709,29 @@ export async function fetchProviderStats(): Promise<ProviderStats> {
   if (!hasSupabase) return empty;
   const user = await currentUser();
   if (!user) return empty;
-  const { data: provider } = await supabase.from('providers').select('id, rating, response_rate').eq('user_id', user.id).single();
+  const { data: provider } = await supabase.from('providers').select('id, rating').eq('user_id', user.id).single();
   if (!provider) return empty;
-  const [openReqs, sentOffers, completedJobs, earnings] = await Promise.all([
+  const [openReqs, sentOffers, acceptedJobs, completedJobs, earnings] = await Promise.all([
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
     supabase.from('offers').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id),
+    supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id),
     supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('provider_id', provider.id).eq('status', 'termine'),
     supabase.from('jobs').select('price').eq('provider_id', provider.id).eq('status', 'termine'),
   ]);
+  const offers = sentOffers.count ?? 0;
+  const accepted = acceptedJobs.count ?? 0;
   const totalEarnings = (earnings.data ?? []).reduce((sum: number, j: any) => sum + (j.price ?? 0), 0);
+  // "Taux de réponse" = how many of the provider's offers get accepted.
+  const responseRate = offers > 0 ? Math.min(100, Math.round((accepted / offers) * 100)) : 0;
+  // Persist so the public profile shows the same figure.
+  supabase.from('providers').update({ response_rate: responseRate }).eq('id', provider.id).then(() => {}, () => {});
   return {
     openRequests: openReqs.count ?? 0,
-    sentOffers: sentOffers.count ?? 0,
+    sentOffers: offers,
     completedJobs: completedJobs.count ?? 0,
     rating: provider.rating ?? 0,
     earnings: totalEarnings,
-    responseRate: provider.response_rate ?? 0,
+    responseRate,
   };
 }
 
