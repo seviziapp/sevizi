@@ -93,7 +93,7 @@ export default function ActiveJob() {
     Linking.openURL(url).catch(() => {});
   }
 
-  const clientName = job?.clientName ?? 'Client';
+  const clientName = (job?.clientName ?? 'Client').split(' ')[0] || 'Client';
   const locationLabel = job?.locationLabel ?? '';
   const description = job?.description ?? '';
   const price = job?.price ?? 0;

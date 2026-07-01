@@ -113,7 +113,7 @@ begin
     else 'Mise à jour de votre mission' end;
   insert into notifications (user_id, type, title, body, action_route)
   values (new.client_id,
-          case new.status when 'arrive' then 'arrived' when 'termine' then 'completed' else 'accepted' end,
+          (case new.status when 'arrive' then 'arrived' when 'termine' then 'completed' else 'accepted' end)::notif_type,
           v_label, '', '/client/job-status');
   return new;
 end; $$;
