@@ -128,7 +128,25 @@ export async function fetchProvider(id: string): Promise<Provider> {
   }
   const { data, error } = await supabase.from('providers').select('*').eq('id', id).single();
   if (error) throw error;
-  return data as unknown as Provider;
+  return {
+    id: data.id, name: data.name, category: data.category,
+    rating: data.rating ?? 0, reviews: data.reviews ?? 0,
+    verified: !!data.verified, online: !!data.online,
+    missions: data.missions ?? 0, yearsActive: data.years_active ?? 0,
+    responseRate: data.response_rate ?? 0, bio: data.bio ?? undefined,
+    gallery: data.gallery ?? [], distanceKm: 0, location: LOME,
+  };
+}
+
+// Count of completed missions for a provider (real "past missions").
+export async function fetchProviderCompletedCount(providerId: string): Promise<number> {
+  if (!hasSupabase) return 0;
+  const { count } = await supabase
+    .from('jobs')
+    .select('id', { count: 'exact', head: true })
+    .eq('provider_id', providerId)
+    .eq('status', 'termine');
+  return count ?? 0;
 }
 
 export async function fetchProviderReviews(providerId: string): Promise<Review[]> {
@@ -432,6 +450,7 @@ export type MyProfile = {
   role: string;
   verified: boolean;
   onboarded: boolean;
+  locationLabel: string;
 };
 
 export async function fetchMyProfile(): Promise<MyProfile | null> {
@@ -450,7 +469,18 @@ export async function fetchMyProfile(): Promise<MyProfile | null> {
     role: data.role,
     verified: !!data.verified,
     onboarded: !!data.onboarded,
+    locationLabel: data.location_label ?? '',
   };
+}
+
+// Save the user's home address (label + optional coordinates).
+export async function saveMyAddress(label: string, point?: GeoPoint): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) return;
+  const patch: any = { id: user.id, location_label: label };
+  if (point) patch.location_geo = `POINT(${point.lng} ${point.lat})`;
+  await supabase.from('profiles').upsert(patch);
 }
 
 // ---- SIGNUP DETAILS + VERIFICATION ----
@@ -577,11 +607,24 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
   const { data } = await supabase.from('providers').select('*').eq('user_id', user.id).single();
   if (!data) return null;
   return {
-    id: data.id, name: data.name, category: data.category, rating: data.rating,
-    reviews: data.reviews, verified: data.verified, online: data.online,
-    missions: data.missions, yearsActive: data.years_active, responseRate: data.response_rate,
-    bio: data.bio, distanceKm: 0, location: LOME,
+    id: data.id, name: data.name, category: data.category, rating: data.rating ?? 0,
+    reviews: data.reviews ?? 0, verified: !!data.verified, online: !!data.online,
+    missions: data.missions ?? 0, yearsActive: data.years_active ?? 0, responseRate: data.response_rate ?? 0,
+    bio: data.bio ?? undefined, gallery: data.gallery ?? [], distanceKm: 0, location: LOME,
   };
+}
+
+// Provider edits their public profile: business name, bio, gallery photos.
+export async function updateProviderProfile(input: { name?: string; bio?: string; gallery?: string[] }): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const patch: any = {};
+  if (input.name !== undefined) patch.name = input.name;
+  if (input.bio !== undefined) patch.bio = input.bio;
+  if (input.gallery !== undefined) patch.gallery = input.gallery;
+  const { error } = await supabase.from('providers').update(patch).eq('user_id', user.id);
+  if (error) throw error;
 }
 
 // ---- PROVIDER API ----
@@ -612,11 +655,27 @@ export async function fetchProviderStats(): Promise<ProviderStats> {
 
 export async function fetchNearbyRequests(category?: ServiceCategory): Promise<ServiceRequest[]> {
   if (!hasSupabase) return [];
+  // Prefer the RPC — it returns real lat/lng (for the map) + offer counts.
+  const { data, error } = await supabase.rpc('nearby_requests', {
+    lat: LOME.lat, lng: LOME.lng, cat: category ?? null, radius_km: 50,
+  });
+  if (!error && data) {
+    return (data as any[]).map(r => ({
+      id: r.id, clientId: '', description: r.description, category: r.category,
+      urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
+      status: r.status, offersCount: Number(r.offers_count ?? 0),
+      location: { lat: r.lat, lng: r.lng },
+    }));
+  }
+  // Fallback: plain select (no coordinates)
   let q = supabase.from('requests').select('*').eq('status', 'ouverte').order('created_at', { ascending: false });
   if (category) q = q.eq('category', category);
-  const { data, error } = await q;
-  if (error) throw error;
-  return (data ?? []) as unknown as ServiceRequest[];
+  const { data: d2 } = await q;
+  return (d2 ?? []).map((r: any) => ({
+    id: r.id, clientId: r.client_id, description: r.description, category: r.category,
+    urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
+    status: r.status, offersCount: 0, location: LOME,
+  }));
 }
 
 export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string }): Promise<void> {

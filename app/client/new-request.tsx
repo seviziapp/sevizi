@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -6,7 +6,7 @@ import { X, Camera, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { CATEGORIES, ServiceCategory } from '../../src/lib/types';
-import { createRequest, LOME } from '../../src/lib/api';
+import { createRequest, fetchMyProfile, LOME } from '../../src/lib/api';
 import { MapPicker } from '../../src/components/MapPicker';
 import type { GeoPoint } from '../../src/lib/types';
 
@@ -19,7 +19,12 @@ export default function NewRequest() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [location, setLocation] = useState<GeoPoint>(LOME);
-  const [locationLabel, setLocationLabel] = useState('Bè-Kpota, Lomé');
+  const [locationLabel, setLocationLabel] = useState('');
+
+  // default the request location to the user's saved address
+  useEffect(() => {
+    fetchMyProfile().then(p => { if (p?.locationLabel) setLocationLabel(p.locationLabel); }).catch(() => {});
+  }, []);
 
   async function publish() {
     if (!desc.trim()) return;

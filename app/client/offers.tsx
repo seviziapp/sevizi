@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Wrench, Star, MapPin, ShieldCheck, Clock, Hourglass } from 'lucide-react-native';
+import { ArrowLeft, Wrench, Star, ShieldCheck, Clock, Hourglass } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
@@ -88,6 +88,7 @@ export default function Offers() {
               accepting={accepting === o.id}
               disabled={!!accepting && accepting !== o.id}
               onAccept={() => accept(o)}
+              onProfile={() => router.push({ pathname: '/shared/provider-profile', params: { id: o.provider.id } })}
               onMessage={() => router.push({ pathname: '/client/thread', params: { requestId: rid, providerName: o.provider.name } })}
             />
           ))}
@@ -97,8 +98,8 @@ export default function Offers() {
   );
 }
 
-function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage }: {
-  offer: Offer; best: boolean; accepting: boolean; disabled: boolean; onAccept: () => void; onMessage: () => void;
+function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onProfile }: {
+  offer: Offer; best: boolean; accepting: boolean; disabled: boolean; onAccept: () => void; onMessage: () => void; onProfile: () => void;
 }) {
   return (
     <View style={[styles.card, best && styles.cardFeatured, shadow.card]}>
@@ -108,11 +109,14 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage }: {
         </View>
       )}
       <View style={styles.cardTop}>
-        <View style={styles.iconWrap}>
+        <Pressable style={styles.iconWrap} onPress={onProfile}>
           <Wrench size={20} color={colors.vert} strokeWidth={2.2} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={[text.h3, { color: colors.encre }]}>{offer.provider.name}</Text>
+        </Pressable>
+        <Pressable style={{ flex: 1 }} onPress={onProfile}>
+          <View style={styles.nameRow}>
+            <Text style={[text.h3, { color: colors.encre }]} numberOfLines={1}>{offer.provider.name}</Text>
+            {offer.provider.verified && <ShieldCheck size={15} color={colors.vert} fill={colors.surface} />}
+          </View>
           <View style={styles.metaRow}>
             <View style={styles.meta}>
               <Star size={13} color={colors.soleil} fill={colors.soleil} />
@@ -124,14 +128,9 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage }: {
                 <Text style={[text.label, { color: colors.textMuted }]}>{offer.availability}</Text>
               </View>
             ) : null}
-            {offer.provider.verified && (
-              <View style={styles.meta}>
-                <ShieldCheck size={13} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>Vérifié</Text>
-              </View>
-            )}
+            <Text style={[text.label, { color: colors.vert }]}>Voir le profil ›</Text>
           </View>
-        </View>
+        </Pressable>
         <Text style={[text.data, { color: colors.encre, fontSize: 18 }]}>
           {offer.price.toLocaleString('fr-FR')} F
         </Text>
@@ -164,6 +163,7 @@ const styles = StyleSheet.create({
   bestTag: { alignSelf: 'flex-end', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.sm, marginBottom: spacing.sm },
   cardTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   iconWrap: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.xs, flexWrap: 'wrap' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actions: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.lg },

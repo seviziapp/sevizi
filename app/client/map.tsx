@@ -1,54 +1,34 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Search, SlidersHorizontal, Navigation, Wrench, Star, Send } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyProviders, LOME } from '../../src/lib/api';
-import type { Provider } from '../../src/lib/types';
-
-// react-native-maps is native-only; on web we render a styled placeholder grid
-// so the screen still composes. The real device build shows live pins.
-let MapView: any, Marker: any;
-if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-}
+import { MarkersMap, type MapMarker } from '../../src/components/MarkersMap';
+import { CATEGORIES, type Provider } from '../../src/lib/types';
 
 export default function MapScreen() {
   const router = useRouter();
   const [providers, setProviders] = useState<Provider[]>([]);
 
   useEffect(() => {
-    fetchNearbyProviders('plomberie').then(setProviders).catch(() => {});
+    fetchNearbyProviders().then(setProviders).catch(() => {});
   }, []);
+
+  const markers: MapMarker[] = providers
+    .filter(p => p.location && Number.isFinite(p.location.lat))
+    .map(p => ({
+      id: p.id, lat: p.location.lat, lng: p.location.lng,
+      emoji: CATEGORIES.find(c => c.key === p.category)?.emoji ?? '🔧',
+      onPress: () => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } }),
+    }));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       {/* Map layer */}
       <View style={styles.mapLayer}>
-        {Platform.OS !== 'web' && MapView ? (
-          <MapView
-            style={StyleSheet.absoluteFill}
-            initialRegion={{ latitude: LOME.lat, longitude: LOME.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
-          >
-            {providers.map((p) => (
-              <Marker key={p.id} coordinate={{ latitude: p.location.lat, longitude: p.location.lng }} title={p.name}>
-                <View style={styles.marker}><Wrench size={14} color={colors.white} /></View>
-              </Marker>
-            ))}
-          </MapView>
-        ) : (
-          <View style={styles.gridFallback}>
-            {providers.map((p, i) => (
-              <View key={p.id} style={[styles.marker, { position: 'absolute', top: 120 + i * 90, left: 60 + i * 80 }]}>
-                <Wrench size={14} color={colors.white} />
-              </View>
-            ))}
-            <View style={styles.userDot} />
-          </View>
-        )}
+        <MarkersMap center={LOME} markers={markers} fill />
 
         {/* Search bar over map */}
         <View style={styles.searchBar}>
@@ -80,7 +60,7 @@ export default function MapScreen() {
         </View>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.lg }}>
           {providers.map((p, i) => (
-            <Pressable key={p.id} style={[styles.row, i === 0 && styles.rowActive]} onPress={() => router.push('/client/offers')}>
+            <Pressable key={p.id} style={[styles.row, i === 0 && styles.rowActive]} onPress={() => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } })}>
               <View style={styles.iconWrap}><Wrench size={18} color={colors.vert} /></View>
               <View style={{ flex: 1 }}>
                 <Text style={[text.bodyMd, { color: colors.encre }]}>{p.name}</Text>

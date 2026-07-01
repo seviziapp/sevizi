@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight } from 'lucide-react-native';
+import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight, Briefcase } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
@@ -18,17 +18,22 @@ const STEPS: { key: JobStatus; label: string; action: string; emoji: string }[] 
 export default function ActiveJob() {
   const router = useRouter();
   const [job, setJob] = useState<Job | null>(null);
+  const [loading, setLoading] = useState(true);
   const [statusIdx, setStatusIdx] = useState(0);
   const [advancing, setAdvancing] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchCurrentJob().then(j => {
-      if (j) {
-        setJob(j);
-        const idx = STEPS.findIndex(s => s.key === j.status);
-        setStatusIdx(idx >= 0 ? idx : 0);
-      }
-    }).catch(() => {});
+    fetchCurrentJob()
+      .then(j => {
+        if (j) {
+          setJob(j);
+          const idx = STEPS.findIndex(s => s.key === j.status);
+          setStatusIdx(idx >= 0 ? idx : 0);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
   const current = STEPS[statusIdx];
@@ -37,12 +42,41 @@ export default function ActiveJob() {
   async function advance() {
     if (isDone || advancing || !job) return;
     const nextStep = STEPS[statusIdx + 1];
+    setError('');
     setAdvancing(true);
     try {
       await updateJobStatus(job.id, nextStep.key);
       setStatusIdx(i => i + 1);
-    } catch {}
-    setAdvancing(false);
+    } catch (e: any) {
+      setError(e?.message ?? 'Impossible de mettre à jour le statut. Réessayez.');
+    } finally {
+      setAdvancing(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <ActivityIndicator color={colors.vert} style={{ marginTop: 80 }} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!job) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.emptyWrap}>
+          <Briefcase size={48} color={colors.border} />
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>Aucune mission active</Text>
+          <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
+            Envoyez des offres sur les demandes proches. Quand un client accepte, la mission apparaît ici.
+          </Text>
+          <Pressable style={styles.emptyBtn} onPress={() => router.replace('/provider/requests')}>
+            <Text style={[text.bodyMd, { color: colors.white }]}>Voir les demandes</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
   }
 
   function callClient() {
@@ -132,9 +166,11 @@ export default function ActiveJob() {
           })}
         </View>
 
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
+
         {!isDone ? (
           <Pressable style={[styles.advanceBtn, advancing && { opacity: 0.6 }]} onPress={advance} disabled={advancing}>
-            <Text style={[text.bodyMd, { color: colors.white }]}>{current.action}</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{advancing ? 'Mise à jour…' : current.action}</Text>
             <ChevronRight size={18} color={colors.white} />
           </Pressable>
         ) : (
@@ -174,6 +210,9 @@ const styles = StyleSheet.create({
   line: { width: 2, flex: 1, backgroundColor: colors.border, marginVertical: 4 },
   lineDone: { backgroundColor: colors.vert },
   advanceBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, backgroundColor: colors.vert, borderRadius: radii.lg, height: 56 },
+  errorText: { color: colors.terre, fontSize: 14, textAlign: 'center' },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xxl },
+  emptyBtn: { backgroundColor: colors.vert, borderRadius: radii.md, height: 48, paddingHorizontal: spacing.xl, alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm },
   doneCard: { backgroundColor: colors.surface, borderRadius: radii.xl, padding: spacing.xl, alignItems: 'center', gap: spacing.sm },
   backHomeBtn: { height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
 });

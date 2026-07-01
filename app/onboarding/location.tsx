@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { MapPin, Search, Navigation, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
+import { saveMyAddress } from '../../src/lib/api';
 
 const QUARTIERS = [
   'Bè-Kpota', 'Tokoin', 'Adidogomé', 'Hédzranawoé', 'Baguida',
@@ -15,10 +16,16 @@ export default function LocationScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const filtered = QUARTIERS.filter(q => q.toLowerCase().includes(search.toLowerCase()));
 
-  function confirm() {
+  async function confirm() {
+    if (!selected) return;
+    const label = selected === 'Ma position GPS' ? 'Ma position GPS' : `${selected}, Lomé`;
+    setSaving(true);
+    try { await saveMyAddress(label); } catch {}
+    setSaving(false);
     router.replace('/client/home');
   }
 
@@ -80,6 +87,7 @@ export default function LocationScreen() {
           label="Confirmer"
           icon={<ArrowRight size={20} color={colors.white} />}
           onPress={confirm}
+          loading={saving}
           disabled={!selected}
         />
       </View>

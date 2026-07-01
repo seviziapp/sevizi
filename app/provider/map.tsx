@@ -1,18 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Navigation, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, LOME } from '../../src/lib/api';
+import { MarkersMap, type MapMarker } from '../../src/components/MarkersMap';
 import { CATEGORIES, type ServiceRequest } from '../../src/lib/types';
-
-let MapView: any, Marker: any;
-if (Platform.OS !== 'web') {
-  const maps = require('react-native-maps');
-  MapView = maps.default;
-  Marker = maps.Marker;
-}
 
 export default function ProviderMap() {
   const router = useRouter();
@@ -25,45 +19,21 @@ export default function ProviderMap() {
 
   const cat = selected ? CATEGORIES.find(c => c.key === selected.category) : null;
 
+  const markers: MapMarker[] = requests
+    .filter(r => r.location && Number.isFinite(r.location.lat))
+    .map(r => ({
+      id: r.id, lat: r.location.lat, lng: r.location.lng,
+      emoji: CATEGORIES.find(c => c.key === r.category)?.emoji, urgent: r.urgent,
+      onPress: () => setSelected(r),
+    }));
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.mapLayer}>
-        {Platform.OS !== 'web' && MapView ? (
-          <MapView
-            style={StyleSheet.absoluteFill}
-            initialRegion={{ latitude: LOME.lat, longitude: LOME.lng, latitudeDelta: 0.02, longitudeDelta: 0.02 }}
-          >
-            {requests.map((r, i) => (
-              <Marker
-                key={r.id}
-                coordinate={{ latitude: r.location.lat, longitude: r.location.lng }}
-                onPress={() => setSelected(r)}
-              >
-                <View style={[styles.pin, r.urgent && styles.pinUrgent]}>
-                  <Text style={{ fontSize: 12 }}>{CATEGORIES.find(c => c.key === r.category)?.emoji}</Text>
-                </View>
-              </Marker>
-            ))}
-          </MapView>
-        ) : (
-          <View style={styles.gridFallback}>
-            {requests.map((r, i) => (
-              <Pressable
-                key={r.id}
-                style={[styles.pin, r.urgent && styles.pinUrgent, { position: 'absolute', top: 100 + i * 80, left: 60 + i * 90 }]}
-                onPress={() => setSelected(r)}
-              >
-                <Text style={{ fontSize: 12 }}>{CATEGORIES.find(c => c.key === r.category)?.emoji}</Text>
-              </Pressable>
-            ))}
-            <View style={styles.providerDot} />
-            <View style={[styles.providerDotRing]} />
-          </View>
-        )}
-
+        <MarkersMap center={LOME} markers={markers} fill />
         <View style={styles.topOverlay}>
           <Text style={[text.bodyMd, { color: colors.encre }]}>
-            {requests.length} demandes dans votre zone
+            {requests.length} demande{requests.length > 1 ? 's' : ''} dans votre zone
           </Text>
         </View>
       </View>

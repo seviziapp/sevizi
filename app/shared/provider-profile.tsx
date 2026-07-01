@@ -8,7 +8,8 @@ import {
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { fetchProvider, fetchProviderReviews, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
+import { fetchProvider, fetchProviderReviews, fetchProviderCompletedCount, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
+import { Image } from 'react-native';
 import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
 
 export default function ProviderProfileView() {
@@ -16,13 +17,15 @@ export default function ProviderProfileView() {
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [provider, setProvider] = useState<Provider | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
+  const [completed, setCompleted] = useState(0);
   const [faved, setFaved] = useState(false);
 
   useEffect(() => {
-    const pid = id ?? 'p1';
-    fetchProvider(pid).then(setProvider).catch(() => {});
-    fetchProviderReviews(pid).then(setReviews).catch(() => {});
-    isFavorite(pid).then(setFaved).catch(() => {});
+    if (!id) return;
+    fetchProvider(id).then(setProvider).catch(() => {});
+    fetchProviderReviews(id).then(setReviews).catch(() => {});
+    fetchProviderCompletedCount(id).then(setCompleted).catch(() => {});
+    isFavorite(id).then(setFaved).catch(() => {});
   }, [id]);
 
   async function toggleFav() {
@@ -57,14 +60,13 @@ export default function ProviderProfileView() {
           <View style={styles.avatar}>
             <Text style={[text.display, { color: colors.creme }]}>{provider.name[0]}</Text>
           </View>
-          <Text style={[text.h2, { color: colors.encre }]}>{provider.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[text.h2, { color: colors.encre }]}>{provider.name}</Text>
+            {provider.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
+          </View>
           <View style={styles.catRow}>
             <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
             <Text style={[text.body, { color: colors.textMuted }]}>{cat?.label}</Text>
-            <View style={styles.distancePill}>
-              <MapPin size={12} color={colors.vert} />
-              <Text style={[text.label, { color: colors.vert }]}>{provider.distanceKm.toFixed(1)} km</Text>
-            </View>
           </View>
           {provider.verified && (
             <View style={styles.verifiedBadge}>
@@ -86,7 +88,7 @@ export default function ProviderProfileView() {
           <View style={styles.div} />
           <Stat value={String(provider.reviews)} label="Avis" icon={<Star size={14} color={colors.soleil} />} />
           <View style={styles.div} />
-          <Stat value={String(provider.missions ?? 0)} label="Missions" icon={<Briefcase size={14} color={colors.vert} />} />
+          <Stat value={String(completed || provider.missions || 0)} label="Missions" icon={<Briefcase size={14} color={colors.vert} />} />
           <View style={styles.div} />
           <Stat value={`${provider.yearsActive ?? 1} ans`} label="Exp." icon={<Clock size={14} color={colors.vert} />} />
         </View>
@@ -110,16 +112,16 @@ export default function ProviderProfileView() {
         )}
 
         {/* Gallery */}
-        <View style={styles.section}>
-          <Text style={[text.label, { color: colors.textMuted }]}>GALERIE</Text>
-          <View style={styles.gallery}>
-            {[1, 2, 3].map(i => (
-              <View key={i} style={styles.galleryItem}>
-                <Text style={{ fontSize: 28 }}>{cat?.emoji}</Text>
-              </View>
-            ))}
+        {provider.gallery && provider.gallery.length > 0 && (
+          <View style={styles.section}>
+            <Text style={[text.label, { color: colors.textMuted }]}>GALERIE</Text>
+            <View style={styles.gallery}>
+              {provider.gallery.slice(0, 6).map((url, i) => (
+                <Image key={i} source={{ uri: url }} style={styles.galleryItem} resizeMode="cover" />
+              ))}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Reviews */}
         <View style={styles.section}>
@@ -178,6 +180,7 @@ const styles = StyleSheet.create({
   heartBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: 120 },
   hero: { alignItems: 'center', gap: spacing.sm },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   distancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill },
@@ -191,8 +194,8 @@ const styles = StyleSheet.create({
   div: { width: 1, backgroundColor: colors.border },
   responseRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radii.md },
   section: { gap: spacing.sm },
-  gallery: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
-  galleryItem: { flex: 1, aspectRatio: 1, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  galleryItem: { width: '31%', aspectRatio: 1, borderRadius: radii.md, backgroundColor: colors.surface },
   reviewCard: { backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.xs },
   reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stars: { flexDirection: 'row', gap: 2 },

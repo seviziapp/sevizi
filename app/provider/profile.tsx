@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -60,7 +60,10 @@ export default function ProviderProfile() {
               <Camera size={14} color={colors.white} />
             </Pressable>
           </View>
-          <Text style={[text.h2, { color: colors.encre }]}>{provider?.name ?? '—'}</Text>
+          <View style={styles.nameRow}>
+            <Text style={[text.h2, { color: colors.encre }]}>{provider?.name ?? '—'}</Text>
+            {provider?.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
+          </View>
           <Text style={[text.body, { color: colors.textMuted }]}>
             {cat?.label ?? '—'} · Lomé
           </Text>
@@ -95,10 +98,15 @@ export default function ProviderProfile() {
         <View style={styles.section}>
           <View style={styles.sectionHead}>
             <Text style={[text.label, { color: colors.textMuted }]}>GALERIE DE TRAVAUX</Text>
-            <Pressable><Text style={[text.small, { color: colors.vert }]}>Ajouter</Text></Pressable>
+            <Pressable onPress={() => router.push('/provider/edit-profile')}>
+              <Text style={[text.small, { color: colors.vert }]}>Ajouter</Text>
+            </Pressable>
           </View>
           <View style={styles.gallery}>
-            <Pressable style={[styles.galleryItem, styles.galleryAdd]}>
+            {(provider?.gallery ?? []).slice(0, 5).map((url, i) => (
+              <Image key={i} source={{ uri: url }} style={styles.galleryItem} resizeMode="cover" />
+            ))}
+            <Pressable style={[styles.galleryItem, styles.galleryAdd]} onPress={() => router.push('/provider/edit-profile')}>
               <Text style={[text.display, { color: colors.textMuted, fontSize: 28 }]}>+</Text>
             </Pressable>
           </View>
@@ -148,9 +156,9 @@ export default function ProviderProfile() {
               ? <Check size={18} color={colors.vert} />
               : <ChevronRight size={18} color={colors.textMuted} />}
           </Pressable>
-          <Pressable style={[styles.settingRow, styles.settingBorder]}>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/edit-profile')}>
             <Settings size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Paramètres du profil</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Modifier mon profil</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
@@ -177,6 +185,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.xl },
   hero: { alignItems: 'center', gap: spacing.sm },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatarWrap: { position: 'relative' },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.encre, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white },

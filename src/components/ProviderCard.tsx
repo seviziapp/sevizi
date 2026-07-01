@@ -24,9 +24,12 @@ export function ProviderCard({
 
       <View style={{ flex: 1 }}>
         <View style={styles.topRow}>
-          <Text style={[text.h3, { color: colors.encre }]} numberOfLines={1}>
-            {provider.name}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[text.h3, { color: colors.encre }]} numberOfLines={1}>
+              {provider.name}
+            </Text>
+            {provider.verified && <ShieldCheck size={15} color={colors.vert} fill={colors.surface} />}
+          </View>
           {price != null && (
             <Text style={[text.data, { color: colors.encre }]}>
               {price.toLocaleString('fr-FR')} F
@@ -82,6 +85,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
   metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

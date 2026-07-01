@@ -37,9 +37,11 @@ export default function ProviderLayout() {
         options={{ tabBarIcon: ({ color }) => <User size={24} color={color} /> }}
       />
       {/* Hidden screens — navigable but not in tab bar */}
-      <Tabs.Screen name="send-offer"  options={{ href: null }} />
-      <Tabs.Screen name="active-job"  options={{ href: null }} />
-      <Tabs.Screen name="earnings"    options={{ href: null }} />
+      <Tabs.Screen name="send-offer"   options={{ href: null }} />
+      <Tabs.Screen name="active-job"   options={{ href: null }} />
+      <Tabs.Screen name="earnings"     options={{ href: null }} />
+      <Tabs.Screen name="verification" options={{ href: null }} />
+      <Tabs.Screen name="edit-profile" options={{ href: null }} />
     </Tabs>
   );
 }

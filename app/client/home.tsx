@@ -18,6 +18,7 @@ export default function Home() {
   const [providers, setProviders] = useState<Provider[]>([]);
   const [activeJob, setActiveJob] = useState<Job | null>(null);
   const [userName, setUserName] = useState('');
+  const [address, setAddress] = useState('');
   const [unread, setUnread] = useState(0);
   const [openRequests, setOpenRequests] = useState<OpenReq[]>([]);
 
@@ -29,7 +30,7 @@ export default function Home() {
 
   useEffect(() => {
     fetchNearbyProviders().then(setProviders).catch(() => {});
-    fetchMyProfile().then(p => { if (p) setUserName(p.fullName.split(' ')[0]); }).catch(() => {});
+    fetchMyProfile().then(p => { if (p) { setUserName(p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
     refreshLive();
     // poll so new offers / notifications surface without a manual refresh
     const t = setInterval(refreshLive, 20000);
@@ -50,7 +51,9 @@ export default function Home() {
               <Text style={[text.small, { color: colors.textMuted }]}>Bonjour{userName ? `, ${userName}` : ''}</Text>
               <Pressable style={styles.location} onPress={() => router.push('/onboarding/location')}>
                 <MapPin size={14} color={colors.vert} />
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Bè-Kpota, Lomé</Text>
+                <Text style={[text.bodyMd, { color: address ? colors.encre : colors.textMuted }]}>
+                  {address || 'Définir mon adresse'}
+                </Text>
                 <ChevronDown size={14} color={colors.encre} />
               </Pressable>
             </View>
