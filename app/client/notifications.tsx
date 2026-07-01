@@ -30,7 +30,11 @@ export default function Notifications() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
 
   useEffect(() => {
-    fetchNotifications().then(setNotifs).catch(() => {});
+    // Viewing the inbox marks everything read so the bell badge clears.
+    fetchNotifications().then(ns => {
+      setNotifs(ns);
+      if (ns.some(n => !n.read)) markAllNotificationsRead().catch(() => {});
+    }).catch(() => {});
     const t = setInterval(() => { fetchNotifications().then(setNotifs).catch(() => {}); }, 15000);
     return () => clearInterval(t);
   }, []);
