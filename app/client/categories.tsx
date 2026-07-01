@@ -48,7 +48,7 @@ export default function Categories() {
             <Pressable
               key={c.key}
               style={[styles.card, shadow.card]}
-              onPress={() => router.push({ pathname: '/client/new-request' })}
+              onPress={() => router.push({ pathname: '/client/new-request', params: { category: c.key } })}
             >
               <Text style={{ fontSize: 32 }}>{c.emoji}</Text>
               <Text style={[text.small, { color: colors.encre, textAlign: 'center' }]}>{c.label}</Text>
@@ -68,5 +68,5 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, ...text.body, color: colors.encre },
   scroll: { padding: spacing.xl, paddingTop: 0, paddingBottom: spacing.xxxl },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  card: { width: '30%', aspectRatio: 1, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.sm },
+  card: { flexBasis: 100, flexGrow: 1, maxWidth: 180, height: 120, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.sm },
 });
