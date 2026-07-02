@@ -96,10 +96,6 @@ export default function Profile() {
           </View>
         ))}
 
-        <Pressable style={styles.adminBtn} onPress={() => router.push('/admin/dashboard')}>
-          <Text style={[text.small, { color: colors.textMuted }]}>Mode Admin (dev)</Text>
-        </Pressable>
-
         <Pressable style={styles.logout} onPress={logout}>
           <LogOut size={20} color={colors.terre} />
           <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>
@@ -120,6 +116,5 @@ const styles = StyleSheet.create({
   list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   itemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
-  adminBtn: { alignSelf: 'center', paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.border },
   logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.terre },
 });
