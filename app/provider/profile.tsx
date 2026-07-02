@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchMyProviderProfile, fetchProviderReviews } from '../../src/lib/api';
+import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
 import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
@@ -18,6 +18,7 @@ export default function ProviderProfile() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [notifs, setNotifs] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     fetchMyProviderProfile()
@@ -29,6 +30,7 @@ export default function ProviderProfile() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
+    fetchMyProfile().then(p => { if (p) setIsAdmin(p.isAdmin); }).catch(() => {});
   }, []);
 
   async function logout() {
@@ -161,6 +163,13 @@ export default function ProviderProfile() {
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Modifier mon profil</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
+          {isAdmin && (
+            <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/admin/dashboard')}>
+              <LayoutDashboard size={20} color={colors.encre} />
+              <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Espace admin</Text>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </Pressable>
+          )}
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
             <LogOut size={20} color={colors.terre} />
             <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Se déconnecter</Text>
