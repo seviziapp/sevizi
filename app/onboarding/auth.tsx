@@ -53,8 +53,12 @@ export default function Auth() {
     setError('');
     setLoading(true);
     try {
+      // Land on the app root so the index router decides where to go based on
+      // the account's real data (dashboard / home / finish onboarding / role).
+      // Redirecting straight to /onboarding/role sent EVERY Google login — even
+      // already-registered users — back to the welcome screen.
       const redirectTo = Platform.OS === 'web'
-        ? window.location.origin + '/onboarding/role'
+        ? window.location.origin + '/'
         : 'sevizi://';
       const { error: e } = await supabase.auth.signInWithOAuth({
         provider: 'google',
