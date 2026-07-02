@@ -15,6 +15,7 @@ alter table profiles add column if not exists email      text;
 alter table profiles add column if not exists verified   boolean default false;
 alter table profiles add column if not exists id_doc_url text;
 alter table profiles add column if not exists onboarded  boolean default false;
+alter table profiles add column if not exists is_admin   boolean default false;  -- admin back-office access
 
 alter table verification_requests alter column provider_id drop not null;
 alter table verification_requests add column if not exists user_id      uuid references auth.users(id) on delete cascade;

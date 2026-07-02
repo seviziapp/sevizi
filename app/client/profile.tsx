@@ -12,7 +12,7 @@ import { fetchMyProfile } from '../../src/lib/api';
 
 export default function Profile() {
   const router = useRouter();
-  const [profile, setProfile] = useState<{ fullName: string; firstName: string; phone: string; role: string; verified: boolean } | null>(null);
+  const [profile, setProfile] = useState<{ fullName: string; firstName: string; phone: string; role: string; verified: boolean; isAdmin: boolean } | null>(null);
 
   useEffect(() => {
     fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(() => {});
@@ -49,7 +49,7 @@ export default function Profile() {
       items: [
         { icon: <ShieldCheck size={20} color={colors.encre} />, label: 'Sécurité & confiance', onPress: () => router.push('/client/security') },
         { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/provider/dashboard') },
-        { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => {} },
+        { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => router.push('/client/help') },
       ],
     },
   ];
@@ -96,6 +96,12 @@ export default function Profile() {
           </View>
         ))}
 
+        {profile?.isAdmin && (
+          <Pressable style={styles.adminBtn} onPress={() => router.push('/admin/dashboard')}>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>Espace admin</Text>
+          </Pressable>
+        )}
+
         <Pressable style={styles.logout} onPress={logout}>
           <LogOut size={20} color={colors.terre} />
           <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>
@@ -116,5 +122,6 @@ const styles = StyleSheet.create({
   list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   itemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },
+  adminBtn: { alignItems: 'center', justifyContent: 'center', height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   logout: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.terre },
 });

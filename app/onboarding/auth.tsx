@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LogoFull } from '../../src/components/Logo';
 import { supabase } from '../../src/lib/supabase';
@@ -17,10 +17,12 @@ export default function Auth() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [agreedTC, setAgreedTC] = useState(false);
 
   async function handleEmail() {
     setError('');
     if (!email || !password) { setError('Remplissez tous les champs.'); return; }
+    if (mode === 'signup' && !agreedTC) { setError('Veuillez accepter les conditions d\'utilisation.'); return; }
     setLoading(true);
     try {
       if (mode === 'login') {
@@ -129,6 +131,18 @@ export default function Auth() {
             </Pressable>
           </View>
 
+          {/* Terms & conditions — signup only */}
+          {mode === 'signup' && (
+            <Pressable style={styles.tcRow} onPress={() => setAgreedTC(v => !v)}>
+              <View style={[styles.checkbox, agreedTC && styles.checkboxOn]}>
+                {agreedTC && <Check size={14} color={colors.white} strokeWidth={3} />}
+              </View>
+              <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
+                J'accepte les <Text style={{ color: colors.vert }}>conditions d'utilisation</Text> et la politique de confidentialité de Sèvizi.
+              </Text>
+            </Pressable>
+          )}
+
           {/* Error */}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -176,6 +190,9 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: colors.encre, fontSize: 16, fontFamily: 'HankenGrotesk_400Regular' },
   errorText: { color: colors.terre, fontSize: 14, marginBottom: spacing.md },
+  tcRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  checkbox: { width: 22, height: 22, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: colors.vert, borderColor: colors.vert },
   submitBtn: {
     height: 52, borderRadius: radii.md, backgroundColor: colors.vert,
     alignItems: 'center', justifyContent: 'center', marginTop: spacing.sm, marginBottom: spacing.lg,

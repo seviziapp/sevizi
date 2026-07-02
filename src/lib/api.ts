@@ -522,6 +522,7 @@ export type MyProfile = {
   verified: boolean;
   onboarded: boolean;
   locationLabel: string;
+  isAdmin: boolean;
 };
 
 export async function fetchMyProfile(): Promise<MyProfile | null> {
@@ -541,6 +542,7 @@ export async function fetchMyProfile(): Promise<MyProfile | null> {
     verified: !!data.verified,
     onboarded: !!data.onboarded,
     locationLabel: data.location_label ?? '',
+    isAdmin: !!data.is_admin,
   };
 }
 

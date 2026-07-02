@@ -1,9 +1,28 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import { Tabs, Redirect } from 'expo-router';
+import { View, ActivityIndicator } from 'react-native';
 import { LayoutDashboard, ShieldCheck, AlertTriangle, Users } from 'lucide-react-native';
 import { colors } from '../../src/theme/tokens';
+import { fetchMyProfile } from '../../src/lib/api';
 
 export default function AdminLayout() {
+  // Gate the whole back-office behind the is_admin flag (set in Supabase).
+  const [state, setState] = useState<'checking' | 'ok' | 'denied'>('checking');
+  useEffect(() => {
+    fetchMyProfile()
+      .then(p => setState(p?.isAdmin ? 'ok' : 'denied'))
+      .catch(() => setState('denied'));
+  }, []);
+
+  if (state === 'checking') {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.creme }}>
+        <ActivityIndicator color={colors.vert} />
+      </View>
+    );
+  }
+  if (state === 'denied') return <Redirect href="/" />;
+
   return (
     <Tabs
       screenOptions={{

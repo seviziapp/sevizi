@@ -85,6 +85,7 @@ export default function ClientLayout() {
       <Tabs.Screen name="thread"        options={{ href: null }} />
       <Tabs.Screen name="my-reviews"    options={{ href: null }} />
       <Tabs.Screen name="security"      options={{ href: null }} />
+      <Tabs.Screen name="help"          options={{ href: null }} />
       <Tabs.Screen name="notifications" options={{ href: null }} />
       <Tabs.Screen name="job-status"    options={{ href: null }} />
       <Tabs.Screen name="payment"       options={{ href: null }} />
