@@ -19,32 +19,24 @@ export default function Index() {
       if (!session) { setDest('/onboarding/auth'); return; }
       const uid = session.user.id;
 
-      // Only select columns guaranteed to exist so this never fails and
-      // wrongly re-runs onboarding.
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', uid)
-        .maybeSingle();
+      // Look at real data, not just a flag, so a registered user is never sent
+      // back to the welcome/role screen. Base columns only so it can't fail.
+      const [{ data: profile }, { data: provs }] = await Promise.all([
+        supabase.from('profiles').select('role, full_name').eq('id', uid).maybeSingle(),
+        supabase.from('providers').select('id').eq('user_id', uid).limit(1),
+      ]);
 
-      // No profile / no role yet → pick a role
-      if (!profile || !profile.role) { setDest('/onboarding/role'); return; }
+      // Registered provider (has a business row) → straight to dashboard.
+      if (provs && provs.length > 0) { setDest('/provider/dashboard'); return; }
+      // Chose provider but hasn't created the business row yet → finish that.
+      if (profile?.role === 'prestataire') { setDest('/onboarding/provider-details'); return; }
+      // Client who already has a name → home.
+      if (profile?.full_name) { setDest('/client/home'); return; }
+      // Chose client but hasn't filled details → finish that.
+      if (profile?.role === 'client') { setDest('/onboarding/client-details'); return; }
 
-      if (profile.role === 'prestataire') {
-        // A provider is "set up" once their business row exists. Use limit(1)
-        // (not maybeSingle) so duplicate provider rows don't error out and get
-        // treated as "no provider" — which would re-ask onboarding forever.
-        const { data: provs } = await supabase
-          .from('providers')
-          .select('id')
-          .eq('user_id', uid)
-          .limit(1);
-        setDest(provs && provs.length > 0 ? '/provider/dashboard' : '/onboarding/provider-details');
-        return;
-      }
-
-      // Client is set up once they have a name.
-      setDest(profile.full_name ? '/client/home' : '/onboarding/client-details');
+      // Truly new account (no profile, no provider) → pick a role.
+      setDest('/onboarding/role');
     }
     resolve();
   }, []);
