@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
+import { Mail, Lock, Eye, EyeOff, Check, Phone } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LogoFull } from '../../src/components/Logo';
 import { supabase } from '../../src/lib/supabase';
@@ -94,6 +94,18 @@ export default function Auth() {
             <Text style={styles.googleG}>G</Text>
             <Text style={[text.bodyMd, { color: colors.encre }]}>
               Continuer avec Google
+            </Text>
+          </Pressable>
+
+          {/* Phone button */}
+          <Pressable
+            style={styles.phoneBtn}
+            onPress={() => router.push('/onboarding/phone')}
+            disabled={loading}
+          >
+            <Phone size={18} color={colors.vert} />
+            <Text style={[text.bodyMd, { color: colors.encre }]}>
+              Continuer avec un numéro de téléphone
             </Text>
           </Pressable>
 
@@ -199,6 +211,11 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white, marginBottom: spacing.lg,
   },
   googleG: { fontSize: 18, fontWeight: '700', color: '#4285F4' },
+  phoneBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.md,
+    height: 52, borderRadius: radii.md, borderWidth: 1.5, borderColor: colors.border,
+    backgroundColor: colors.white, marginBottom: spacing.lg,
+  },
   divider: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
   line: { flex: 1, height: 1, backgroundColor: colors.border },
   inputWrap: {

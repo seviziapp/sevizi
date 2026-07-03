@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
+import { supabase } from '../../src/lib/supabase';
 
 const CODE_LENGTH = 6;
 
@@ -15,6 +16,8 @@ export default function OTPScreen() {
   const { phone } = useLocalSearchParams<{ phone?: string }>();
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(''));
   const [loading, setLoading] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(30);
   const refs = useRef<(TextInput | null)[]>([]);
 
@@ -41,11 +44,36 @@ export default function OTPScreen() {
   const filled = code.length === CODE_LENGTH;
 
   async function verify() {
+    if (!phone) { setError('Numéro manquant, revenez en arrière.'); return; }
+    setError('');
     setLoading(true);
-    // In production: supabase.auth.verifyOtp({ phone, token: code, type: 'sms' })
-    await new Promise(r => setTimeout(r, 900));
-    setLoading(false);
-    router.replace('/onboarding/role');
+    try {
+      const { error: e } = await supabase.auth.verifyOtp({ phone, token: code, type: 'sms' });
+      if (e) throw e;
+      // Let the index router decide where a session should land (role picker,
+      // finish onboarding, or straight to home/dashboard for a returning user).
+      router.replace('/');
+    } catch (e: any) {
+      setError(e.message ?? 'Code invalide ou expiré. Réessayez.');
+      setLoading(false);
+    }
+  }
+
+  async function resend() {
+    if (!phone || countdown > 0) return;
+    setResending(true);
+    setError('');
+    try {
+      const { error: e } = await supabase.auth.signInWithOtp({ phone });
+      if (e) throw e;
+      setCountdown(30);
+      setDigits(Array(CODE_LENGTH).fill(''));
+      refs.current[0]?.focus();
+    } catch (e: any) {
+      setError(e.message ?? "Impossible de renvoyer le code.");
+    } finally {
+      setResending(false);
+    }
   }
 
   return (
@@ -84,13 +112,17 @@ export default function OTPScreen() {
             ))}
           </View>
 
+          {!!error && <Text style={styles.errorText}>{error}</Text>}
+
           {countdown > 0 ? (
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
               Renvoyer dans <Text style={{ color: colors.encre }}>{countdown}s</Text>
             </Text>
           ) : (
-            <Pressable onPress={() => setCountdown(30)} style={{ alignSelf: 'center' }}>
-              <Text style={[text.small, { color: colors.vert }]}>Renvoyer le code</Text>
+            <Pressable onPress={resend} style={{ alignSelf: 'center' }} disabled={resending}>
+              <Text style={[text.small, { color: colors.vert }]}>
+                {resending ? 'Envoi…' : 'Renvoyer le code'}
+              </Text>
             </Pressable>
           )}
 
@@ -114,4 +146,5 @@ const styles = StyleSheet.create({
     ...text.h2, color: colors.encre,
   },
   boxFilled: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
+  errorText: { color: colors.terre, fontSize: 14, textAlign: 'center' },
 });
