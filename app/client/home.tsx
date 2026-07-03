@@ -7,7 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES } from '../../src/lib/types';
-import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications, fetchMyRequestsWithOffers } from '../../src/lib/api';
+import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications, fetchMyRequestsWithOffers, resolveMyLocation } from '../../src/lib/api';
 import type { Provider, Job, ServiceRequest } from '../../src/lib/types';
 
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
@@ -29,7 +29,9 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetchNearbyProviders().then(setProviders).catch(() => {});
+    // Center "prestataires proches" on the user's real location (GPS -> saved
+    // address -> Lomé) instead of a fixed point.
+    resolveMyLocation().then(pt => fetchNearbyProviders(undefined, pt)).then(setProviders).catch(() => {});
     fetchMyProfile().then(p => { if (p) { setUserName(p.firstName || p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
     refreshLive();
     // poll so new offers / notifications surface without a manual refresh

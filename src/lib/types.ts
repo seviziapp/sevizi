@@ -61,6 +61,7 @@ export interface ServiceRequest {
   createdAt: string;
   status: 'ouverte' | 'en_cours' | 'terminee' | 'annulee';
   offersCount?: number;
+  distanceKm?: number;
 }
 
 export interface Offer {

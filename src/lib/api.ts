@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { getCurrentPosition } from './geolocation';
 import {
   Provider, ServiceRequest, Offer, ServiceCategory, GeoPoint,
   Job, Notification, ProviderStats, AdminStats, VerificationRequest, Dispute, Review,
@@ -95,10 +96,14 @@ const mockReviews: Review[] = [
 
 // ---- CLIENT API ----
 
-export async function fetchNearbyProviders(category?: ServiceCategory): Promise<Provider[]> {
+// `center` should be the caller's real location (see resolveMyLocation) so
+// distanceKm and the "nearby" set actually reflect where the user is, instead
+// of always the fixed LOME city anchor.
+export async function fetchNearbyProviders(category?: ServiceCategory, center?: GeoPoint, radiusKm = 20): Promise<Provider[]> {
   if (!hasSupabase) return [];
+  const anchor = center ?? LOME;
   const { data, error } = await supabase.rpc('nearby_providers', {
-    lat: LOME.lat, lng: LOME.lng, cat: category ?? null, radius_km: 20,
+    lat: anchor.lat, lng: anchor.lng, cat: category ?? null, radius_km: radiusKm,
   });
   if (error) {
     // fallback to simple select if RPC fails
@@ -110,7 +115,7 @@ export async function fetchNearbyProviders(category?: ServiceCategory): Promise<
       id: p.id, name: p.name, category: p.category, rating: p.rating,
       reviews: p.reviews, verified: p.verified, online: p.online,
       missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
-      bio: p.bio, distanceKm: 0, location: LOME,
+      bio: p.bio, distanceKm: 0, location: anchor,
     }));
   }
   return (data ?? []).map((p: any) => ({
@@ -522,6 +527,7 @@ export type MyProfile = {
   verified: boolean;
   onboarded: boolean;
   locationLabel: string;
+  location: GeoPoint | null;
   isAdmin: boolean;
 };
 
@@ -542,18 +548,39 @@ export async function fetchMyProfile(): Promise<MyProfile | null> {
     verified: !!data.verified,
     onboarded: !!data.onboarded,
     locationLabel: data.location_label ?? '',
+    location: Number.isFinite(data.location_lat) && Number.isFinite(data.location_lng)
+      ? { lat: data.location_lat, lng: data.location_lng } : null,
     isAdmin: !!data.is_admin,
   };
 }
 
-// Save the user's home address (label + optional coordinates).
+// Save the user's home address (label + optional coordinates). Coordinates are
+// stored both as plain lat/lng (cheap to read back for "nearby" queries) and as
+// a PostGIS point (for potential future geo queries on the profile itself).
 export async function saveMyAddress(label: string, point?: GeoPoint): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
   if (!user) return;
   const patch: any = { id: user.id, location_label: label };
-  if (point) patch.location_geo = `POINT(${point.lng} ${point.lat})`;
+  if (point) {
+    patch.location_geo = `POINT(${point.lng} ${point.lat})`;
+    patch.location_lat = point.lat;
+    patch.location_lng = point.lng;
+  }
   await supabase.from('profiles').upsert(patch);
+}
+
+// Resolve the best available anchor point for "nearby" queries and map
+// centering: live GPS first (most accurate), then the user's saved address,
+// then the Lomé city center as a last resort. Never throws.
+export async function resolveMyLocation(): Promise<GeoPoint> {
+  const gps = await getCurrentPosition();
+  if (gps) return gps;
+  try {
+    const profile = await fetchMyProfile();
+    if (profile?.location) return profile.location;
+  } catch {}
+  return LOME;
 }
 
 // ---- SIGNUP DETAILS + VERIFICATION ----
@@ -742,11 +769,14 @@ export async function fetchProviderStats(): Promise<ProviderStats> {
   };
 }
 
-export async function fetchNearbyRequests(category?: ServiceCategory): Promise<ServiceRequest[]> {
+// `center` should be the caller's real location (see resolveMyLocation) so a
+// provider sees requests actually near them instead of always around LOME.
+export async function fetchNearbyRequests(category?: ServiceCategory, center?: GeoPoint, radiusKm = 30): Promise<ServiceRequest[]> {
   if (!hasSupabase) return [];
+  const anchor = center ?? LOME;
   // Prefer the RPC — it returns real lat/lng (for the map) + offer counts.
   const { data, error } = await supabase.rpc('nearby_requests', {
-    lat: LOME.lat, lng: LOME.lng, cat: category ?? null, radius_km: 50,
+    lat: anchor.lat, lng: anchor.lng, cat: category ?? null, radius_km: radiusKm,
   });
   if (!error && data) {
     return (data as any[]).map(r => ({
@@ -754,6 +784,7 @@ export async function fetchNearbyRequests(category?: ServiceCategory): Promise<S
       urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
       status: r.status, offersCount: Number(r.offers_count ?? 0),
       location: { lat: r.lat, lng: r.lng },
+      distanceKm: r.distance_km != null ? Number(r.distance_km) : undefined,
     }));
   }
   // Fallback: plain select (no coordinates)
@@ -763,7 +794,7 @@ export async function fetchNearbyRequests(category?: ServiceCategory): Promise<S
   return (d2 ?? []).map((r: any) => ({
     id: r.id, clientId: r.client_id, description: r.description, category: r.category,
     urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
-    status: r.status, offersCount: 0, location: LOME,
+    status: r.status, offersCount: 0, location: anchor,
   }));
 }
 

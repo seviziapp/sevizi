@@ -1,12 +1,12 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
-import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications } from '../../src/lib/api';
-import type { ProviderStats, ServiceRequest } from '../../src/lib/types';
+import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME } from '../../src/lib/api';
+import type { ProviderStats, ServiceRequest, GeoPoint } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
 
 export default function ProviderDashboard() {
@@ -17,9 +17,12 @@ export default function ProviderDashboard() {
   const [providerName, setProviderName] = useState('');
   const [activeJob, setActiveJob] = useState<any>(null);
   const [unread, setUnread] = useState(0);
+  // Resolved once (GPS -> saved address -> Lomé) and reused by the polling
+  // refresh below, so we don't re-request location permission every 20s.
+  const centerRef = useRef<GeoPoint>(LOME);
 
   const refreshLive = useCallback(() => {
-    fetchNearbyRequests().then(r => setRequests(r.slice(0, 3))).catch(() => {});
+    fetchNearbyRequests(undefined, centerRef.current).then(r => setRequests(r.slice(0, 3))).catch(() => {});
     fetchCurrentJob().then(setActiveJob).catch(() => {});
     fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
   }, []);
@@ -27,7 +30,7 @@ export default function ProviderDashboard() {
   useEffect(() => {
     fetchProviderStats().then(setStats).catch(() => {});
     fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); } }).catch(() => {});
-    refreshLive();
+    resolveMyLocation().then(pt => { centerRef.current = pt; }).catch(() => {}).finally(refreshLive);
     const t = setInterval(refreshLive, 20000);
     return () => clearInterval(t);
   }, [refreshLive]);

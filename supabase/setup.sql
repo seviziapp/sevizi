@@ -237,4 +237,11 @@ drop trigger if exists trg_notify_new_dispute on disputes;
 create trigger trg_notify_new_dispute after insert on disputes
   for each row execute function notify_new_dispute();
 
+
+-- ============================================================
+-- 8) Real coordinates for "nearby" matching (maps efficiency)
+-- ============================================================
+alter table profiles add column if not exists location_lat double precision;
+alter table profiles add column if not exists location_lng double precision;
+
 -- Done ✅

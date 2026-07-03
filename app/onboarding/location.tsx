@@ -1,30 +1,61 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MapPin, Search, Navigation, ArrowRight } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { saveMyAddress } from '../../src/lib/api';
+import { getCurrentPosition } from '../../src/lib/geolocation';
+import type { GeoPoint } from '../../src/lib/types';
 
-const QUARTIERS = [
-  'Bè-Kpota', 'Tokoin', 'Adidogomé', 'Hédzranawoé', 'Baguida',
-  'Agoè-Nyivé', 'Kodjoviakopé', 'Nyékonakpoè', 'Ambassade', 'Djidjolé',
-];
+// Approximate centers for each quartier — good enough for "nearby" matching
+// when a user picks a named area instead of sharing live GPS.
+const QUARTIER_COORDS: Record<string, GeoPoint> = {
+  'Bè-Kpota': { lat: 6.1719, lng: 1.2310 },
+  'Tokoin': { lat: 6.1740, lng: 1.2260 },
+  'Adidogomé': { lat: 6.1850, lng: 1.1850 },
+  'Hédzranawoé': { lat: 6.1600, lng: 1.2450 },
+  'Baguida': { lat: 6.1300, lng: 1.3450 },
+  'Agoè-Nyivé': { lat: 6.2200, lng: 1.1900 },
+  'Kodjoviakopé': { lat: 6.1280, lng: 1.2200 },
+  'Nyékonakpoè': { lat: 6.1250, lng: 1.2150 },
+  'Ambassade': { lat: 6.1500, lng: 1.2150 },
+  'Djidjolé': { lat: 6.1950, lng: 1.2100 },
+};
+const QUARTIERS = Object.keys(QUARTIER_COORDS);
 
 export default function LocationScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState('');
+  const [gpsPoint, setGpsPoint] = useState<GeoPoint | null>(null);
+  const [locating, setLocating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
 
   const filtered = QUARTIERS.filter(q => q.toLowerCase().includes(search.toLowerCase()));
+
+  async function useGPS() {
+    setError('');
+    setLocating(true);
+    const point = await getCurrentPosition();
+    setLocating(false);
+    if (!point) {
+      setError('Localisation indisponible. Autorisez l\'accès à votre position ou choisissez un quartier.');
+      return;
+    }
+    setGpsPoint(point);
+    setSelected('Ma position GPS');
+    setSearch('');
+  }
 
   async function confirm() {
     if (!selected) return;
     const label = selected === 'Ma position GPS' ? 'Ma position GPS' : `${selected}, Lomé`;
+    const point = selected === 'Ma position GPS' ? gpsPoint ?? undefined : QUARTIER_COORDS[selected];
     setSaving(true);
-    try { await saveMyAddress(label); } catch {}
+    try { await saveMyAddress(label, point); } catch {}
     setSaving(false);
     router.replace('/client/home');
   }
@@ -54,18 +85,20 @@ export default function LocationScreen() {
         </View>
 
         {/* GPS option */}
-        <Pressable style={styles.gpsRow} onPress={() => { setSelected('Ma position GPS'); setSearch(''); }}>
+        <Pressable style={styles.gpsRow} onPress={useGPS} disabled={locating}>
           <View style={[styles.gpsIcon, selected === 'Ma position GPS' && { backgroundColor: colors.surface }]}>
-            <Navigation size={18} color={colors.vert} />
+            {locating ? <ActivityIndicator size="small" color={colors.vert} /> : <Navigation size={18} color={colors.vert} />}
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[text.bodyMd, { color: colors.encre }]}>Utiliser ma position GPS</Text>
             <Text style={[text.small, { color: colors.textMuted }]}>Localisation précise en temps réel</Text>
           </View>
-          {selected === 'Ma position GPS' && (
+          {selected === 'Ma position GPS' && !locating && (
             <View style={styles.check}><Text style={[text.label, { color: colors.vert }]}>✓</Text></View>
           )}
         </Pressable>
+
+        {!!error && <Text style={styles.errorText}>{error}</Text>}
 
         <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
           <View style={styles.list}>
@@ -73,7 +106,7 @@ export default function LocationScreen() {
               <Pressable
                 key={q}
                 style={[styles.item, i < filtered.length - 1 && styles.itemBorder, selected === q && styles.itemActive]}
-                onPress={() => setSelected(q)}
+                onPress={() => { setSelected(q); setError(''); }}
               >
                 <MapPin size={16} color={selected === q ? colors.vert : colors.textMuted} />
                 <Text style={[text.body, { color: colors.encre, flex: 1 }]}>{q}, Lomé</Text>
@@ -112,6 +145,7 @@ const styles = StyleSheet.create({
   },
   gpsIcon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.creme, alignItems: 'center', justifyContent: 'center' },
   check: { width: 24, height: 24, borderRadius: 12, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  errorText: { color: colors.terre, fontSize: 13 },
   list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   item: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
   itemBorder: { borderBottomWidth: 1, borderBottomColor: colors.border },

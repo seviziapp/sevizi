@@ -1,20 +1,37 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, ChevronRight, SlidersHorizontal } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchNearbyRequests } from '../../src/lib/api';
-import { CATEGORIES, type ServiceRequest, type ServiceCategory } from '../../src/lib/types';
+import { fetchNearbyRequests, resolveMyLocation, LOME } from '../../src/lib/api';
+import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
 
 export default function ProviderRequests() {
   const router = useRouter();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [filter, setFilter] = useState<ServiceCategory | null>(null);
+  const centerRef = useRef<GeoPoint>(LOME);
+  const readyRef = useRef(false);
 
+  // Resolve the provider's real location once (GPS -> saved address -> Lomé).
   useEffect(() => {
-    fetchNearbyRequests(filter ?? undefined).then(setRequests).catch(() => {});
+    resolveMyLocation().then(pt => {
+      centerRef.current = pt;
+      readyRef.current = true;
+      fetchNearbyRequests(filter ?? undefined, pt).then(setRequests).catch(() => {});
+    }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Refetch on filter change (skip the initial mount — handled above).
+  useEffect(() => {
+    if (!readyRef.current) return;
+    fetchNearbyRequests(filter ?? undefined, centerRef.current).then(setRequests).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
+
+  const sorted = [...requests].sort((a, b) => (a.distanceKm ?? 0) - (b.distanceKm ?? 0));
 
   const topCats = CATEGORIES.slice(0, 5);
 
@@ -41,14 +58,14 @@ export default function ProviderRequests() {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {requests.length === 0 && (
+        {sorted.length === 0 && (
           <View style={styles.empty}>
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
               Aucune demande dans votre zone pour l'instant.
             </Text>
           </View>
         )}
-        {requests.map(r => (
+        {sorted.map(r => (
           <RequestCard
             key={r.id}
             req={r}
@@ -90,7 +107,9 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
       <View style={styles.meta}>
         <View style={styles.metaItem}>
           <MapPin size={13} color={colors.textMuted} />
-          <Text style={[text.label, { color: colors.textMuted }]}>{req.locationLabel}</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>
+            {req.locationLabel}{req.distanceKm != null ? ` · ${req.distanceKm.toFixed(1)} km` : ''}
+          </Text>
         </View>
         <View style={styles.metaItem}>
           <Clock size={13} color={colors.textMuted} />
