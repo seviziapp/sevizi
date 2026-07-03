@@ -142,7 +142,21 @@ export default function Auth() {
                 {agreedTC && <Check size={14} color={colors.white} strokeWidth={3} />}
               </View>
               <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
-                J'accepte les <Text style={{ color: colors.vert }}>conditions d'utilisation</Text> et la politique de confidentialité de Sèvizi.
+                J'accepte les{' '}
+                <Text
+                  style={{ color: colors.vert }}
+                  onPress={(e: any) => { e.stopPropagation?.(); router.push('/legal/terms'); }}
+                >
+                  conditions d'utilisation
+                </Text>{' '}
+                et la{' '}
+                <Text
+                  style={{ color: colors.vert }}
+                  onPress={(e: any) => { e.stopPropagation?.(); router.push('/legal/privacy'); }}
+                >
+                  politique de confidentialité
+                </Text>{' '}
+                de Sèvizi.
               </Text>
             </Pressable>
           )}
