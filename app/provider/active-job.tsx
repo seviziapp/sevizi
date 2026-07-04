@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Phone, Navigation, CheckCircle, ChevronRight, Briefcase, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, Navigation, CheckCircle, ChevronRight, Briefcase, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
@@ -79,10 +79,6 @@ export default function ActiveJob() {
     );
   }
 
-  function callClient() {
-    if (job?.clientPhone) Linking.openURL(`tel:${job.clientPhone}`);
-  }
-
   function navigate() {
     if (!job) return;
     const query = job.locationLabel?.trim() || `${job.location.lat},${job.location.lng}`;
@@ -126,13 +122,23 @@ export default function ActiveJob() {
             {!!description && <Text style={[text.small, { color: colors.textMuted }]}>{description}</Text>}
           </View>
           <View style={styles.contactBtns}>
-            <Pressable style={styles.contactBtn} onPress={callClient}>
-              <Phone size={18} color={colors.vert} />
+            <Pressable
+              style={styles.contactBtn}
+              onPress={() => router.push({ pathname: '/shared/thread', params: { requestId: job?.requestId, otherName: clientName } })}
+            >
+              <MessageCircle size={18} color={colors.vert} />
             </Pressable>
             <Pressable style={styles.contactBtn} onPress={navigate}>
               <Navigation size={18} color={colors.vert} />
             </Pressable>
           </View>
+        </View>
+
+        <View style={styles.safetyBanner}>
+          <ShieldAlert size={14} color={colors.vertDark} />
+          <Text style={[text.label, { color: colors.vertDark, flex: 1 }]}>
+            Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le client.
+          </Text>
         </View>
 
         {price > 0 && (
@@ -209,6 +215,7 @@ const styles = StyleSheet.create({
   clientAvatar: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.encre, alignItems: 'center', justifyContent: 'center' },
   contactBtns: { flexDirection: 'row', gap: spacing.sm },
   contactBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  safetyBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   stepRow: { flexDirection: 'row', gap: spacing.md },
   stepLeft: { alignItems: 'center', width: 32 },

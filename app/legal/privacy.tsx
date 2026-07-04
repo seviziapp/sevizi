@@ -47,14 +47,17 @@ export default function PrivacyPolicy() {
           Ces informations servent uniquement à faire fonctionner le service : afficher les prestataires
           ou demandes proches de vous, permettre la mise en relation et la messagerie, traiter les
           demandes de vérification, et améliorer la fiabilité de la plateforme (notes, avis, taux de
-          réponse). Nous ne vendons pas vos données à des tiers.
+          réponse). Nous ne vendons pas vos données à des tiers. Pour que toute communication reste sur
+          Sèvizi (voir nos conditions d'utilisation), les messages peuvent être analysés automatiquement
+          afin de masquer les numéros de téléphone ou adresses e-mail qui y seraient partagés.
         </Section>
 
         <Section title="4. Partage des données">
-          Votre nom et numéro de téléphone ne sont partagés qu'avec le client ou le prestataire concerné
-          par une mission en cours, afin de permettre le contact direct. Nos données sont hébergées chez
-          Supabase (base de données et authentification) dans le cadre normal du fonctionnement du
-          service.
+          Votre prénom (ou nom d'entreprise pour un prestataire) est visible par l'autre partie d'une
+          mission en cours, afin de permettre les échanges via la messagerie intégrée. Votre numéro de
+          téléphone n'est jamais communiqué à l'autre partie — toute communication doit passer par Sèvizi.
+          Nos données sont hébergées chez Supabase (base de données et authentification) dans le cadre
+          normal du fonctionnement du service.
         </Section>
 
         <Section title="5. Paiements">

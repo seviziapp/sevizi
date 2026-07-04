@@ -359,9 +359,13 @@ export async function fetchCurrentJob(opts?: { includeCompleted?: boolean }): Pr
   // Is this user a provider? If so, also match jobs on their provider profile.
   const { data: prov } = await supabase.from('providers').select('id').eq('user_id', user.id).maybeSingle();
 
+  // Explicit column list — deliberately excludes client_phone. Neither party's
+  // app should ever receive the other's raw phone number over the wire, not
+  // just hide it in the UI (a Postgres-level column grant backs this up too;
+  // see migration_no_contact_sharing.sql).
   let q = supabase
     .from('jobs')
-    .select('*, provider:providers(*), request:requests(description, location_label)')
+    .select('id, request_id, provider_id, client_id, price, status, accepted_at, client_name, provider:providers(*), request:requests(description, location_label)')
     .order('accepted_at', { ascending: false })
     .limit(1);
 
@@ -388,7 +392,10 @@ export async function fetchCurrentJob(opts?: { includeCompleted?: boolean }): Pr
     status: data.status, acceptedAt: data.accepted_at,
     provider,
     clientName: data.client_name ?? 'Client',
-    clientPhone: data.client_phone ?? undefined,
+    // Deliberately not returning client_phone here: client and provider must
+    // stay in-app (messaging only). It's still stored on the job (written in
+    // acceptOffer below) for our own support/dispute use, just never sent to
+    // the other party's app.
     description: (data as any).request?.description ?? '',
     locationLabel: (data as any).request?.location_label ?? '',
     location: LOME,

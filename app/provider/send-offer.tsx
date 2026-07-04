@@ -8,6 +8,7 @@ import { X, Send, Clock } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { sendOffer } from '../../src/lib/api';
+import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
 import { CATEGORIES } from '../../src/lib/types';
 
 const ETA_CHIPS = ['Sous 30 min', 'Sous 1h', 'Sous 2h', 'Aujourd\'hui', 'Demain matin'];
@@ -126,6 +127,20 @@ export default function SendOffer() {
                 </Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>{eta}</Text>
                 {note ? <Text style={[text.small, { color: colors.textMuted, fontStyle: 'italic' }]}>« {note} »</Text> : null}
+                <View style={styles.commissionRow}>
+                  <Text style={[text.label, { color: colors.textMuted }]}>
+                    Commission Sèvizi ({formatCommissionPct()})
+                  </Text>
+                  <Text style={[text.label, { color: colors.textMuted }]}>
+                    − {computeCommission(parseInt(price || '0', 10)).commission.toLocaleString('fr-FR')} F
+                  </Text>
+                </View>
+                <View style={styles.commissionRow}>
+                  <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>Vous recevrez</Text>
+                  <Text style={[text.small, { color: colors.vertDark, fontFamily: text.bodyMd.fontFamily }]}>
+                    {computeCommission(parseInt(price || '0', 10)).net.toLocaleString('fr-FR')} F
+                  </Text>
+                </View>
               </View>
             </View>
           ) : null}
@@ -162,6 +177,7 @@ const styles = StyleSheet.create({
   textarea: { backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.lg, minHeight: 80, ...text.body, color: colors.encre },
   preview: { gap: spacing.sm },
   previewCard: { backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg, gap: spacing.xs },
+  commissionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xs, paddingTop: spacing.xs, borderTopWidth: 1, borderTopColor: colors.border },
   footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme, gap: spacing.sm },
   error: { color: colors.terre, fontSize: 14, textAlign: 'center' },
 });

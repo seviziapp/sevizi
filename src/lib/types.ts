@@ -92,7 +92,6 @@ export interface Job {
   price: number;
   status: JobStatus;
   clientName: string;
-  clientPhone?: string;
   description?: string;
   locationLabel: string;
   location: GeoPoint;

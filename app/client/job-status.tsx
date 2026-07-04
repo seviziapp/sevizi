@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, Phone, Navigation, Star, CheckCircle, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, MapPin, MessageCircle, Navigation, Star, CheckCircle, AlertTriangle, ShieldAlert } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus, submitReview } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
@@ -142,9 +142,16 @@ export default function JobStatus() {
               )}
             </View>
           </View>
-          <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/client/thread', params: { requestId: job.requestId, providerName } })}>
-            <Phone size={18} color={colors.vert} />
+          <Pressable style={styles.actionBtn} onPress={() => router.push({ pathname: '/shared/thread', params: { requestId: job.requestId, otherName: providerName } })}>
+            <MessageCircle size={18} color={colors.vert} />
           </Pressable>
+        </View>
+
+        <View style={styles.safetyBanner}>
+          <ShieldAlert size={14} color={colors.vertDark} />
+          <Text style={[text.label, { color: colors.vertDark, flex: 1 }]}>
+            Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le prestataire.
+          </Text>
         </View>
 
         {/* Price & payment */}
@@ -226,6 +233,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  safetyBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md },
   miniMap: { height: 160, borderRadius: radii.lg, backgroundColor: '#DDEEE6', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   mapCoord: { position: 'absolute', bottom: spacing.md, left: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.encre, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.sm },
   navBtn: { position: 'absolute', bottom: spacing.md, right: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.vert, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radii.md },

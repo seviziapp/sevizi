@@ -5,13 +5,14 @@ import { useRouter } from 'expo-router';
 import { ArrowLeft, Wallet, TrendingUp } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
+import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
 import { CATEGORIES } from '../../src/lib/types';
 
 type Transaction = {
   id: string;
   client: string;
   service: string;
-  amount: number;
+  amount: number; // gross price the client paid
   date: string;
   method: string;
 };
@@ -19,8 +20,9 @@ type Transaction = {
 export default function Earnings() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [totalMonth, setTotalMonth] = useState(0);
+  const [grossMonth, setGrossMonth] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth);
 
   useEffect(() => {
     loadEarnings();
@@ -44,7 +46,7 @@ export default function Earnings() {
 
       const { data: jobs } = await supabase
         .from('jobs')
-        .select('id, price, accepted_at, payment_method, requests(description, category), profiles(full_name)')
+        .select('id, price, accepted_at, payment_method, client_name, requests(description, category)')
         .eq('provider_id', provider.id)
         .eq('status', 'termine')
         .order('accepted_at', { ascending: false })
@@ -56,7 +58,7 @@ export default function Earnings() {
           const dateStr = new Date(j.accepted_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
           return {
             id: j.id,
-            client: j.profiles?.full_name || 'Client',
+            client: j.client_name || 'Client',
             service: `${cat?.label ?? 'Service'} · ${(j.requests?.description ?? '').slice(0, 30)}`,
             amount: j.price,
             date: dateStr,
@@ -68,7 +70,7 @@ export default function Earnings() {
         const monthTotal = jobs
           .filter((j: any) => new Date(j.accepted_at) >= startOfMonth)
           .reduce((sum: number, j: any) => sum + (j.price ?? 0), 0);
-        setTotalMonth(monthTotal);
+        setGrossMonth(monthTotal);
       }
     } catch {
       // silent
@@ -93,10 +95,18 @@ export default function Earnings() {
           <View style={styles.balanceIcon}>
             <Wallet size={24} color={colors.vert} />
           </View>
-          <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE CE MOIS</Text>
+          <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE CE MOIS (NET)</Text>
           <Text style={[text.display, { color: colors.creme, fontSize: 36, marginTop: 4 }]}>
-            {totalMonth.toLocaleString('fr-FR')} F
+            {netMonth.toLocaleString('fr-FR')} F
           </Text>
+          <View style={styles.breakdownRow}>
+            <Text style={[text.small, { color: colors.textMutedDark }]}>
+              Brut : {grossMonth.toLocaleString('fr-FR')} F
+            </Text>
+            <Text style={[text.small, { color: colors.textMutedDark }]}>
+              Commission Sèvizi ({formatCommissionPct()}) : −{commissionMonth.toLocaleString('fr-FR')} F
+            </Text>
+          </View>
 
           <View style={styles.withdrawRow}>
             <Pressable style={styles.withdrawBtn}>
@@ -135,7 +145,10 @@ export default function Earnings() {
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={[text.data, { color: colors.encre }]}>+{t.amount.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount).net.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.label, { color: colors.textMuted }]}>
+                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct()}
+                  </Text>
                   <View style={styles.methodBadge}>
                     <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
                       {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : 'Mixx'}
@@ -158,6 +171,7 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
   balanceCard: { backgroundColor: colors.encre, borderRadius: radii.xl, padding: spacing.xl, gap: spacing.sm },
   balanceIcon: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: 'rgba(255,255,255,0.08)', alignItems: 'center', justifyContent: 'center' },
+  breakdownRow: { gap: 2, marginTop: 2 },
   withdrawRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.md },
   withdrawBtn: { flex: 1, height: 44, borderRadius: radii.md, backgroundColor: colors.creme, alignItems: 'center', justifyContent: 'center' },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

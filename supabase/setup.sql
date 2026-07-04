@@ -244,4 +244,30 @@ create trigger trg_notify_new_dispute after insert on disputes
 alter table profiles add column if not exists location_lat double precision;
 alter table profiles add column if not exists location_lng double precision;
 
+
+-- ============================================================
+-- 9) Keep client/provider contact info off the platform
+-- ============================================================
+revoke select (client_phone) on jobs from authenticated;
+
+create or replace function redact_contact_info() returns trigger
+language plpgsql as $$
+begin
+  if new.body is null then return new; end if;
+  new.body := regexp_replace(
+    new.body,
+    '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+    '[coordonnées masquées]', 'g'
+  );
+  new.body := regexp_replace(
+    new.body,
+    '[0-9][ .()-]{0,2}[0-9][ .()-]{0,2}[0-9][ .()-]{0,2}[0-9][ .()-]{0,2}[0-9][ .()-]{0,2}[0-9][ .()-]{0,2}[0-9]',
+    '[coordonnées masquées]', 'g'
+  );
+  return new;
+end; $$;
+drop trigger if exists trg_redact_contact_info on messages;
+create trigger trg_redact_contact_info before insert on messages
+  for each row execute function redact_contact_info();
+
 -- Done ✅

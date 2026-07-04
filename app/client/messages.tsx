@@ -68,7 +68,7 @@ export default function Messages() {
             <Pressable
               key={t.id}
               style={[styles.row, shadow.card]}
-              onPress={() => router.push({ pathname: '/client/thread', params: { requestId: t.id, providerName: t.name } })}
+              onPress={() => router.push({ pathname: '/shared/thread', params: { requestId: t.id, otherName: t.name } })}
             >
               <View style={styles.avatarWrap}>
                 <View style={styles.avatar}>

@@ -89,7 +89,7 @@ export default function Offers() {
               disabled={!!accepting && accepting !== o.id}
               onAccept={() => accept(o)}
               onProfile={() => router.push({ pathname: '/shared/provider-profile', params: { id: o.provider.id } })}
-              onMessage={() => router.push({ pathname: '/client/thread', params: { requestId: rid, providerName: o.provider.name } })}
+              onMessage={() => router.push({ pathname: '/shared/thread', params: { requestId: rid, otherName: o.provider.name } })}
             />
           ))}
         </ScrollView>

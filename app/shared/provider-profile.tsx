@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
-  ArrowLeft, Star, ShieldCheck, MapPin, Phone, MessageCircle,
+  ArrowLeft, Star, ShieldCheck, MapPin, MessageCircle,
   Heart, Briefcase, Clock, TrendingUp,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
@@ -144,13 +144,11 @@ export default function ProviderProfileView() {
         </View>
       </ScrollView>
 
-      {/* CTA footer */}
+      {/* CTA footer — no direct call button: all contact stays in-app via
+          messaging, never a raw phone number. */}
       <View style={styles.footer}>
-        <Pressable style={styles.messageBtn} onPress={() => router.push('/client/thread')}>
+        <Pressable style={styles.messageBtn} onPress={() => router.push({ pathname: '/shared/thread', params: { otherName: provider.name } })}>
           <MessageCircle size={20} color={colors.encre} />
-        </Pressable>
-        <Pressable style={styles.callBtn}>
-          <Phone size={20} color={colors.encre} />
         </Pressable>
         <Button
           label="Demander ce prestataire"
@@ -201,5 +199,4 @@ const styles = StyleSheet.create({
   stars: { flexDirection: 'row', gap: 2 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },
   messageBtn: { width: 52, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  callBtn: { width: 52, height: 52, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
 });

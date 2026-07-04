@@ -82,7 +82,6 @@ export default function ClientLayout() {
       <Tabs.Screen name="profile"  options={{ tabBarIcon: ({ color }) => <User size={24} color={color} /> }} />
       <Tabs.Screen name="requests"      options={{ href: null }} />
       <Tabs.Screen name="offers"        options={{ href: null }} />
-      <Tabs.Screen name="thread"        options={{ href: null }} />
       <Tabs.Screen name="my-reviews"    options={{ href: null }} />
       <Tabs.Screen name="security"      options={{ href: null }} />
       <Tabs.Screen name="help"          options={{ href: null }} />

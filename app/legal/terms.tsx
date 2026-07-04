@@ -53,41 +53,59 @@ export default function TermsOfService() {
           modalités de paiement sont définis entre le client et le prestataire.
         </Section>
 
-        <Section title="5. Paiement">
-          Le paiement d'une mission se fait directement entre le client et le prestataire, en espèces ou
-          via mobile money (Flooz, Mixx by Yas). Sèvizi n'est pas partie prenante de la transaction
-          financière et ne peut être tenu responsable des litiges de paiement entre les parties.
+        <Section title="5. Communication sur la plateforme">
+          Toute communication entre un client et un prestataire — messages et appels — doit se faire
+          exclusivement via Sèvizi. Il est interdit de partager son numéro de téléphone, son adresse e-mail
+          ou tout autre moyen de contact personnel avant ou pendant une mission, dans le but de poursuivre
+          la relation en dehors de l'application. Pour cette raison, Sèvizi ne communique pas votre numéro
+          de téléphone à l'autre partie, et notre messagerie peut masquer automatiquement les numéros ou
+          e-mails détectés dans un message. Si une mission ou un échange se déroule en dehors de Sèvizi,
+          nous ne sommes pas en mesure d'intervenir en cas de litige, de problème de qualité, de sécurité
+          ou de paiement — Sèvizi ne peut vous aider que pour ce qui se passe sur la plateforme. Le
+          non-respect de cette règle peut entraîner la suspension du compte.
         </Section>
 
-        <Section title="6. Vérification">
+        <Section title="6. Paiement et commission">
+          Le paiement d'une mission se fait directement entre le client et le prestataire, en espèces ou
+          via mobile money (Flooz, Mixx by Yas). Sèvizi prélève une commission de {'10 %'} sur le
+          montant de chaque mission terminée, déduite du montant reversé au prestataire — le client règle
+          toujours exactement le prix affiché au moment de l'acceptation de l'offre. Tant que Sèvizi ne
+          traite pas directement les paiements dans l'application, le prestataire s'engage à reverser à
+          Sèvizi la commission due, selon les modalités communiquées séparément (mobile money ou autre
+          moyen). Ce taux peut évoluer ; les prestataires seront informés à l'avance de tout changement.
+        </Section>
+
+        <Section title="7. Vérification">
           La vérification d'identité (client) ou d'entreprise (prestataire) est facultative. Le badge
           vérifié indique que des documents ont été examinés par notre équipe, sans garantir la qualité du
           service rendu.
         </Section>
 
-        <Section title="7. Signalement et litiges">
+        <Section title="8. Signalement et litiges">
           En cas de problème pendant une mission, chaque partie peut utiliser la fonction « Signaler un
           problème » pour porter l'incident à l'attention de notre équipe, qui examinera la situation et
-          proposera une résolution.
+          proposera une résolution. Cette assistance ne couvre que les missions et échanges effectués sur
+          Sèvizi (voir section 5).
         </Section>
 
-        <Section title="8. Comportement interdit">
+        <Section title="9. Comportement interdit">
           Il est interdit d'utiliser Sèvizi pour publier de fausses demandes ou offres, harceler un autre
-          utilisateur, contourner la plateforme de façon frauduleuse, ou publier du contenu illégal ou
-          inapproprié.
+          utilisateur, partager des coordonnées personnelles pour contourner la plateforme, se soustraire à
+          la commission due, ou publier du contenu illégal ou inapproprié.
         </Section>
 
-        <Section title="9. Limitation de responsabilité">
+        <Section title="10. Limitation de responsabilité">
           Sèvizi met en relation les utilisateurs mais ne garantit pas la disponibilité, la qualité ou le
-          résultat d'un service rendu par un prestataire indépendant.
+          résultat d'un service rendu par un prestataire indépendant. Sèvizi décline toute responsabilité
+          pour les échanges, accords ou paiements effectués en dehors de l'application.
         </Section>
 
-        <Section title="10. Modification des conditions">
+        <Section title="11. Modification des conditions">
           Ces conditions peuvent être mises à jour ; nous vous informerons des changements importants dans
           l'application.
         </Section>
 
-        <Section title="11. Nous contacter">
+        <Section title="12. Nous contacter">
           Pour toute question : support@sevizi.app
         </Section>
       </ScrollView>

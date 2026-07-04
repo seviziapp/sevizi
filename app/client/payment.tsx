@@ -6,6 +6,7 @@ import { ArrowLeft, Check, Phone, Banknote } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { setJobPaymentMethod } from '../../src/lib/api';
+import { formatCommissionPct } from '../../src/lib/pricing';
 import type { PaymentMethod } from '../../src/lib/types';
 
 const FLOOZ_LOGO = require('../../assets/flooz.png');
@@ -54,6 +55,9 @@ export default function Payment() {
           </Text>
           <Text style={[text.small, { color: colors.textMuted }]}>
             {providerName ?? 'Prestataire'}
+          </Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }]}>
+            Ce prix inclut les frais de service Sèvizi ({formatCommissionPct()}, prélevés sur le prestataire).
           </Text>
         </View>
 
