@@ -278,6 +278,9 @@ alter table providers add column if not exists tier text not null default 'free'
 alter table providers add column if not exists categories service_category[] not null default '{}';
 alter table providers add column if not exists pro_since timestamptz;
 
+-- Return columns changed (added tier, categories) — Postgres won't let
+-- CREATE OR REPLACE change a table function's output shape, so drop first.
+drop function if exists nearby_providers(double precision, double precision, service_category, double precision);
 create or replace function nearby_providers(
   lat double precision,
   lng double precision,

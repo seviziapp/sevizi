@@ -8,6 +8,11 @@ alter table providers add column if not exists pro_since timestamptz;
 -- Nearby providers: match either the primary category or any of the Pro
 -- provider's extra categories, and rank Pro providers first (priority
 -- placement is one of the paid perks), then by distance.
+-- The return columns changed (added tier, categories), and Postgres won't
+-- let CREATE OR REPLACE change a table function's output shape, so drop it
+-- first (safe: nothing else defines this function, callers just call it by
+-- name/args again right after).
+drop function if exists nearby_providers(double precision, double precision, service_category, double precision);
 create or replace function nearby_providers(
   lat double precision,
   lng double precision,
