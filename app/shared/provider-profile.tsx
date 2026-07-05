@@ -163,7 +163,15 @@ export default function ProviderProfileView() {
         </Pressable>
         <Button
           label="Demander ce prestataire"
-          onPress={() => router.push('/client/new-request')}
+          onPress={() => router.push({
+            pathname: '/client/new-request',
+            params: {
+              providerId: provider.id,
+              providerName: provider.name,
+              category: provider.category,
+              categories: (provider.categories ?? []).join(','),
+            },
+          })}
           full={false}
           style={{ flex: 1 }}
         />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Camera, ArrowRight } from 'lucide-react-native';
+import { X, Camera, ArrowRight, User } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { CATEGORIES, ServiceCategory } from '../../src/lib/types';
@@ -12,7 +12,22 @@ import type { GeoPoint } from '../../src/lib/types';
 
 export default function NewRequest() {
   const router = useRouter();
-  const { category: catParam } = useLocalSearchParams<{ category?: string }>();
+  const { category: catParam, providerId, providerName, categories: extraCatsParam } = useLocalSearchParams<{
+    category?: string; providerId?: string; providerName?: string; categories?: string;
+  }>();
+
+  // Coming from a specific provider's profile / favorites "recontacter" —
+  // restrict choices to only the services that provider actually offers,
+  // instead of the full category list (which made no sense in that context:
+  // e.g. a tutor ("Cours") showing Plomberie, Électricité, etc. as options).
+  const providerCategories = providerId
+    ? [catParam, ...(extraCatsParam ? extraCatsParam.split(',') : [])].filter(Boolean) as ServiceCategory[]
+    : null;
+  const restrictedCategories = providerCategories?.length
+    ? CATEGORIES.filter(c => providerCategories.includes(c.key))
+    : null;
+  const availableCategories = restrictedCategories?.length ? restrictedCategories : CATEGORIES;
+
   const [desc, setDesc] = useState('');
   const [category, setCategory] = useState<ServiceCategory>((catParam as ServiceCategory) ?? 'plomberie');
   const [urgent, setUrgent] = useState(true);
@@ -63,6 +78,15 @@ export default function NewRequest() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {providerId && providerName ? (
+          <View style={styles.providerBanner}>
+            <User size={16} color={colors.vertDark} />
+            <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
+              Demande pour <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{providerName}</Text> — seuls ses services sont proposés ci-dessous.
+            </Text>
+          </View>
+        ) : null}
+
         <Field label="Que se passe-t-il ?">
           <TextInput
             style={styles.textarea}
@@ -77,7 +101,7 @@ export default function NewRequest() {
 
         <Field label="Catégorie">
           <View style={styles.chips}>
-            {CATEGORIES.map((c) => {
+            {availableCategories.map((c) => {
               const active = c.key === category;
               return (
                 <Pressable
@@ -152,6 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
+  providerBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md },
   textarea: {
     backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
     borderRadius: radii.md, padding: spacing.lg, minHeight: 96,

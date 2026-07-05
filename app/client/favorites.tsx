@@ -46,7 +46,15 @@ export default function Favorites() {
             {/* Rebook button */}
             <Pressable
               style={styles.rebookBtn}
-              onPress={() => router.push({ pathname: '/client/new-request' })}
+              onPress={() => router.push({
+                pathname: '/client/new-request',
+                params: {
+                  providerId: p.id,
+                  providerName: p.name,
+                  category: p.category,
+                  categories: (p.categories ?? []).join(','),
+                },
+              })}
             >
               <RotateCcw size={16} color={colors.vert} />
               <Text style={[text.small, { color: colors.vert }]}>Recontacter</Text>
