@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, ShieldCheck, Upload, FileText, Clock, Check } from 'lucide-react-native';
+import { ArrowLeft, ShieldCheck, Upload, FileText, Clock, Check, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { pickFile } from '../../src/lib/pickFile';
@@ -12,6 +12,7 @@ export default function ProviderVerification() {
   const router = useRouter();
   const [status, setStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
   const [alreadyVerified, setAlreadyVerified] = useState(false);
+  const [isPro, setIsPro] = useState(false);
   const [loading, setLoading] = useState(true);
   const [companyInfo, setCompanyInfo] = useState('');
   const [tradeDoc, setTradeDoc] = useState<{ name: string; url: string } | null>(null);
@@ -22,7 +23,7 @@ export default function ProviderVerification() {
 
   useEffect(() => {
     Promise.all([fetchMyVerificationStatus(), fetchMyProviderProfile()])
-      .then(([s, p]) => { setStatus(s); setAlreadyVerified(!!p?.verified); })
+      .then(([s, p]) => { setStatus(s); setAlreadyVerified(!!p?.verified); setIsPro(p?.tier === 'pro'); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -87,6 +88,15 @@ export default function ProviderVerification() {
           ) : (
             <StatusCard color={colors.encre} icon={<ShieldCheck size={28} color={colors.vert} />}
               title="Devenez prestataire vérifié" body="Le badge vérifié rassure les clients et augmente vos chances d'être choisi. Facultatif." />
+          )}
+
+          {!alreadyVerified && !isPro && status !== 'pending' && (
+            <Pressable style={styles.upsell} onPress={() => router.push('/provider/upgrade')}>
+              <Crown size={14} color={colors.soleil} fill={colors.soleil} />
+              <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
+                Passez à Sèvizi Pro pour un badge vérifié immédiat, sans attendre l'examen des documents.
+              </Text>
+            </Pressable>
           )}
 
           {!alreadyVerified && status !== 'pending' && (
@@ -161,4 +171,5 @@ const styles = StyleSheet.create({
   },
   uploadDone: { borderStyle: 'solid', borderColor: colors.vert, backgroundColor: '#F2FBF6' },
   error: { color: colors.terre, fontSize: 14, marginTop: spacing.md },
+  upsell: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FCEFC7', borderRadius: radii.md, padding: spacing.md, marginTop: spacing.lg },
 });

@@ -641,10 +641,12 @@ export async function saveClientDetails(input: { firstName: string; lastName: st
 // Provider finishes signup: company name, owner first/last name, category, phone.
 export async function saveProviderDetails(input: {
   companyName: string; firstName: string; lastName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
+  tier?: 'free' | 'pro'; // chosen on the sign-up tier picker
 }): Promise<void> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const fullName = `${input.firstName} ${input.lastName}`.trim();
+  const isPro = input.tier === 'pro';
 
   // 1) Business row FIRST — uses only base columns, so onboarding completes
   //    (index checks for this row) even if profile columns are missing.
@@ -652,15 +654,16 @@ export async function saveProviderDetails(input: {
   //    cause yet another row to be inserted.
   const { data: existingRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const existing = existingRows?.[0];
+  const tierPatch = isPro ? { tier: 'pro', pro_since: new Date().toISOString(), verified: true } : {};
   if (existing) {
     const { error } = await supabase.from('providers').update({
-      name: input.companyName, category: input.category, bio: input.bio ?? null,
+      name: input.companyName, category: input.category, bio: input.bio ?? null, ...tierPatch,
     }).eq('user_id', user.id);
     if (error) throw error;
   } else {
     const { error } = await supabase.from('providers').insert({
       user_id: user.id, name: input.companyName, category: input.category,
-      bio: input.bio ?? null, geo: `POINT(${LOME.lng} ${LOME.lat})`,
+      bio: input.bio ?? null, geo: `POINT(${LOME.lng} ${LOME.lat})`, ...tierPatch,
     });
     if (error) throw error;
   }

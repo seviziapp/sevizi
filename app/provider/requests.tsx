@@ -2,17 +2,22 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, ChevronRight, SlidersHorizontal } from 'lucide-react-native';
+import { MapPin, Clock, ChevronRight, SlidersHorizontal, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchNearbyRequests, resolveMyLocation, LOME } from '../../src/lib/api';
+import { fetchNearbyRequests, resolveMyLocation, fetchMyProviderProfile, LOME } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
 
 export default function ProviderRequests() {
   const router = useRouter();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [filter, setFilter] = useState<ServiceCategory | null>(null);
+  const [isPro, setIsPro] = useState(false);
   const centerRef = useRef<GeoPoint>(LOME);
   const readyRef = useRef(false);
+
+  useEffect(() => {
+    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
+  }, []);
 
   // Resolve the provider's real location once (GPS -> saved address -> Lomé).
   useEffect(() => {
@@ -58,6 +63,14 @@ export default function ProviderRequests() {
       </ScrollView>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        {!isPro && sorted.length > 0 && (
+          <Pressable style={styles.upsell} onPress={() => router.push('/provider/upgrade')}>
+            <Crown size={14} color={colors.soleil} fill={colors.soleil} />
+            <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
+              Sèvizi Pro vous place en premier auprès des clients proches. Passez à Pro.
+            </Text>
+          </Pressable>
+        )}
         {sorted.length === 0 && (
           <View style={styles.empty}>
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
@@ -144,4 +157,5 @@ const styles = StyleSheet.create({
   offersTag: { paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm, backgroundColor: colors.surface },
   offersTagNew: { backgroundColor: '#F2FBF6' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: spacing.xxxl },
+  upsell: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FCEFC7', borderRadius: radii.md, padding: spacing.md, marginBottom: spacing.md },
 });

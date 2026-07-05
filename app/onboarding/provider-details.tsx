@@ -4,13 +4,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Building2, User, Phone, Mail, ArrowRight } from 'lucide-react-native';
+import { Building2, User, Phone, Mail, ArrowRight, Check, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
 import { saveProviderDetails } from '../../src/lib/api';
-import { CATEGORIES, type ServiceCategory } from '../../src/lib/types';
+import { CATEGORIES, type ServiceCategory, type ProviderTier } from '../../src/lib/types';
+import { PRO_FEATURES, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
+
+const FREE_FEATURES = [
+  '1 service proposé',
+  `Commission standard (${Math.round(COMMISSION_RATE * 100)}%)`,
+  'Classement normal dans les recherches',
+  `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
+];
 
 export default function ProviderDetails() {
   const router = useRouter();
@@ -21,6 +29,7 @@ export default function ProviderDetails() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
+  const [tier, setTier] = useState<ProviderTier>('free');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,7 +50,7 @@ export default function ProviderDetails() {
     try {
       await saveProviderDetails({
         companyName: companyName.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
-        category, phone: phone.trim(), email: email.trim(), bio: bio.trim() || undefined,
+        category, phone: phone.trim(), email: email.trim(), bio: bio.trim() || undefined, tier,
       });
       router.replace('/provider/dashboard');
     } catch (e: any) {
@@ -94,11 +103,42 @@ export default function ProviderDetails() {
             />
           </View>
 
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm }]}>CHOISISSEZ VOTRE FORMULE</Text>
+          <View style={styles.tierRow}>
+            <Pressable style={[styles.tierCard, tier === 'free' && styles.tierCardActive]} onPress={() => setTier('free')}>
+              <View style={styles.tierHead}>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>Gratuit</Text>
+                {tier === 'free' && <Check size={16} color={colors.vert} />}
+              </View>
+              {FREE_FEATURES.map((f, i) => (
+                <Text key={i} style={[text.small, { color: colors.textMuted, marginTop: 4 }]}>· {f}</Text>
+              ))}
+            </Pressable>
+            <Pressable style={[styles.tierCard, styles.tierCardPro, tier === 'pro' && styles.tierCardActive]} onPress={() => setTier('pro')}>
+              <View style={styles.tierHead}>
+                <View style={styles.proLabel}>
+                  <Crown size={13} color={colors.encre} fill={colors.soleil} />
+                  <Text style={[text.bodyMd, { color: colors.encre }]}>Pro</Text>
+                </View>
+                {tier === 'pro' && <Check size={16} color={colors.vert} />}
+              </View>
+              <Text style={[text.small, { color: colors.vertDark, marginBottom: 2 }]}>
+                {PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois
+              </Text>
+              {PRO_FEATURES.map((f, i) => (
+                <Text key={i} style={[text.small, { color: colors.encre, marginTop: 4 }]}>· {f}</Text>
+              ))}
+            </Pressable>
+          </View>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.sm }]}>
+            Vous pourrez changer de formule à tout moment depuis votre profil.
+          </Text>
+
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <View style={{ height: spacing.lg }} />
           <Button
-            label="Continuer"
+            label={tier === 'pro' ? `Continuer — Pro ${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois` : 'Continuer — Gratuit'}
             icon={<ArrowRight size={20} color={colors.white} />}
             onPress={submit}
             loading={loading}
@@ -142,4 +182,10 @@ const styles = StyleSheet.create({
     fontSize: 16, fontFamily: 'HankenGrotesk_400Regular', color: colors.encre, outlineStyle: 'none',
   } as any,
   error: { color: colors.terre, fontSize: 14, marginTop: spacing.xs },
+  tierRow: { flexDirection: 'row', gap: spacing.md },
+  tierCard: { flex: 1, borderRadius: radii.lg, padding: spacing.md, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white },
+  tierCardPro: { borderColor: colors.soleil },
+  tierCardActive: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
+  tierHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  proLabel: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

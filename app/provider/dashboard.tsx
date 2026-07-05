@@ -2,12 +2,13 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight } from 'lucide-react-native';
+import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME } from '../../src/lib/api';
 import type { ProviderStats, ServiceRequest, GeoPoint } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
+import { COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
 
 export default function ProviderDashboard() {
   const router = useRouter();
@@ -15,6 +16,7 @@ export default function ProviderDashboard() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [online, setOnline] = useState(true);
   const [providerName, setProviderName] = useState('');
+  const [isPro, setIsPro] = useState(false);
   const [activeJob, setActiveJob] = useState<any>(null);
   const [unread, setUnread] = useState(0);
   // Resolved once (GPS -> saved address -> Lomé) and reused by the polling
@@ -29,11 +31,15 @@ export default function ProviderDashboard() {
 
   useEffect(() => {
     fetchProviderStats().then(setStats).catch(() => {});
-    fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); } }).catch(() => {});
+    fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); setIsPro(p.tier === 'pro'); } }).catch(() => {});
     resolveMyLocation().then(pt => { centerRef.current = pt; }).catch(() => {}).finally(refreshLive);
     const t = setInterval(refreshLive, 20000);
     return () => clearInterval(t);
   }, [refreshLive]);
+
+  // Concrete, current-numbers tease: what Pro's lower commission would have
+  // saved on this month's earnings so far.
+  const monthlySavings = stats ? Math.round(stats.earnings * (COMMISSION_RATE - COMMISSION_RATE_PRO)) : 0;
 
   useFocusEffect(useCallback(() => { refreshLive(); }, [refreshLive]));
 
@@ -106,6 +112,25 @@ export default function ProviderDashboard() {
               <ChevronRight size={16} color={colors.vert} />
             </Pressable>
           </View>
+        )}
+
+        {/* Upgrade tease — only for free-tier providers, with a concrete
+            savings number so it's not just a generic ad. */}
+        {!isPro && stats && (
+          <Pressable style={styles.upsellBanner} onPress={() => router.push('/provider/upgrade')}>
+            <View style={styles.upsellIcon}>
+              <Crown size={20} color={colors.encre} fill={colors.soleil} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>Passez à Sèvizi Pro</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>
+                {monthlySavings > 0
+                  ? `Vous auriez gardé ${monthlySavings.toLocaleString('fr-FR')} F de plus ce mois-ci avec la commission réduite.`
+                  : 'Commission réduite, placement prioritaire et badge vérifié.'}
+              </Text>
+            </View>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </Pressable>
         )}
 
         {/* Active job banner — only shown when there's an active job */}
@@ -187,6 +212,8 @@ const styles = StyleSheet.create({
   earningsBanner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.encre, borderRadius: radii.lg, padding: spacing.lg },
   walletBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  upsellBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: '#FCEFC7', borderRadius: radii.lg, padding: spacing.lg },
+  upsellIcon: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   activeJobBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.encre, borderRadius: radii.lg, padding: spacing.md },
   activeJobDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.vert },
   reqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
