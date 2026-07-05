@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Wrench, Star, ShieldCheck, Clock, Hourglass } from 'lucide-react-native';
+import { ArrowLeft, Wrench, Star, ShieldCheck, Clock, Hourglass, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
@@ -116,6 +116,7 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
           <View style={styles.nameRow}>
             <Text style={[text.h3, { color: colors.encre }]} numberOfLines={1}>{offer.provider.name}</Text>
             {offer.provider.verified && <ShieldCheck size={15} color={colors.vert} fill={colors.surface} />}
+            {offer.provider.tier === 'pro' && <Crown size={14} color={colors.soleil} fill={colors.soleil} />}
           </View>
           <View style={styles.metaRow}>
             <View style={styles.meta}>

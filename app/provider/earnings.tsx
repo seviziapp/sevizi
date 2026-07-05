@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Wallet, TrendingUp } from 'lucide-react-native';
+import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
@@ -12,6 +12,7 @@ type Transaction = {
   id: string;
   client: string;
   service: string;
+  category?: string;
   amount: number; // gross price the client paid
   date: string;
   method: string;
@@ -22,7 +23,8 @@ export default function Earnings() {
   const [loading, setLoading] = useState(true);
   const [grossMonth, setGrossMonth] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth);
+  const [isPro, setIsPro] = useState(false);
+  const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth, isPro ? 'pro' : 'free');
 
   useEffect(() => {
     loadEarnings();
@@ -35,10 +37,11 @@ export default function Earnings() {
 
       const { data: provider } = await supabase
         .from('providers')
-        .select('id, category')
+        .select('id, category, tier')
         .eq('user_id', user.id)
         .single();
       if (!provider) return;
+      setIsPro(provider.tier === 'pro');
 
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -60,6 +63,7 @@ export default function Earnings() {
             id: j.id,
             client: j.client_name || 'Client',
             service: `${cat?.label ?? 'Service'} · ${(j.requests?.description ?? '').slice(0, 30)}`,
+            category: cat?.label ?? 'Service',
             amount: j.price,
             date: dateStr,
             method: j.payment_method ?? 'cash',
@@ -78,6 +82,15 @@ export default function Earnings() {
       setLoading(false);
     }
   }
+
+  // Advanced analytics — Pro perk.
+  const catCounts = new Map<string, number>();
+  transactions.forEach(t => catCounts.set(t.category ?? 'Service', (catCounts.get(t.category ?? 'Service') ?? 0) + 1));
+  const bestCategory = [...catCounts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const clientCounts = new Map<string, number>();
+  transactions.forEach(t => clientCounts.set(t.client, (clientCounts.get(t.client) ?? 0) + 1));
+  const repeatClients = [...clientCounts.values()].filter(n => n > 1).length;
+  const repeatRate = transactions.length ? Math.round((repeatClients / clientCounts.size) * 100) : 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -104,7 +117,7 @@ export default function Earnings() {
               Brut : {grossMonth.toLocaleString('fr-FR')} F
             </Text>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
-              Commission Sèvizi ({formatCommissionPct()}) : −{commissionMonth.toLocaleString('fr-FR')} F
+              Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')}) : −{commissionMonth.toLocaleString('fr-FR')} F
             </Text>
           </View>
 
@@ -117,6 +130,37 @@ export default function Earnings() {
             </Pressable>
           </View>
         </View>
+
+        {/* Advanced analytics — Pro perk */}
+        {isPro ? (
+          transactions.length > 0 && (
+            <View style={styles.analyticsCard}>
+              <View style={styles.analyticsHead}>
+                <Crown size={14} color={colors.soleil} fill={colors.soleil} />
+                <Text style={[text.label, { color: colors.encre }]}>STATISTIQUES AVANCÉES</Text>
+              </View>
+              <View style={styles.analyticsRow}>
+                <TrendingUp size={16} color={colors.vert} />
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
+                  Meilleure catégorie : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{bestCategory}</Text>
+                </Text>
+              </View>
+              <View style={styles.analyticsRow}>
+                <Repeat size={16} color={colors.vert} />
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
+                  Taux de clients fidèles : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{repeatRate}%</Text>
+                </Text>
+              </View>
+            </View>
+          )
+        ) : (
+          <Pressable style={styles.analyticsLocked} onPress={() => router.push('/provider/upgrade')}>
+            <Lock size={16} color={colors.textMuted} />
+            <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
+              Passez à Sèvizi Pro pour voir vos tendances hebdomadaires, votre meilleure catégorie et votre taux de clients fidèles.
+            </Text>
+          </Pressable>
+        )}
 
         {/* Transactions */}
         <View style={styles.sectionHead}>
@@ -145,9 +189,9 @@ export default function Earnings() {
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount).net.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount, isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct()}
+                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct(isPro ? 'pro' : 'free')}
                   </Text>
                   <View style={styles.methodBadge}>
                     <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
@@ -179,4 +223,8 @@ const styles = StyleSheet.create({
   txCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   txLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flex: 1 },
   methodBadge: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm },
+  analyticsCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.sm },
+  analyticsHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  analyticsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  analyticsLocked: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
 });

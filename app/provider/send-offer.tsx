@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Send, Clock } from 'lucide-react-native';
+import { X, Send, Clock, Crown, Lock } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { sendOffer } from '../../src/lib/api';
+import { sendOffer, fetchMyProviderProfile, fetchOfferStatsForRequest } from '../../src/lib/api';
 import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
 import { CATEGORIES } from '../../src/lib/types';
 
@@ -23,8 +23,15 @@ export default function SendOffer() {
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isPro, setIsPro] = useState(false);
+  const [bidStats, setBidStats] = useState<{ count: number; min: number; max: number; avg: number } | null>(null);
 
   const cat = CATEGORIES.find(c => c.key === category);
+
+  useEffect(() => {
+    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
+    if (requestId) fetchOfferStatsForRequest(requestId).then(setBidStats).catch(() => {});
+  }, [requestId]);
 
   async function submit() {
     if (!price) return;
@@ -66,6 +73,25 @@ export default function SendOffer() {
               </Text>
             </View>
           </View>
+
+          {/* Other bids on this request — Pro perk */}
+          {isPro ? (
+            bidStats && (
+              <View style={styles.bidsBox}>
+                <Crown size={14} color={colors.soleil} fill={colors.soleil} />
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
+                  {bidStats.count} autre{bidStats.count > 1 ? 's' : ''} offre{bidStats.count > 1 ? 's' : ''} déjà envoyée{bidStats.count > 1 ? 's' : ''} · min {bidStats.min.toLocaleString('fr-FR')} F · moy {bidStats.avg.toLocaleString('fr-FR')} F · max {bidStats.max.toLocaleString('fr-FR')} F
+                </Text>
+              </View>
+            )
+          ) : (
+            <Pressable style={styles.bidsBoxLocked} onPress={() => router.push('/provider/upgrade')}>
+              <Lock size={14} color={colors.textMuted} />
+              <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
+                Passez à Sèvizi Pro pour voir les offres des autres prestataires sur cette demande.
+              </Text>
+            </Pressable>
+          )}
 
           {/* Price */}
           <View style={styles.field}>
@@ -129,16 +155,16 @@ export default function SendOffer() {
                 {note ? <Text style={[text.small, { color: colors.textMuted, fontStyle: 'italic' }]}>« {note} »</Text> : null}
                 <View style={styles.commissionRow}>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    Commission Sèvizi ({formatCommissionPct()})
+                    Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')})
                   </Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    − {computeCommission(parseInt(price || '0', 10)).commission.toLocaleString('fr-FR')} F
+                    − {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').commission.toLocaleString('fr-FR')} F
                   </Text>
                 </View>
                 <View style={styles.commissionRow}>
                   <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>Vous recevrez</Text>
                   <Text style={[text.small, { color: colors.vertDark, fontFamily: text.bodyMd.fontFamily }]}>
-                    {computeCommission(parseInt(price || '0', 10)).net.toLocaleString('fr-FR')} F
+                    {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F
                   </Text>
                 </View>
               </View>
@@ -167,6 +193,8 @@ const styles = StyleSheet.create({
   close: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
   requestBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  bidsBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FCEFC7', borderRadius: radii.md, padding: spacing.md },
+  bidsBoxLocked: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md },
   field: { gap: spacing.sm },
   fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 64 },

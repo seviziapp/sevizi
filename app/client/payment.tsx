@@ -57,7 +57,7 @@ export default function Payment() {
             {providerName ?? 'Prestataire'}
           </Text>
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }]}>
-            Ce prix inclut les frais de service Sèvizi ({formatCommissionPct()}, prélevés sur le prestataire).
+            Ce prix inclut les frais de service Sèvizi (jusqu'à {formatCommissionPct()}, prélevés sur le prestataire).
           </Text>
         </View>
 

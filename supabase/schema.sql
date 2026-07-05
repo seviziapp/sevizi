@@ -47,7 +47,10 @@ create table providers (
   verified boolean default false,
   online boolean default false,
   geo geography(point, 4326) not null,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  tier text not null default 'free' check (tier in ('free','pro')),  -- Sèvizi Pro subscription
+  categories service_category[] not null default '{}',              -- extra services (Pro only)
+  pro_since timestamptz
 );
 create index providers_geo_idx on providers using gist (geo);
 
@@ -178,19 +181,22 @@ returns table (
   id uuid, name text, category service_category,
   rating numeric, reviews int, verified boolean, online boolean,
   missions int, years_active int, response_rate int, bio text,
+  tier text, categories service_category[],
   lat double precision, lng double precision, distance_km double precision
 )
 language sql stable as $$
   select p.id, p.name, p.category, p.rating, p.reviews, p.verified, p.online,
          p.missions, p.years_active, p.response_rate, p.bio,
+         p.tier, p.categories,
          st_y(p.geo::geometry) as lat,
          st_x(p.geo::geometry) as lng,
          round((st_distance(p.geo, st_setsrid(st_makepoint(lng, lat),4326)::geography)/1000)::numeric, 2) as distance_km
   from providers p
   where p.online
-    and (cat is null or p.category = cat)
+    and (cat is null or p.category = cat or cat = any(p.categories))
     and st_dwithin(p.geo, st_setsrid(st_makepoint(lng, lat),4326)::geography, radius_km*1000)
-  order by distance_km;
+  -- Priority placement is a Pro perk: Pro providers rank first, then by distance.
+  order by (p.tier = 'pro') desc, distance_km;
 $$;
 
 -- ---- Nearby requests RPC ----

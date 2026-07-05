@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import {
   ArrowLeft, Star, ShieldCheck, MapPin, MessageCircle,
-  Heart, Briefcase, Clock, TrendingUp,
+  Heart, Briefcase, Clock, TrendingUp, Crown,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
@@ -63,17 +63,28 @@ export default function ProviderProfileView() {
           <View style={styles.nameRow}>
             <Text style={[text.h2, { color: colors.encre }]}>{provider.name}</Text>
             {provider.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
+            {provider.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
           </View>
           <View style={styles.catRow}>
             <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
-            <Text style={[text.body, { color: colors.textMuted }]}>{cat?.label}</Text>
+            <Text style={[text.body, { color: colors.textMuted }]}>
+              {[cat?.label, ...(provider.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')}
+            </Text>
           </View>
-          {provider.verified && (
-            <View style={styles.verifiedBadge}>
-              <ShieldCheck size={14} color={colors.vert} />
-              <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
-            </View>
-          )}
+          <View style={styles.badgeRow}>
+            {provider.verified && (
+              <View style={styles.verifiedBadge}>
+                <ShieldCheck size={14} color={colors.vert} />
+                <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
+              </View>
+            )}
+            {provider.tier === 'pro' && (
+              <View style={styles.proBadge}>
+                <Crown size={14} color={colors.encre} fill={colors.soleil} />
+                <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
+              </View>
+            )}
+          </View>
           <View style={[styles.onlineRow, provider.online && styles.onlineRowActive]}>
             <View style={[styles.onlineDot, provider.online && styles.onlineDotActive]} />
             <Text style={[text.small, { color: provider.online ? colors.vert : colors.textMuted }]}>
@@ -182,7 +193,9 @@ const styles = StyleSheet.create({
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   distancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill },
+  badgeRow: { flexDirection: 'row', gap: spacing.sm },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
+  proBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FCEFC7', paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
   onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border },
   onlineRowActive: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
   onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.textMuted },

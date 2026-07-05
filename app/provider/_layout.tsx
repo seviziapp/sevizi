@@ -42,6 +42,7 @@ export default function ProviderLayout() {
       <Tabs.Screen name="earnings"     options={{ href: null }} />
       <Tabs.Screen name="verification" options={{ href: null }} />
       <Tabs.Screen name="edit-profile" options={{ href: null }} />
+      <Tabs.Screen name="upgrade"      options={{ href: null }} />
     </Tabs>
   );
 }

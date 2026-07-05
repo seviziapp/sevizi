@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile } from '../../src/lib/api';
@@ -65,16 +65,25 @@ export default function ProviderProfile() {
           <View style={styles.nameRow}>
             <Text style={[text.h2, { color: colors.encre }]}>{provider?.name ?? '—'}</Text>
             {provider?.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
+            {provider?.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
           </View>
           <Text style={[text.body, { color: colors.textMuted }]}>
-            {cat?.label ?? '—'} · Lomé
+            {[cat?.label, ...(provider?.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')} · Lomé
           </Text>
-          {provider?.verified && (
-            <View style={styles.verifiedBadge}>
-              <ShieldCheck size={14} color={colors.vert} />
-              <Text style={[text.label, { color: colors.vert }]}>PROFIL VÉRIFIÉ</Text>
-            </View>
-          )}
+          <View style={styles.badgeRow}>
+            {provider?.verified && (
+              <View style={styles.verifiedBadge}>
+                <ShieldCheck size={14} color={colors.vert} />
+                <Text style={[text.label, { color: colors.vert }]}>PROFIL VÉRIFIÉ</Text>
+              </View>
+            )}
+            {provider?.tier === 'pro' && (
+              <View style={styles.proBadge}>
+                <Crown size={14} color={colors.encre} fill={colors.soleil} />
+                <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
+              </View>
+            )}
+          </View>
         </View>
 
         {/* Stats row */}
@@ -149,6 +158,15 @@ export default function ProviderProfile() {
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Notifications</Text>
             <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
           </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/upgrade')}>
+            <Crown size={20} color={provider?.tier === 'pro' ? colors.soleil : colors.encre} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
+              {provider?.tier === 'pro' ? 'Abonnement Sèvizi Pro actif' : 'Passer à Sèvizi Pro'}
+            </Text>
+            {provider?.tier === 'pro'
+              ? <Check size={18} color={colors.vert} />
+              : <ChevronRight size={18} color={colors.textMuted} />}
+          </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/verification')}>
             <ShieldCheck size={20} color={provider?.verified ? colors.vert : colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
@@ -198,7 +216,9 @@ const styles = StyleSheet.create({
   avatarWrap: { position: 'relative' },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.encre, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white },
+  badgeRow: { flexDirection: 'row', gap: spacing.sm },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
+  proBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FCEFC7', paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
   statsRow: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   stat: { flex: 1, alignItems: 'center', gap: 4 },
   statDiv: { width: 1, backgroundColor: colors.border },

@@ -116,7 +116,8 @@ export async function fetchNearbyProviders(category?: ServiceCategory, center?: 
       reviews: p.reviews, verified: p.verified, online: p.online,
       missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
       bio: p.bio, distanceKm: 0, location: anchor,
-    }));
+      tier: p.tier ?? 'free', categories: p.categories ?? [],
+    })).sort(byTierThenDistance);
   }
   return (data ?? []).map((p: any) => ({
     id: p.id, name: p.name, category: p.category, rating: p.rating,
@@ -124,7 +125,18 @@ export async function fetchNearbyProviders(category?: ServiceCategory, center?: 
     missions: p.missions, yearsActive: p.years_active, responseRate: p.response_rate,
     bio: p.bio, distanceKm: p.distance_km ?? 0,
     location: { lat: p.lat, lng: p.lng },
-  }));
+    tier: p.tier ?? 'free', categories: p.categories ?? [],
+  })).sort(byTierThenDistance);
+}
+
+// Priority placement is a Sèvizi Pro perk — Pro providers rank first, then by
+// distance. The RPC already orders this way; this keeps the fallback/mock
+// paths consistent (Array#sort is stable, so distance order within a tier
+// group is preserved).
+function byTierThenDistance(a: Provider, b: Provider) {
+  const proA = a.tier === 'pro' ? 1 : 0;
+  const proB = b.tier === 'pro' ? 1 : 0;
+  return proB - proA;
 }
 
 export async function fetchProvider(id: string): Promise<Provider> {
@@ -140,6 +152,7 @@ export async function fetchProvider(id: string): Promise<Provider> {
     missions: data.missions ?? 0, yearsActive: data.years_active ?? 0,
     responseRate: data.response_rate ?? 0, bio: data.bio ?? undefined,
     gallery: data.gallery ?? [], distanceKm: 0, location: LOME,
+    tier: data.tier ?? 'free', categories: data.categories ?? [],
   };
 }
 
@@ -243,6 +256,7 @@ export async function fetchOffers(requestId: string): Promise<Offer[]> {
       rating: o.provider?.rating ?? 0, reviews: o.provider?.reviews ?? 0,
       verified: !!o.provider?.verified, online: !!o.provider?.online,
       distanceKm: 0, location: LOME,
+      tier: o.provider?.tier ?? 'free', categories: o.provider?.categories ?? [],
     },
   })) as unknown as Offer[];
 }
@@ -727,11 +741,13 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
     reviews: data.reviews ?? 0, verified: !!data.verified, online: !!data.online,
     missions: data.missions ?? 0, yearsActive: data.years_active ?? 0, responseRate: data.response_rate ?? 0,
     bio: data.bio ?? undefined, gallery: data.gallery ?? [], distanceKm: 0, location: LOME,
+    tier: data.tier ?? 'free', categories: data.categories ?? [],
   };
 }
 
-// Provider edits their public profile: business name, bio, gallery photos.
-export async function updateProviderProfile(input: { name?: string; bio?: string; gallery?: string[] }): Promise<void> {
+// Provider edits their public profile: business name, bio, gallery photos,
+// and (Pro only) the extra service categories they also offer.
+export async function updateProviderProfile(input: { name?: string; bio?: string; gallery?: string[]; categories?: ServiceCategory[] }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
@@ -739,8 +755,41 @@ export async function updateProviderProfile(input: { name?: string; bio?: string
   if (input.name !== undefined) patch.name = input.name;
   if (input.bio !== undefined) patch.bio = input.bio;
   if (input.gallery !== undefined) patch.gallery = input.gallery;
+  if (input.categories !== undefined) patch.categories = input.categories;
   const { error } = await supabase.from('providers').update(patch).eq('user_id', user.id);
   if (error) throw error;
+}
+
+// Upgrade the current provider to Sèvizi Pro. Sèvizi doesn't process payments
+// in-app yet (see supabase/migration_no_contact_sharing.sql-era commission
+// notes) — the subscription fee (see PRO_MONTHLY_FEE) is currently collected
+// the same way the commission is, outside the app, until real payment
+// processing exists. Pro also comes with an automatic verified badge ("vetted
+// by Sèvizi"), since Pro sign-up implies the same trust check.
+export async function upgradeToPro(): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const { error } = await supabase
+    .from('providers')
+    .update({ tier: 'pro', pro_since: new Date().toISOString(), verified: true })
+    .eq('user_id', user.id);
+  if (error) throw error;
+}
+
+// So a Pro provider can "tailor their bid" against what's already on the
+// table for the same request.
+export async function fetchOfferStatsForRequest(requestId: string): Promise<{ count: number; min: number; max: number; avg: number } | null> {
+  if (!hasSupabase) return null;
+  const { data, error } = await supabase.from('offers').select('price').eq('request_id', requestId);
+  if (error || !data || data.length === 0) return null;
+  const prices = data.map((o: any) => o.price as number);
+  return {
+    count: prices.length,
+    min: Math.min(...prices),
+    max: Math.max(...prices),
+    avg: Math.round(prices.reduce((s, p) => s + p, 0) / prices.length),
+  };
 }
 
 // ---- PROVIDER API ----

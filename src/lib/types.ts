@@ -33,6 +33,8 @@ export const CATEGORIES: { key: ServiceCategory; label: string; emoji: string }[
 
 export type GeoPoint = { lat: number; lng: number };
 
+export type ProviderTier = 'free' | 'pro';
+
 export interface Provider {
   id: string;
   name: string;
@@ -48,6 +50,8 @@ export interface Provider {
   responseRate?: number;
   bio?: string;
   gallery?: string[];
+  tier?: ProviderTier;
+  categories?: ServiceCategory[]; // extra services a Pro provider also offers
 }
 
 export interface ServiceRequest {
