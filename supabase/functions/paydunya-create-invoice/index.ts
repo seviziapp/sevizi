@@ -43,8 +43,13 @@ Deno.serve(async (req: Request) => {
 
     // Privileged client for the actual reads/writes below.
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-    const { data: provider, error: provErr } = await admin
-      .from('providers').select('id, tier').eq('user_id', user.id).single();
+    // .limit(1) (not .single()) so a duplicate provider row doesn't throw and
+    // get misread as "no provider" — matches fetchMyProviderProfile's pattern
+    // in src/lib/api.ts.
+    const { data: providerRows, error: provErr } = await admin
+      .from('providers').select('id, tier').eq('user_id', user.id)
+      .order('created_at', { ascending: true }).limit(1);
+    const provider = providerRows?.[0];
     if (provErr || !provider) throw new Error('Profil prestataire introuvable');
     if (provider.tier === 'pro') throw new Error('Vous êtes déjà abonné à Sèvizi Pro.');
 
