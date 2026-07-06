@@ -308,4 +308,47 @@ language sql stable as $$
   order by (p.tier = 'pro') desc, distance_km;
 $$;
 
+
+-- ============================================================
+-- 11) PayDunya: real payment for the Sèvizi Pro subscription
+-- ============================================================
+create table if not exists pro_payments (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references providers(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  invoice_url text,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+
+alter table pro_payments enable row level security;
+drop policy if exists "read own pro payments" on pro_payments;
+create policy "read own pro payments" on pro_payments for select using (auth.uid() = user_id);
+-- No client insert/update policy: both Edge Functions write via the
+-- service-role key, which bypasses RLS entirely.
+
+-- Lock tier/pro_since to service-role writes only — only the PayDunya
+-- webhook (service-role) can grant Pro; a provider's own session cannot.
+create or replace function protect_provider_tier_columns() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    if tg_op = 'INSERT' then
+      new.tier := 'free';
+      new.pro_since := null;
+    elsif tg_op = 'UPDATE' then
+      new.tier := old.tier;
+      new.pro_since := old.pro_since;
+    end if;
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_protect_provider_tier on providers;
+create trigger trg_protect_provider_tier before insert or update on providers
+  for each row execute function protect_provider_tier_columns();
+
 -- Done ✅

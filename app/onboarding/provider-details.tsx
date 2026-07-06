@@ -1,15 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, ScrollView, Pressable, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, TextInput, ScrollView, Pressable, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as ExpoLinking from 'expo-linking';
 import { Building2, User, Phone, Mail, ArrowRight, Check, Crown } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
-import { saveProviderDetails } from '../../src/lib/api';
+import { saveProviderDetails, createProSubscriptionInvoice } from '../../src/lib/api';
 import { CATEGORIES, type ServiceCategory, type ProviderTier } from '../../src/lib/types';
 import { PRO_FEATURES, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
 
@@ -52,6 +53,27 @@ export default function ProviderDetails() {
         companyName: companyName.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
         category, phone: phone.trim(), email: email.trim(), bio: bio.trim() || undefined, tier,
       });
+
+      if (tier === 'pro') {
+        // The account is created as Free — Pro only activates once PayDunya
+        // confirms payment (see src/lib/api.ts createProSubscriptionInvoice).
+        const returnUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+          ? `${window.location.origin}/provider/upgrade?payment=return`
+          : ExpoLinking.createURL('/provider/upgrade', { queryParams: { payment: 'return' } });
+        const cancelUrl = Platform.OS === 'web' && typeof window !== 'undefined'
+          ? `${window.location.origin}/provider/dashboard`
+          : ExpoLinking.createURL('/provider/dashboard');
+        try {
+          const { invoiceUrl } = await createProSubscriptionInvoice(returnUrl, cancelUrl);
+          router.replace('/provider/dashboard');
+          if (Platform.OS === 'web') window.location.href = invoiceUrl;
+          else await Linking.openURL(invoiceUrl);
+          return;
+        } catch {
+          // Payment couldn't start — land them on the dashboard as Free;
+          // they can retry from Profil > Passer à Sèvizi Pro any time.
+        }
+      }
       router.replace('/provider/dashboard');
     } catch (e: any) {
       setError(e.message ?? 'Une erreur est survenue.');

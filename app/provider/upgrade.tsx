@@ -1,11 +1,12 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { ArrowLeft, Check, Crown, ShieldCheck } from 'lucide-react-native';
+import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
+import * as ExpoLinking from 'expo-linking';
+import { ArrowLeft, Check, Crown, ShieldCheck, Clock } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { fetchMyProviderProfile, upgradeToPro } from '../../src/lib/api';
+import { fetchMyProviderProfile, createProSubscriptionInvoice, fetchLatestProPayment } from '../../src/lib/api';
 import { PRO_FEATURES, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
 
 const FREE_FEATURES = [
@@ -15,31 +16,75 @@ const FREE_FEATURES = [
   `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
 ];
 
+function buildRedirectUrl(status: 'return' | 'cancel'): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/provider/upgrade?payment=${status}`;
+  }
+  return ExpoLinking.createURL('/provider/upgrade', { queryParams: { payment: status } });
+}
+
 export default function UpgradeToPro() {
   const router = useRouter();
+  const { payment: paymentParam } = useLocalSearchParams<{ payment?: string }>();
   const [loading, setLoading] = useState(true);
   const [isPro, setIsPro] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
-  const [method, setMethod] = useState<'flooz' | 'mixx'>('flooz');
+  const [startingCheckout, setStartingCheckout] = useState(false);
+  // Set right after returning from PayDunya's checkout page — the webhook
+  // that actually grants Pro runs async, so we poll briefly instead of
+  // assuming success/failure immediately.
+  const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    fetchMyProviderProfile()
-      .then(p => setIsPro(p?.tier === 'pro'))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+  const load = useCallback(() => {
+    return fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
   }, []);
 
-  async function upgrade() {
+  useEffect(() => {
+    load().finally(() => setLoading(false));
+  }, [load]);
+
+  // Re-check whenever the screen regains focus (e.g. coming back from the
+  // browser tab / app after paying) so a completed payment shows up without
+  // a manual reload.
+  useFocusEffect(useCallback(() => { load(); }, [load]));
+
+  useEffect(() => {
+    if (paymentParam !== 'return') return;
+    setVerifying(true);
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts += 1;
+      const [profile, payment] = await Promise.all([fetchMyProviderProfile(), fetchLatestProPayment()]);
+      if (profile?.tier === 'pro') {
+        setIsPro(true);
+        setVerifying(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      } else if (payment?.status === 'failed' || payment?.status === 'cancelled' || attempts >= 10) {
+        setVerifying(false);
+        if (payment?.status === 'failed' || payment?.status === 'cancelled') {
+          setError("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous.");
+        }
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [paymentParam]);
+
+  async function startCheckout() {
     setError('');
-    setUpgrading(true);
+    setStartingCheckout(true);
     try {
-      await upgradeToPro();
-      setIsPro(true);
+      const { invoiceUrl } = await createProSubscriptionInvoice(buildRedirectUrl('return'), buildRedirectUrl('cancel'));
+      if (Platform.OS === 'web') {
+        window.location.href = invoiceUrl;
+      } else {
+        await Linking.openURL(invoiceUrl);
+      }
     } catch (e: any) {
-      setError(e.message ?? "Échec de l'abonnement.");
+      setError(e.message ?? "Échec du démarrage du paiement.");
     } finally {
-      setUpgrading(false);
+      setStartingCheckout(false);
     }
   }
 
@@ -63,6 +108,16 @@ export default function UpgradeToPro() {
           <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Vous êtes Pro 🎉</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
             Commission réduite, placement prioritaire et badge vérifié sont déjà actifs sur votre profil.
+          </Text>
+        </View>
+      ) : verifying ? (
+        <View style={styles.activeWrap}>
+          <ActivityIndicator color={colors.vert} />
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center', marginTop: spacing.md }]}>
+            Vérification du paiement…
+          </Text>
+          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
+            PayDunya confirme votre paiement — cela prend quelques secondes.
           </Text>
         </View>
       ) : (
@@ -104,26 +159,21 @@ export default function UpgradeToPro() {
           </View>
 
           <View style={styles.section}>
-            <Text style={[text.label, { color: colors.textMuted }]}>MOYEN DE PAIEMENT DE L'ABONNEMENT</Text>
-            <View style={styles.methodRow}>
-              <Pressable style={[styles.methodBtn, method === 'flooz' && styles.methodBtnActive]} onPress={() => setMethod('flooz')}>
-                <Text style={[text.bodyMd, { color: method === 'flooz' ? colors.white : colors.encre }]}>Flooz</Text>
-              </Pressable>
-              <Pressable style={[styles.methodBtn, method === 'mixx' && styles.methodBtnActive]} onPress={() => setMethod('mixx')}>
-                <Text style={[text.bodyMd, { color: method === 'mixx' ? colors.white : colors.encre }]}>Mixx by Yas</Text>
-              </Pressable>
-            </View>
             <View style={styles.noteRow}>
               <ShieldCheck size={14} color={colors.textMuted} />
               <Text style={[text.label, { color: colors.textMuted, flex: 1 }]}>
-                Votre badge vérifié est activé automatiquement avec Sèvizi Pro.
+                Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte. Votre badge vérifié est activé automatiquement dès la confirmation.
               </Text>
             </View>
           </View>
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 
-          <Button label={`Passer à Pro — ${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois`} onPress={upgrade} loading={upgrading} />
+          <Button
+            label={`Passer à Pro — ${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois`}
+            onPress={startCheckout}
+            loading={startingCheckout}
+          />
         </ScrollView>
       )}
     </SafeAreaView>
@@ -142,9 +192,6 @@ const styles = StyleSheet.create({
   proBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, alignSelf: 'flex-start', backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm, marginBottom: spacing.sm },
   featureRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginTop: spacing.xs },
   section: { gap: spacing.sm },
-  methodRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
-  methodBtn: { flex: 1, height: 44, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
-  methodBtnActive: { backgroundColor: colors.encre, borderColor: colors.encre },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   error: { color: colors.terre, fontSize: 14 },
   activeWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl },

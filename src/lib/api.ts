@@ -641,12 +641,15 @@ export async function saveClientDetails(input: { firstName: string; lastName: st
 // Provider finishes signup: company name, owner first/last name, category, phone.
 export async function saveProviderDetails(input: {
   companyName: string; firstName: string; lastName: string; category: ServiceCategory; phone: string; email: string; bio?: string;
-  tier?: 'free' | 'pro'; // chosen on the sign-up tier picker
+  tier?: 'free' | 'pro'; // chosen on the sign-up tier picker — 'pro' just means
+  // "kick off PayDunya checkout right after this call" (see provider-details.tsx);
+  // the row itself is always created as 'free' here. Only the PayDunya webhook
+  // (createProSubscriptionInvoice / paydunya-webhook) can actually grant Pro —
+  // enforced DB-side by trg_protect_provider_tier, not just by this function.
 }): Promise<void> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const fullName = `${input.firstName} ${input.lastName}`.trim();
-  const isPro = input.tier === 'pro';
 
   // 1) Business row FIRST — uses only base columns, so onboarding completes
   //    (index checks for this row) even if profile columns are missing.
@@ -654,16 +657,15 @@ export async function saveProviderDetails(input: {
   //    cause yet another row to be inserted.
   const { data: existingRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const existing = existingRows?.[0];
-  const tierPatch = isPro ? { tier: 'pro', pro_since: new Date().toISOString(), verified: true } : {};
   if (existing) {
     const { error } = await supabase.from('providers').update({
-      name: input.companyName, category: input.category, bio: input.bio ?? null, ...tierPatch,
+      name: input.companyName, category: input.category, bio: input.bio ?? null,
     }).eq('user_id', user.id);
     if (error) throw error;
   } else {
     const { error } = await supabase.from('providers').insert({
       user_id: user.id, name: input.companyName, category: input.category,
-      bio: input.bio ?? null, geo: `POINT(${LOME.lng} ${LOME.lat})`, ...tierPatch,
+      bio: input.bio ?? null, geo: `POINT(${LOME.lng} ${LOME.lat})`,
     });
     if (error) throw error;
   }
@@ -763,21 +765,31 @@ export async function updateProviderProfile(input: { name?: string; bio?: string
   if (error) throw error;
 }
 
-// Upgrade the current provider to Sèvizi Pro. Sèvizi doesn't process payments
-// in-app yet (see supabase/migration_no_contact_sharing.sql-era commission
-// notes) — the subscription fee (see PRO_MONTHLY_FEE) is currently collected
-// the same way the commission is, outside the app, until real payment
-// processing exists. Pro also comes with an automatic verified badge ("vetted
-// by Sèvizi"), since Pro sign-up implies the same trust check.
-export async function upgradeToPro(): Promise<void> {
-  if (!hasSupabase) return;
-  const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
-  const { error } = await supabase
-    .from('providers')
-    .update({ tier: 'pro', pro_since: new Date().toISOString(), verified: true })
-    .eq('user_id', user.id);
+// Starts a real PayDunya checkout for the Sèvizi Pro monthly subscription.
+// Returns the hosted checkout page URL to open (mobile money / card) — the
+// provider is only actually flipped to Pro once PayDunya confirms payment
+// and the paydunya-webhook Edge Function processes it (see
+// supabase/migration_paydunya.sql for why this can't happen client-side).
+export async function createProSubscriptionInvoice(returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string }> {
+  if (!hasSupabase) throw new Error('Paiement indisponible en mode démo');
+  const { data, error } = await supabase.functions.invoke('paydunya-create-invoice', {
+    body: { returnUrl, cancelUrl },
+  });
   if (error) throw error;
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+// Latest Pro payment attempt for the current provider, for the upgrade
+// screen to show "vérification du paiement…" after returning from checkout.
+export async function fetchLatestProPayment(): Promise<{ status: string } | null> {
+  if (!hasSupabase) return null;
+  const user = await currentUser();
+  if (!user) return null;
+  const { data } = await supabase
+    .from('pro_payments').select('status').eq('user_id', user.id)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle();
+  return data ?? null;
 }
 
 // So a Pro provider can "tailor their bid" against what's already on the
