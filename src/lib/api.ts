@@ -775,7 +775,20 @@ export async function createProSubscriptionInvoice(returnUrl: string, cancelUrl:
   const { data, error } = await supabase.functions.invoke('paydunya-create-invoice', {
     body: { returnUrl, cancelUrl },
   });
-  if (error) throw error;
+  if (error) {
+    // On a non-2xx response, supabase-js only gives a generic "Edge Function
+    // returned a non-2xx status code" — the real reason is in the response
+    // body (context), which we set ourselves in the function's catch block.
+    const context = (error as any)?.context;
+    let bodyMessage: string | undefined;
+    if (context && typeof context.json === 'function') {
+      try {
+        const body = await context.json();
+        bodyMessage = body?.error;
+      } catch { /* body wasn't JSON — fall through to the generic error */ }
+    }
+    throw new Error(bodyMessage ?? error.message);
+  }
   if (data?.error) throw new Error(data.error);
   return data;
 }
