@@ -12,7 +12,7 @@ create type service_category as enum (
 create type request_status as enum ('ouverte','en_cours','terminee','annulee');
 create type user_role as enum ('client','prestataire');
 create type job_status as enum ('accepte','en_route','arrive','en_cours','termine');
-create type payment_method as enum ('cash','flooz','mixx');
+create type payment_method as enum ('cash','flooz','mixx','paydunya');
 create type notif_type as enum ('offer','accepted','arrived','completed','review','system');
 
 -- ---- Profiles (extends auth.users) ----
@@ -91,12 +91,29 @@ create table jobs (
   client_id uuid not null references auth.users(id) on delete cascade,
   price int not null,
   payment_method payment_method default 'cash',
+  payment_status text not null default 'pending' check (payment_status in ('pending','paid','failed')),
   status job_status not null default 'accepte',
   accepted_at timestamptz default now(),
   completed_at timestamptz
 );
 create index jobs_provider_idx on jobs(provider_id);
 create index jobs_client_idx on jobs(client_id);
+
+-- ---- Job payments (PayDunya) ----
+create table job_payments (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references jobs(id) on delete cascade,
+  client_id uuid not null references auth.users(id) on delete cascade,
+  provider_id uuid not null references providers(id) on delete cascade,
+  amount int not null,
+  commission int not null,
+  net_amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  invoice_url text,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
 
 -- ---- Messages ----
 create table messages (
@@ -237,6 +254,7 @@ alter table favorites            enable row level security;
 alter table notifications        enable row level security;
 alter table verification_requests enable row level security;
 alter table disputes             enable row level security;
+alter table job_payments         enable row level security;
 
 -- Profiles
 create policy "own profile"          on profiles  for all  using (auth.uid() = id);
@@ -253,6 +271,22 @@ create policy "provider sends offer" on offers    for insert with check (
 );
 -- Jobs
 create policy "job parties"          on jobs      for all   using (auth.uid() = client_id or auth.uid() = (select user_id from providers where id = jobs.provider_id));
+-- Job payments (PayDunya) — writes happen via the service-role key only (Edge Functions)
+create policy "job payment parties"  on job_payments for select using (
+  auth.uid() = client_id or auth.uid() = (select user_id from providers where id = job_payments.provider_id)
+);
+-- Only a service-role write (the PayDunya webhook) can mark a job as paid —
+-- a client's own session cannot self-grant payment_status='paid'.
+create or replace function protect_job_payment_status() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    new.payment_status := old.payment_status;
+  end if;
+  return new;
+end; $$;
+create trigger trg_protect_job_payment_status before update on jobs
+  for each row execute function protect_job_payment_status();
 -- Messages
 create policy "msgs in own thread"   on messages  for all   using (
   exists (select 1 from requests r where r.id = messages.request_id and r.client_id = auth.uid())

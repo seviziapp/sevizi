@@ -66,13 +66,12 @@ export default function TermsOfService() {
         </Section>
 
         <Section title="6. Paiement et commission">
-          Le paiement d'une mission se fait directement entre le client et le prestataire, en espèces ou
-          via mobile money (Flooz, Mixx by Yas). Sèvizi prélève une commission de {'10 %'} sur le
-          montant de chaque mission terminée, déduite du montant reversé au prestataire — le client règle
-          toujours exactement le prix affiché au moment de l'acceptation de l'offre. Tant que Sèvizi ne
-          traite pas directement les paiements dans l'application, le prestataire s'engage à reverser à
-          Sèvizi la commission due, selon les modalités communiquées séparément (mobile money ou autre
-          moyen). Ce taux peut évoluer ; les prestataires seront informés à l'avance de tout changement.
+          Le paiement d'une mission se fait exclusivement via Sèvizi, par mobile money (Flooz, T-Money) ou
+          carte bancaire, via un paiement sécurisé traité par PayDunya — les paiements en espèces ne sont
+          pas acceptés. Le client règle le prix affiché au moment de l'acceptation de l'offre ; ce montant
+          est perçu par Sèvizi, qui prélève une commission (10% standard, 7% pour les prestataires Sèvizi
+          Pro) avant de reverser le solde au prestataire selon les modalités communiquées séparément. Ce
+          taux peut évoluer ; les prestataires seront informés à l'avance de tout changement.
         </Section>
 
         <Section title="7. Vérification">

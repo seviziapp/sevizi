@@ -112,7 +112,7 @@ export interface Notification {
   actionRoute?: string;
 }
 
-export type PaymentMethod = 'cash' | 'flooz' | 'mixx';
+export type PaymentMethod = 'cash' | 'flooz' | 'mixx' | 'paydunya';
 
 export interface Review {
   id: string;

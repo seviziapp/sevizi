@@ -351,4 +351,47 @@ drop trigger if exists trg_protect_provider_tier on providers;
 create trigger trg_protect_provider_tier before insert or update on providers
   for each row execute function protect_provider_tier_columns();
 
+
+-- ============================================================
+-- 12) PayDunya: real client -> provider job payments
+-- ============================================================
+alter type payment_method add value if not exists 'paydunya';
+
+alter table jobs add column if not exists payment_status text not null default 'pending' check (payment_status in ('pending','paid','failed'));
+
+create table if not exists job_payments (
+  id uuid primary key default gen_random_uuid(),
+  job_id uuid not null references jobs(id) on delete cascade,
+  client_id uuid not null references auth.users(id) on delete cascade,
+  provider_id uuid not null references providers(id) on delete cascade,
+  amount int not null,
+  commission int not null,
+  net_amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  invoice_url text,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+
+alter table job_payments enable row level security;
+drop policy if exists "job payment parties" on job_payments;
+create policy "job payment parties" on job_payments for select using (
+  auth.uid() = client_id
+  or auth.uid() = (select user_id from providers where id = job_payments.provider_id)
+);
+
+create or replace function protect_job_payment_status() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    new.payment_status := old.payment_status;
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_protect_job_payment_status on jobs;
+create trigger trg_protect_job_payment_status before update on jobs
+  for each row execute function protect_job_payment_status();
+
 -- Done ✅

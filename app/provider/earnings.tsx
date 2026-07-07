@@ -195,7 +195,7 @@ export default function Earnings() {
                   </Text>
                   <View style={styles.methodBadge}>
                     <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
-                      {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : 'Mixx'}
+                      {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : t.method === 'mixx' ? 'Mixx' : 'PayDunya'}
                     </Text>
                   </View>
                 </View>

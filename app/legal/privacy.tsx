@@ -61,8 +61,9 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="5. Paiements">
-          Sèvizi ne traite pas directement les paiements. Le règlement d'une mission se fait en espèces ou
-          via mobile money (Flooz, Mixx by Yas) directement entre le client et le prestataire.
+          Le règlement d'une mission se fait par mobile money ou carte bancaire, via un paiement sécurisé
+          traité par PayDunya, notre prestataire de paiement. Sèvizi ne stocke pas vos coordonnées
+          bancaires ; elles sont saisies directement sur la page de paiement sécurisée de PayDunya.
         </Section>
 
         <Section title="6. Conservation et suppression">

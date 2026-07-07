@@ -333,10 +333,37 @@ export async function acceptOffer(offerId: string): Promise<{ jobId: string; pri
   return { jobId: job.id, price: offer.price, providerName: (offer as any).provider?.name ?? 'Prestataire' };
 }
 
-export async function setJobPaymentMethod(jobId: string, method: 'cash' | 'flooz' | 'mixx'): Promise<void> {
-  if (!hasSupabase) return;
-  const { error } = await supabase.from('jobs').update({ payment_method: method }).eq('id', jobId);
-  if (error) throw error;
+// Starts a real PayDunya checkout for a job's full price — Sèvizi collects
+// no cash; the job is only marked paid once paydunya-job-webhook confirms
+// payment with PayDunya directly (see
+// supabase/migration_paydunya_job_payments.sql for why this can't happen
+// client-side).
+export async function createJobPaymentInvoice(jobId: string, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string }> {
+  if (!hasSupabase) throw new Error('Paiement indisponible en mode démo');
+  const { data, error } = await supabase.functions.invoke('paydunya-create-job-invoice', {
+    body: { jobId, returnUrl, cancelUrl },
+  });
+  if (error) {
+    const context = (error as any)?.context;
+    let bodyMessage: string | undefined;
+    if (context && typeof context.json === 'function') {
+      try {
+        const body = await context.json();
+        bodyMessage = body?.error;
+      } catch { /* body wasn't JSON — fall through to the generic error */ }
+    }
+    throw new Error(bodyMessage ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+  return data;
+}
+
+// For the payment screen to poll after returning from PayDunya's checkout
+// (the webhook confirmation is async).
+export async function fetchJobPaymentStatus(jobId: string): Promise<'pending' | 'paid' | 'failed'> {
+  if (!hasSupabase) return 'pending';
+  const { data } = await supabase.from('jobs').select('payment_status').eq('id', jobId).single();
+  return (data?.payment_status as any) ?? 'pending';
 }
 
 export async function fetchNotifications(): Promise<Notification[]> {

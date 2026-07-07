@@ -1,39 +1,71 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, Platform, Linking, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Check, Phone, Banknote } from 'lucide-react-native';
+import * as ExpoLinking from 'expo-linking';
+import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { setJobPaymentMethod } from '../../src/lib/api';
+import { createJobPaymentInvoice, fetchJobPaymentStatus } from '../../src/lib/api';
 import { formatCommissionPct } from '../../src/lib/pricing';
-import type { PaymentMethod } from '../../src/lib/types';
 
-const FLOOZ_LOGO = require('../../assets/flooz.png');
-const MIXX_LOGO = require('../../assets/mixx.png');
-
-const METHODS: { key: PaymentMethod; label: string; subtitle: string; emoji?: string; logo?: any; color: string }[] = [
-  { key: 'cash',  label: 'Espèces',      subtitle: 'Paiement à la fin de la mission', emoji: '💵',        color: '#10B981' },
-  { key: 'flooz', label: 'Flooz',        subtitle: '',                                logo: FLOOZ_LOGO,  color: '#F97316' },
-  { key: 'mixx',  label: 'Mixx by Yas',  subtitle: '',                                logo: MIXX_LOGO,   color: '#3B82F6' },
-];
+function buildRedirectUrl(jobId: string, status: 'return' | 'cancel'): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/client/payment?jobId=${jobId}&payment=${status}`;
+  }
+  return ExpoLinking.createURL('/client/payment', { queryParams: { jobId, payment: status } });
+}
 
 export default function Payment() {
   const router = useRouter();
-  const { amount, providerName, jobId } = useLocalSearchParams<{ amount?: string; providerName?: string; jobId?: string }>();
-  const [method, setMethod] = useState<PaymentMethod>('cash');
-  const [phone, setPhone] = useState('');
-  const [loading, setLoading] = useState(false);
+  const { amount, providerName, jobId, payment: paymentParam } = useLocalSearchParams<{
+    amount?: string; providerName?: string; jobId?: string; payment?: string;
+  }>();
+  const [startingCheckout, setStartingCheckout] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [error, setError] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const amountNum = parseInt(amount ?? '0', 10);
 
-  async function confirm() {
-    setLoading(true);
+  useEffect(() => {
+    if (paymentParam !== 'return' || !jobId) return;
+    setVerifying(true);
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts += 1;
+      const status = await fetchJobPaymentStatus(jobId);
+      if (status === 'paid') {
+        setVerifying(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+        router.replace('/client/job-status');
+      } else if (status === 'failed' || attempts >= 10) {
+        setVerifying(false);
+        if (status === 'failed') setError("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous.");
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [paymentParam, jobId, router]);
+
+  async function pay() {
+    if (!jobId) return;
+    setError('');
+    setStartingCheckout(true);
     try {
-      if (jobId) await setJobPaymentMethod(jobId, method);
-    } catch {}
-    setLoading(false);
-    router.replace('/client/job-status');
+      const { invoiceUrl } = await createJobPaymentInvoice(
+        jobId, buildRedirectUrl(jobId, 'return'), buildRedirectUrl(jobId, 'cancel'),
+      );
+      if (Platform.OS === 'web') {
+        window.location.href = invoiceUrl;
+      } else {
+        await Linking.openURL(invoiceUrl);
+      }
+    } catch (e: any) {
+      setError(e.message ?? 'Échec du démarrage du paiement.');
+    } finally {
+      setStartingCheckout(false);
+    }
   }
 
   return (
@@ -46,83 +78,53 @@ export default function Payment() {
         <View style={{ width: 40 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Summary */}
-        <View style={[styles.summary, shadow.card]}>
-          <Text style={[text.label, { color: colors.textMuted }]}>MONTANT À RÉGLER</Text>
-          <Text style={[text.display, { color: colors.encre, fontSize: 40 }]}>
-            {amountNum.toLocaleString('fr-FR')} F
+      {verifying ? (
+        <View style={styles.verifyingWrap}>
+          <ActivityIndicator color={colors.vert} />
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center', marginTop: spacing.md }]}>
+            Vérification du paiement…
           </Text>
-          <Text style={[text.small, { color: colors.textMuted }]}>
-            {providerName ?? 'Prestataire'}
-          </Text>
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }]}>
-            Ce prix inclut les frais de service Sèvizi (jusqu'à {formatCommissionPct()}, prélevés sur le prestataire).
+          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
+            PayDunya confirme votre paiement — cela prend quelques secondes.
           </Text>
         </View>
-
-        {/* Payment methods */}
-        <Text style={[text.label, { color: colors.textMuted }]}>CHOISIR UN MOYEN DE PAIEMENT</Text>
-        <View style={{ gap: spacing.md }}>
-          {METHODS.map(m => (
-            <Pressable
-              key={m.key}
-              style={[styles.methodCard, method === m.key && styles.methodCardActive]}
-              onPress={() => setMethod(m.key)}
-            >
-              <View style={[styles.methodIcon, { backgroundColor: m.logo ? colors.white : m.color + '20' }]}>
-                {m.logo
-                  ? <Image source={m.logo} style={{ width: 34, height: 34 }} resizeMode="contain" />
-                  : <Text style={{ fontSize: 22 }}>{m.emoji}</Text>}
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>{m.label}</Text>
-                {!!m.subtitle && <Text style={[text.small, { color: colors.textMuted }]}>{m.subtitle}</Text>}
-              </View>
-              <View style={[styles.radio, method === m.key && styles.radioActive]}>
-                {method === m.key && <Check size={12} color={colors.white} strokeWidth={3} />}
-              </View>
-            </Pressable>
-          ))}
-        </View>
-
-        {/* Mobile money phone input */}
-        {(method === 'flooz' || method === 'mixx') && (
-          <View style={styles.field}>
-            <Text style={[text.label, { color: colors.textMuted }]}>NUMÉRO {method === 'flooz' ? 'MOOV' : 'YAS'}</Text>
-            <View style={styles.phoneInput}>
-              <Phone size={16} color={colors.textMuted} />
-              <TextInput
-                style={styles.phoneField}
-                placeholder="9X XX XX XX"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="phone-pad"
-                value={phone}
-                onChangeText={setPhone}
-              />
-            </View>
-          </View>
-        )}
-
-        {/* Cash info */}
-        {method === 'cash' && (
-          <View style={styles.cashInfo}>
-            <Banknote size={18} color={colors.vertDark} />
-            <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
-              Le paiement en espèces se fait directement au prestataire à la fin de la mission.
+      ) : (
+        <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+          {/* Summary */}
+          <View style={[styles.summary, shadow.card]}>
+            <Text style={[text.label, { color: colors.textMuted }]}>MONTANT À RÉGLER</Text>
+            <Text style={[text.display, { color: colors.encre, fontSize: 40 }]}>
+              {amountNum.toLocaleString('fr-FR')} F
+            </Text>
+            <Text style={[text.small, { color: colors.textMuted }]}>
+              {providerName ?? 'Prestataire'}
+            </Text>
+            <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }]}>
+              Ce prix inclut les frais de service Sèvizi (jusqu'à {formatCommissionPct()}, prélevés sur le prestataire).
             </Text>
           </View>
-        )}
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <Button
-          label={method === 'cash' ? 'Confirmer la mission' : `Payer via ${METHODS.find(m => m.key === method)?.label}`}
-          onPress={confirm}
-          loading={loading}
-          disabled={method !== 'cash' && phone.length < 8}
-        />
-      </View>
+          <View style={styles.noteRow}>
+            <ShieldCheck size={14} color={colors.textMuted} />
+            <Text style={[text.label, { color: colors.textMuted, flex: 1 }]}>
+              Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte bancaire.
+            </Text>
+          </View>
+
+          {!!error && <Text style={styles.error}>{error}</Text>}
+        </ScrollView>
+      )}
+
+      {!verifying && (
+        <View style={styles.footer}>
+          <Button
+            label={`Payer ${amountNum.toLocaleString('fr-FR')} F`}
+            onPress={pay}
+            loading={startingCheckout}
+            disabled={!jobId}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -133,14 +135,8 @@ const styles = StyleSheet.create({
   back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
   summary: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.xl, gap: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  methodCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1.5, borderColor: colors.border },
-  methodCardActive: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
-  methodIcon: { width: 48, height: 48, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center' },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  radioActive: { backgroundColor: colors.vert, borderColor: colors.vert },
-  field: { gap: spacing.sm },
-  phoneInput: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 52 },
-  phoneField: { flex: 1, ...text.body, color: colors.encre },
-  cashInfo: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
+  noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
+  error: { color: colors.terre, fontSize: 14, textAlign: 'center' },
   footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme },
+  verifyingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl },
 });
