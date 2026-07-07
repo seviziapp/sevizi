@@ -139,6 +139,7 @@ export interface AdminStats {
   pendingVerifications: number;
   openDisputes: number;
   responseRate: number;
+  pendingWithdrawals: number;
 }
 
 export interface VerificationRequest {

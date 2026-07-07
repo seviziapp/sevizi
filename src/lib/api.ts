@@ -74,6 +74,7 @@ const mockAdminStats: AdminStats = {
   pendingVerifications: 12,
   openDisputes: 5,
   responseRate: 84,
+  pendingWithdrawals: 3,
 };
 
 const mockVerifications: VerificationRequest[] = [
@@ -934,21 +935,25 @@ export async function toggleOnline(online: boolean): Promise<void> {
 // ---- ADMIN API ----
 
 export async function fetchAdminStats(): Promise<AdminStats> {
-  if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0 };
-  const [users, providers, requests, jobs] = await Promise.all([
+  if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0, pendingWithdrawals: 0 };
+  const [users, providers, requests, jobs, verifications, disputes, withdrawals] = await Promise.all([
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
     supabase.from('providers').select('id', { count: 'exact', head: true }),
     supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
     supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'termine'),
+    supabase.from('verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+    supabase.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'ouvert'),
+    supabase.from('withdrawal_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
   ]);
   return {
     totalUsers: users.count ?? 0,
     totalProviders: providers.count ?? 0,
     openRequests: requests.count ?? 0,
     completedToday: jobs.count ?? 0,
-    pendingVerifications: 0,
-    openDisputes: 0,
+    pendingVerifications: verifications.count ?? 0,
+    openDisputes: disputes.count ?? 0,
     responseRate: 0,
+    pendingWithdrawals: withdrawals.count ?? 0,
   };
 }
 

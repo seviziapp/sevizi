@@ -298,6 +298,9 @@ alter table withdrawal_requests  enable row level security;
 
 -- Profiles
 create policy "own profile"          on profiles  for all  using (auth.uid() = id);
+create policy "admin reads all profiles" on profiles for select using (
+  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
+);
 -- Providers
 create policy "providers readable"   on providers for select using (true);
 create policy "own provider"         on providers for all   using (auth.uid() = user_id);
@@ -311,6 +314,9 @@ create policy "provider sends offer" on offers    for insert with check (
 );
 -- Jobs
 create policy "job parties"          on jobs      for all   using (auth.uid() = client_id or auth.uid() = (select user_id from providers where id = jobs.provider_id));
+create policy "admin reads all jobs" on jobs for select using (
+  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
+);
 -- Job payments (PayDunya) — writes happen via the service-role key only (Edge Functions)
 create policy "job payment parties"  on job_payments for select using (
   auth.uid() = client_id or auth.uid() = (select user_id from providers where id = job_payments.provider_id)

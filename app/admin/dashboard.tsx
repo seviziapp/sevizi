@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Users, Briefcase, CheckCircle, Clock, ShieldCheck,
-  AlertTriangle, TrendingUp, MapPin,
+  AlertTriangle, TrendingUp, MapPin, Wallet,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
@@ -37,7 +37,7 @@ export default function AdminDashboard() {
         </View>
 
         {/* Alert row */}
-        {stats && (stats.pendingVerifications > 0 || stats.openDisputes > 0) && (
+        {stats && (stats.pendingVerifications > 0 || stats.openDisputes > 0 || stats.pendingWithdrawals > 0) && (
           <View style={styles.alertsRow}>
             {stats.pendingVerifications > 0 && (
               <Pressable style={[styles.alertCard, { borderColor: colors.soleil }]} onPress={() => router.push('/admin/verification')}>
@@ -49,6 +49,12 @@ export default function AdminDashboard() {
               <Pressable style={[styles.alertCard, { borderColor: colors.terre }]} onPress={() => router.push('/admin/disputes')}>
                 <AlertTriangle size={16} color={colors.terre} />
                 <Text style={[text.small, { color: colors.encre }]}>{stats.openDisputes} litiges ouverts</Text>
+              </Pressable>
+            )}
+            {stats.pendingWithdrawals > 0 && (
+              <Pressable style={[styles.alertCard, { borderColor: colors.vert }]} onPress={() => router.push('/admin/withdrawals')}>
+                <Wallet size={16} color={colors.vert} />
+                <Text style={[text.small, { color: colors.encre }]}>{stats.pendingWithdrawals} demande{stats.pendingWithdrawals > 1 ? 's' : ''} de retrait</Text>
               </Pressable>
             )}
           </View>
@@ -94,6 +100,7 @@ export default function AdminDashboard() {
           {[
             { label: 'File de vérification', route: '/admin/verification', count: stats?.pendingVerifications },
             { label: 'Litiges actifs', route: '/admin/disputes', count: stats?.openDisputes },
+            { label: 'Demandes de retrait', route: '/admin/withdrawals', count: stats?.pendingWithdrawals },
             { label: 'Gestion utilisateurs', route: '/admin/users', count: null },
           ].map(l => (
             <Pressable key={l.label} style={styles.quickLink} onPress={() => router.push(l.route as any)}>
