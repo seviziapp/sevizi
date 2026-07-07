@@ -115,6 +115,45 @@ create table job_payments (
   confirmed_at timestamptz
 );
 
+-- ---- Provider wallet withdrawal requests (manual payout) ----
+create table withdrawal_requests (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references providers(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount int not null check (amount > 0),
+  method text not null check (method in ('flooz','mixx')),
+  phone text not null,
+  status text not null default 'pending' check (status in ('pending','sent','rejected')),
+  requested_at timestamptz default now(),
+  resolved_at timestamptz,
+  admin_note text
+);
+
+create or replace function provider_wallet_balance(p_provider_id uuid) returns int
+language sql stable as $$
+  select coalesce((
+    select sum(net_amount) from job_payments
+    where provider_id = p_provider_id and status = 'completed'
+  ), 0) - coalesce((
+    select sum(amount) from withdrawal_requests
+    where provider_id = p_provider_id and status in ('pending','sent')
+  ), 0);
+$$;
+
+create or replace function validate_withdrawal_request() returns trigger
+language plpgsql as $$
+declare v_balance int;
+begin
+  v_balance := provider_wallet_balance(new.provider_id);
+  if new.amount > v_balance then
+    raise exception 'Solde insuffisant pour ce retrait (solde disponible : % F).', v_balance;
+  end if;
+  return new;
+end; $$;
+
+create trigger trg_validate_withdrawal_request before insert on withdrawal_requests
+  for each row execute function validate_withdrawal_request();
+
 -- ---- Messages ----
 create table messages (
   id uuid primary key default gen_random_uuid(),
@@ -255,6 +294,7 @@ alter table notifications        enable row level security;
 alter table verification_requests enable row level security;
 alter table disputes             enable row level security;
 alter table job_payments         enable row level security;
+alter table withdrawal_requests  enable row level security;
 
 -- Profiles
 create policy "own profile"          on profiles  for all  using (auth.uid() = id);
@@ -287,6 +327,27 @@ begin
 end; $$;
 create trigger trg_protect_job_payment_status before update on jobs
   for each row execute function protect_job_payment_status();
+-- Withdrawal requests (manual payout)
+create policy "provider reads own withdrawals" on withdrawal_requests for select using (
+  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin)
+);
+create policy "provider requests withdrawal" on withdrawal_requests for insert with check (auth.uid() = user_id);
+create policy "admin resolves withdrawal" on withdrawal_requests for update using (
+  exists (select 1 from profiles where id = auth.uid() and is_admin)
+);
+create or replace function notify_withdrawal_sent() returns trigger
+language plpgsql security definer as $$
+begin
+  if new.status = 'sent' and old.status is distinct from 'sent' then
+    insert into notifications (user_id, type, title, body, action_route)
+    values (new.user_id, 'system', 'Retrait envoyé 💸',
+            'Votre retrait de ' || new.amount || ' F a été envoyé.',
+            '/provider/withdraw');
+  end if;
+  return new;
+end; $$;
+create trigger trg_notify_withdrawal_sent after update on withdrawal_requests
+  for each row execute function notify_withdrawal_sent();
 -- Messages
 create policy "msgs in own thread"   on messages  for all   using (
   exists (select 1 from requests r where r.id = messages.request_id and r.client_id = auth.uid())

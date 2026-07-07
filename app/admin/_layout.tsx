@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Tabs, Redirect } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
-import { LayoutDashboard, ShieldCheck, AlertTriangle, Users } from 'lucide-react-native';
+import { LayoutDashboard, ShieldCheck, AlertTriangle, Users, Wallet } from 'lucide-react-native';
 import { colors } from '../../src/theme/tokens';
 import { fetchMyProfile } from '../../src/lib/api';
 
@@ -59,6 +59,13 @@ export default function AdminLayout() {
         options={{
           tabBarLabel: 'Litiges',
           tabBarIcon: ({ color }) => <AlertTriangle size={22} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="withdrawals"
+        options={{
+          tabBarLabel: 'Retraits',
+          tabBarIcon: ({ color }) => <Wallet size={22} color={color} />,
         }}
       />
       <Tabs.Screen

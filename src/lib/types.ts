@@ -163,3 +163,14 @@ export interface Dispute {
   createdAt: string;
   status: 'ouvert' | 'resolu';
 }
+
+export interface WithdrawalRequest {
+  id: string;
+  providerName: string;
+  amount: number;
+  method: 'flooz' | 'mixx';
+  phone: string;
+  status: 'pending' | 'sent' | 'rejected';
+  requestedAt: string;
+  resolvedAt?: string;
+}

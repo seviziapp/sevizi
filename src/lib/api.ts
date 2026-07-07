@@ -3,6 +3,7 @@ import { getCurrentPosition } from './geolocation';
 import {
   Provider, ServiceRequest, Offer, ServiceCategory, GeoPoint,
   Job, Notification, ProviderStats, AdminStats, VerificationRequest, Dispute, Review,
+  WithdrawalRequest,
 } from './types';
 
 // Lomé / Bè-Kpota anchor used by the mockups
@@ -991,6 +992,75 @@ export async function approveVerification(id: string): Promise<void> {
 export async function rejectVerification(id: string): Promise<void> {
   if (!hasSupabase) return;
   await supabase.from('verification_requests').update({ status: 'rejected', reviewed_at: new Date().toISOString() }).eq('id', id);
+}
+
+// ---- Provider wallet / withdrawal requests ----
+
+// Withdrawable balance: net earnings from completed job payments, minus
+// anything already requested (pending or sent) — see
+// supabase/migration_withdrawals.sql's provider_wallet_balance().
+export async function fetchWalletBalance(): Promise<number> {
+  if (!hasSupabase) return 0;
+  const user = await currentUser();
+  if (!user) return 0;
+  const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
+  const providerId = providerRows?.[0]?.id;
+  if (!providerId) return 0;
+  const { data, error } = await supabase.rpc('provider_wallet_balance', { p_provider_id: providerId });
+  if (error) return 0;
+  return data ?? 0;
+}
+
+export async function requestWithdrawal(input: { amount: number; method: 'flooz' | 'mixx'; phone: string }): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
+  const providerId = providerRows?.[0]?.id;
+  if (!providerId) throw new Error('Profil prestataire introuvable');
+  const { error } = await supabase.from('withdrawal_requests').insert({
+    provider_id: providerId, user_id: user.id,
+    amount: input.amount, method: input.method, phone: input.phone,
+  });
+  if (error) throw error;
+}
+
+export async function fetchMyWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+  if (!hasSupabase) return [];
+  const user = await currentUser();
+  if (!user) return [];
+  const { data, error } = await supabase
+    .from('withdrawal_requests').select('*').eq('user_id', user.id)
+    .order('requested_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((w: any) => ({
+    id: w.id, providerName: '', amount: w.amount, method: w.method, phone: w.phone,
+    status: w.status, requestedAt: w.requested_at, resolvedAt: w.resolved_at ?? undefined,
+  }));
+}
+
+// ---- ADMIN: withdrawal requests ----
+
+export async function fetchWithdrawalRequests(): Promise<WithdrawalRequest[]> {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('withdrawal_requests').select('*, provider:providers(name)')
+    .order('requested_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((w: any) => ({
+    id: w.id, providerName: w.provider?.name ?? 'Prestataire', amount: w.amount,
+    method: w.method, phone: w.phone, status: w.status,
+    requestedAt: w.requested_at, resolvedAt: w.resolved_at ?? undefined,
+  }));
+}
+
+export async function markWithdrawalSent(id: string): Promise<void> {
+  if (!hasSupabase) return;
+  const { error } = await supabase
+    .from('withdrawal_requests')
+    .update({ status: 'sent', resolved_at: new Date().toISOString() })
+    .eq('id', id);
+  if (error) throw error;
 }
 
 export async function fetchDisputes(): Promise<Dispute[]> {

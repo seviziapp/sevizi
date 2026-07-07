@@ -6,6 +6,7 @@ import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat } from 'lucide-react
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
+import { fetchWalletBalance } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
 
 type Transaction = {
@@ -24,9 +25,11 @@ export default function Earnings() {
   const [grossMonth, setGrossMonth] = useState(0);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isPro, setIsPro] = useState(false);
+  const [walletBalance, setWalletBalance] = useState(0);
   const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth, isPro ? 'pro' : 'free');
 
   useEffect(() => {
+    fetchWalletBalance().then(setWalletBalance).catch(() => {});
     loadEarnings();
   }, []);
 
@@ -108,13 +111,13 @@ export default function Earnings() {
           <View style={styles.balanceIcon}>
             <Wallet size={24} color={colors.vert} />
           </View>
-          <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE CE MOIS (NET)</Text>
+          <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE DISPONIBLE</Text>
           <Text style={[text.display, { color: colors.creme, fontSize: 36, marginTop: 4 }]}>
-            {netMonth.toLocaleString('fr-FR')} F
+            {walletBalance.toLocaleString('fr-FR')} F
           </Text>
           <View style={styles.breakdownRow}>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
-              Brut : {grossMonth.toLocaleString('fr-FR')} F
+              Ce mois — brut : {grossMonth.toLocaleString('fr-FR')} F
             </Text>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
               Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')}) : −{commissionMonth.toLocaleString('fr-FR')} F
@@ -122,10 +125,10 @@ export default function Earnings() {
           </View>
 
           <View style={styles.withdrawRow}>
-            <Pressable style={styles.withdrawBtn}>
+            <Pressable style={styles.withdrawBtn} onPress={() => router.push({ pathname: '/provider/withdraw', params: { method: 'flooz' } })}>
               <Text style={[text.bodyMd, { color: colors.encre }]}>Retrait Flooz</Text>
             </Pressable>
-            <Pressable style={[styles.withdrawBtn, { backgroundColor: colors.vert }]}>
+            <Pressable style={[styles.withdrawBtn, { backgroundColor: colors.vert }]} onPress={() => router.push({ pathname: '/provider/withdraw', params: { method: 'mixx' } })}>
               <Text style={[text.bodyMd, { color: colors.white }]}>Retrait Mixx</Text>
             </Pressable>
           </View>
