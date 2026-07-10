@@ -105,7 +105,7 @@ export default function ProviderProfileView() {
         </View>
 
         {/* Response rate */}
-        {provider.responseRate && (
+        {!!provider.responseRate && (
           <View style={styles.responseRow}>
             <TrendingUp size={16} color={colors.vert} />
             <Text style={[text.small, { color: colors.vertDark }]}>

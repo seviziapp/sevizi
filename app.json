@@ -34,10 +34,10 @@
         "android.permission.ACCESS_FINE_LOCATION"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon-square.png",
+        "foregroundImage": "./assets/icon-adaptive-foreground.png",
         "backgroundColor": "#0FA76A"
       },
-      "versionCode": 2
+      "versionCode": 4
     },
     "plugins": [
       "expo-router",
