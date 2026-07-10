@@ -485,4 +485,82 @@ create policy "admin reads all profiles" on profiles for select using (is_admin(
 drop policy if exists "admin reads all jobs" on jobs;
 create policy "admin reads all jobs" on jobs for select using (is_admin());
 
+
+-- ============================================================
+-- 15) Self-service account deletion — protect financial ledger
+-- ============================================================
+-- See migration_account_deletion.sql for the full explanation. Deleting a
+-- user cascades through most tables; these specific foreign keys are
+-- switched from CASCADE to SET NULL so a job's payment/earnings record
+-- survives even if the client or provider on it later deletes their account.
+alter table requests drop constraint if exists requests_client_id_fkey;
+alter table requests alter column client_id drop not null;
+alter table requests add constraint requests_client_id_fkey
+  foreign key (client_id) references auth.users(id) on delete set null;
+
+alter table offers drop constraint if exists offers_provider_id_fkey;
+alter table offers alter column provider_id drop not null;
+alter table offers add constraint offers_provider_id_fkey
+  foreign key (provider_id) references providers(id) on delete set null;
+
+alter table jobs drop constraint if exists jobs_request_id_fkey;
+alter table jobs alter column request_id drop not null;
+alter table jobs add constraint jobs_request_id_fkey
+  foreign key (request_id) references requests(id) on delete set null;
+
+alter table jobs drop constraint if exists jobs_offer_id_fkey;
+alter table jobs alter column offer_id drop not null;
+alter table jobs add constraint jobs_offer_id_fkey
+  foreign key (offer_id) references offers(id) on delete set null;
+
+alter table jobs drop constraint if exists jobs_provider_id_fkey;
+alter table jobs alter column provider_id drop not null;
+alter table jobs add constraint jobs_provider_id_fkey
+  foreign key (provider_id) references providers(id) on delete set null;
+
+alter table jobs drop constraint if exists jobs_client_id_fkey;
+alter table jobs alter column client_id drop not null;
+alter table jobs add constraint jobs_client_id_fkey
+  foreign key (client_id) references auth.users(id) on delete set null;
+
+alter table job_payments drop constraint if exists job_payments_client_id_fkey;
+alter table job_payments alter column client_id drop not null;
+alter table job_payments add constraint job_payments_client_id_fkey
+  foreign key (client_id) references auth.users(id) on delete set null;
+
+alter table job_payments drop constraint if exists job_payments_provider_id_fkey;
+alter table job_payments alter column provider_id drop not null;
+alter table job_payments add constraint job_payments_provider_id_fkey
+  foreign key (provider_id) references providers(id) on delete set null;
+
+alter table pro_payments drop constraint if exists pro_payments_provider_id_fkey;
+alter table pro_payments alter column provider_id drop not null;
+alter table pro_payments add constraint pro_payments_provider_id_fkey
+  foreign key (provider_id) references providers(id) on delete set null;
+
+alter table pro_payments drop constraint if exists pro_payments_user_id_fkey;
+alter table pro_payments alter column user_id drop not null;
+alter table pro_payments add constraint pro_payments_user_id_fkey
+  foreign key (user_id) references auth.users(id) on delete set null;
+
+alter table withdrawal_requests drop constraint if exists withdrawal_requests_provider_id_fkey;
+alter table withdrawal_requests alter column provider_id drop not null;
+alter table withdrawal_requests add constraint withdrawal_requests_provider_id_fkey
+  foreign key (provider_id) references providers(id) on delete set null;
+
+alter table withdrawal_requests drop constraint if exists withdrawal_requests_user_id_fkey;
+alter table withdrawal_requests alter column user_id drop not null;
+alter table withdrawal_requests add constraint withdrawal_requests_user_id_fkey
+  foreign key (user_id) references auth.users(id) on delete set null;
+
+alter table reviews drop constraint if exists reviews_author_id_fkey;
+alter table reviews alter column author_id drop not null;
+alter table reviews add constraint reviews_author_id_fkey
+  foreign key (author_id) references auth.users(id) on delete set null;
+
+alter table disputes drop constraint if exists disputes_reporter_id_fkey;
+alter table disputes alter column reporter_id drop not null;
+alter table disputes add constraint disputes_reporter_id_fkey
+  foreign key (reporter_id) references auth.users(id) on delete set null;
+
 -- Done ✅

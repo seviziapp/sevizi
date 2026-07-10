@@ -794,6 +794,29 @@ export async function updateProviderProfile(input: { name?: string; bio?: string
   if (error) throw error;
 }
 
+// Self-service account deletion. Irreversible — deletes the caller's own
+// auth account via delete-account (only service-role can call the Admin
+// API that actually does this). See supabase/migration_account_deletion.sql:
+// personal data (profile, provider listing, messages, favorites,
+// verification docs) is fully removed; the other party's financial/rating
+// records for shared jobs survive with this user's identity nulled out.
+export async function deleteMyAccount(): Promise<void> {
+  if (!hasSupabase) return;
+  const { data, error } = await supabase.functions.invoke('delete-account');
+  if (error) {
+    const context = (error as any)?.context;
+    let bodyMessage: string | undefined;
+    if (context && typeof context.json === 'function') {
+      try {
+        const body = await context.json();
+        bodyMessage = body?.error;
+      } catch { /* fall through to the generic error */ }
+    }
+    throw new Error(bodyMessage ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+}
+
 // Starts a real PayDunya checkout for the Sèvizi Pro monthly subscription.
 // Returns the hosted checkout page URL to open (mobile money / card) — the
 // provider is only actually flipped to Pro once PayDunya confirms payment

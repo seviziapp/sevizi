@@ -67,9 +67,12 @@ export default function PrivacyPolicy() {
         </Section>
 
         <Section title="6. Conservation et suppression">
-          Vos données sont conservées tant que votre compte est actif. Vous pouvez demander la suppression
-          de votre compte et de vos données à tout moment depuis Profil → Sécurité & confiance, ou en nous
-          contactant directement.
+          Vos données sont conservées tant que votre compte est actif. Vous pouvez supprimer votre compte
+          à tout moment depuis Profil → Sécurité & confiance (ou l'écran équivalent côté prestataire) : cette
+          action est immédiate et irréversible. Votre profil, votre galerie, vos messages, vos favoris et vos
+          documents de vérification sont définitivement supprimés. Les missions et paiements déjà effectués
+          sont conservés sous forme anonymisée (sans lien avec votre identité) afin de préserver l'historique
+          de revenus et d'avis de l'autre partie, et pour nos obligations comptables.
         </Section>
 
         <Section title="7. Vos droits">

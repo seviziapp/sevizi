@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile } from '../../src/lib/api';
+import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
 import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
@@ -19,6 +19,7 @@ export default function ProviderProfile() {
   const [notifs, setNotifs] = useState(true);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchMyProviderProfile()
@@ -36,6 +37,29 @@ export default function ProviderProfile() {
   async function logout() {
     await supabase.auth.signOut();
     router.replace('/onboarding/auth');
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Supprimer le compte',
+      'Cette action est irréversible. Votre profil, votre galerie, vos messages et vos documents de vérification seront définitivement supprimés. Votre historique de missions terminées reste visible pour vos clients (anonymisé).',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: doDeleteAccount },
+      ],
+    );
+  }
+
+  async function doDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteMyAccount();
+      await supabase.auth.signOut();
+      router.replace('/onboarding/auth');
+    } catch (e: any) {
+      setDeleting(false);
+      Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+    }
   }
 
   const cat = provider ? CATEGORIES.find(c => c.key === provider.category) : null;
@@ -191,6 +215,12 @@ export default function ProviderProfile() {
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
             <LogOut size={20} color={colors.terre} />
             <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Se déconnecter</Text>
+          </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={confirmDeleteAccount} disabled={deleting}>
+            {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={20} color={colors.terre} />}
+            <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>
+              {deleting ? 'Suppression en cours…' : 'Supprimer mon compte'}
+            </Text>
           </Pressable>
         </View>
       </ScrollView>

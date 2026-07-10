@@ -7,7 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
 import { pickFile } from '../../src/lib/pickFile';
-import { uploadDocument, submitClientVerification, fetchMyVerificationStatus, fetchMyProfile } from '../../src/lib/api';
+import { uploadDocument, submitClientVerification, fetchMyVerificationStatus, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
 
 export default function Security() {
   const router = useRouter();
@@ -19,6 +19,7 @@ export default function Security() {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -63,6 +64,29 @@ export default function Security() {
     const { error: e } = await supabase.auth.resetPasswordForEmail(email);
     setResetting(false);
     Alert.alert(e ? 'Erreur' : 'Email envoyé', e ? e.message : `Un lien de réinitialisation a été envoyé à ${email}.`);
+  }
+
+  function confirmDeleteAccount() {
+    Alert.alert(
+      'Supprimer le compte',
+      'Cette action est irréversible. Votre profil, vos messages, vos favoris et vos documents de vérification seront définitivement supprimés.',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: doDeleteAccount },
+      ],
+    );
+  }
+
+  async function doDeleteAccount() {
+    setDeleting(true);
+    try {
+      await deleteMyAccount();
+      await supabase.auth.signOut();
+      router.replace('/onboarding/auth');
+    } catch (e: any) {
+      setDeleting(false);
+      Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+    }
   }
 
   return (
@@ -150,12 +174,11 @@ export default function Security() {
           {/* Danger */}
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>ZONE SENSIBLE</Text>
           <View style={[styles.list, shadow.card]}>
-            <Pressable
-              style={styles.row}
-              onPress={() => Alert.alert('Supprimer le compte', 'Cette action est irréversible. Contactez le support pour supprimer votre compte.', [{ text: 'OK' }])}
-            >
-              <Trash2 size={20} color={colors.terre} />
-              <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Supprimer mon compte</Text>
+            <Pressable style={styles.row} onPress={confirmDeleteAccount} disabled={deleting}>
+              {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={20} color={colors.terre} />}
+              <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>
+                {deleting ? 'Suppression en cours…' : 'Supprimer mon compte'}
+              </Text>
               <ChevronRight size={18} color={colors.terre} />
             </Pressable>
           </View>

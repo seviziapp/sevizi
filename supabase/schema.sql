@@ -57,7 +57,7 @@ create index providers_geo_idx on providers using gist (geo);
 -- ---- Requests ----
 create table requests (
   id uuid primary key default gen_random_uuid(),
-  client_id uuid not null references auth.users(id) on delete cascade,
+  client_id uuid references auth.users(id) on delete set null,
   description text not null,
   category service_category not null,
   urgent boolean default false,
@@ -73,7 +73,7 @@ create index requests_geo_idx on requests using gist (geo);
 create table offers (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references requests(id) on delete cascade,
-  provider_id uuid not null references providers(id) on delete cascade,
+  provider_id uuid references providers(id) on delete set null,
   price int not null,            -- FCFA
   availability text,
   message text,
@@ -85,10 +85,10 @@ create index offers_request_idx on offers(request_id);
 -- ---- Jobs (active missions) ----
 create table jobs (
   id uuid primary key default gen_random_uuid(),
-  offer_id uuid not null references offers(id) on delete cascade,
-  request_id uuid not null references requests(id) on delete cascade,
-  provider_id uuid not null references providers(id) on delete cascade,
-  client_id uuid not null references auth.users(id) on delete cascade,
+  offer_id uuid references offers(id) on delete set null,
+  request_id uuid references requests(id) on delete set null,
+  provider_id uuid references providers(id) on delete set null,
+  client_id uuid references auth.users(id) on delete set null,
   price int not null,
   payment_method payment_method default 'cash',
   payment_status text not null default 'pending' check (payment_status in ('pending','paid','failed')),
@@ -103,8 +103,8 @@ create index jobs_client_idx on jobs(client_id);
 create table job_payments (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
-  client_id uuid not null references auth.users(id) on delete cascade,
-  provider_id uuid not null references providers(id) on delete cascade,
+  client_id uuid references auth.users(id) on delete set null,
+  provider_id uuid references providers(id) on delete set null,
   amount int not null,
   commission int not null,
   net_amount int not null,
@@ -118,8 +118,8 @@ create table job_payments (
 -- ---- Provider wallet withdrawal requests (manual payout) ----
 create table withdrawal_requests (
   id uuid primary key default gen_random_uuid(),
-  provider_id uuid not null references providers(id) on delete cascade,
-  user_id uuid not null references auth.users(id) on delete cascade,
+  provider_id uuid references providers(id) on delete set null,
+  user_id uuid references auth.users(id) on delete set null,
   amount int not null check (amount > 0),
   method text not null check (method in ('flooz','mixx')),
   phone text not null,
@@ -170,7 +170,7 @@ create table reviews (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
   provider_id uuid not null references providers(id) on delete cascade,
-  author_id uuid not null references auth.users(id) on delete cascade,
+  author_id uuid references auth.users(id) on delete set null,
   author_name text not null,
   rating int not null check (rating between 1 and 5),
   comment text,
@@ -219,7 +219,7 @@ create table verification_requests (
 create table disputes (
   id uuid primary key default gen_random_uuid(),
   job_id uuid not null references jobs(id) on delete cascade,
-  reporter_id uuid not null references auth.users(id) on delete cascade,
+  reporter_id uuid references auth.users(id) on delete set null,
   reason text not null,
   status text not null default 'ouvert' check (status in ('ouvert','resolu')),
   resolved_at timestamptz,
