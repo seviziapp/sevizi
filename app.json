@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "package": "tg.sevizi.app",
+      "package": "com.weareaurum.sevizi",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",
