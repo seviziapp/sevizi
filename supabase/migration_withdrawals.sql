@@ -51,19 +51,23 @@ create trigger trg_validate_withdrawal_request before insert on withdrawal_reque
 
 alter table withdrawal_requests enable row level security;
 
+-- SECURITY DEFINER so this bypasses RLS internally — safe to reuse anywhere
+-- an "is the caller an admin" check is needed. See migration_admin_visibility.sql.
+create or replace function is_admin() returns boolean
+language sql security definer stable as $$
+  select coalesce((select is_admin from profiles where id = auth.uid()), false);
+$$;
+
 drop policy if exists "provider reads own withdrawals" on withdrawal_requests;
 create policy "provider reads own withdrawals" on withdrawal_requests for select using (
-  auth.uid() = user_id
-  or exists (select 1 from profiles where id = auth.uid() and is_admin)
+  auth.uid() = user_id or is_admin()
 );
 
 drop policy if exists "provider requests withdrawal" on withdrawal_requests;
 create policy "provider requests withdrawal" on withdrawal_requests for insert with check (auth.uid() = user_id);
 
 drop policy if exists "admin resolves withdrawal" on withdrawal_requests;
-create policy "admin resolves withdrawal" on withdrawal_requests for update using (
-  exists (select 1 from profiles where id = auth.uid() and is_admin)
-);
+create policy "admin resolves withdrawal" on withdrawal_requests for update using (is_admin());
 
 -- Notify the provider once an admin marks their withdrawal as sent.
 create or replace function notify_withdrawal_sent() returns trigger

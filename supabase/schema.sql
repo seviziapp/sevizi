@@ -296,11 +296,17 @@ alter table disputes             enable row level security;
 alter table job_payments         enable row level security;
 alter table withdrawal_requests  enable row level security;
 
+-- Admin check as a SECURITY DEFINER function — bypasses RLS internally, so
+-- policies that call it don't recurse into profiles' own RLS (which would
+-- include this same policy) the way an inline subquery on profiles would.
+create or replace function is_admin() returns boolean
+language sql security definer stable as $$
+  select coalesce((select is_admin from profiles where id = auth.uid()), false);
+$$;
+
 -- Profiles
 create policy "own profile"          on profiles  for all  using (auth.uid() = id);
-create policy "admin reads all profiles" on profiles for select using (
-  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
-);
+create policy "admin reads all profiles" on profiles for select using (is_admin());
 -- Providers
 create policy "providers readable"   on providers for select using (true);
 create policy "own provider"         on providers for all   using (auth.uid() = user_id);
@@ -314,9 +320,7 @@ create policy "provider sends offer" on offers    for insert with check (
 );
 -- Jobs
 create policy "job parties"          on jobs      for all   using (auth.uid() = client_id or auth.uid() = (select user_id from providers where id = jobs.provider_id));
-create policy "admin reads all jobs" on jobs for select using (
-  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
-);
+create policy "admin reads all jobs" on jobs for select using (is_admin());
 -- Job payments (PayDunya) — writes happen via the service-role key only (Edge Functions)
 create policy "job payment parties"  on job_payments for select using (
   auth.uid() = client_id or auth.uid() = (select user_id from providers where id = job_payments.provider_id)
@@ -335,12 +339,10 @@ create trigger trg_protect_job_payment_status before update on jobs
   for each row execute function protect_job_payment_status();
 -- Withdrawal requests (manual payout)
 create policy "provider reads own withdrawals" on withdrawal_requests for select using (
-  auth.uid() = user_id or exists (select 1 from profiles where id = auth.uid() and is_admin)
+  auth.uid() = user_id or is_admin()
 );
 create policy "provider requests withdrawal" on withdrawal_requests for insert with check (auth.uid() = user_id);
-create policy "admin resolves withdrawal" on withdrawal_requests for update using (
-  exists (select 1 from profiles where id = auth.uid() and is_admin)
-);
+create policy "admin resolves withdrawal" on withdrawal_requests for update using (is_admin());
 create or replace function notify_withdrawal_sent() returns trigger
 language plpgsql security definer as $$
 begin

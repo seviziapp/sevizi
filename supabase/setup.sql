@@ -398,6 +398,16 @@ create trigger trg_protect_job_payment_status before update on jobs
 -- ============================================================
 -- 13) Provider wallet + manual withdrawal requests
 -- ============================================================
+-- Admin check as a SECURITY DEFINER function — bypasses RLS internally, so
+-- policies that call it don't recurse into profiles' own RLS (an inline
+-- `exists (select 1 from profiles where ...)` subquery on a profiles policy
+-- would recurse into itself forever; on other tables like this one it's
+-- safe either way, but this is used consistently everywhere below).
+create or replace function is_admin() returns boolean
+language sql security definer stable as $$
+  select coalesce((select is_admin from profiles where id = auth.uid()), false);
+$$;
+
 create table if not exists withdrawal_requests (
   id uuid primary key default gen_random_uuid(),
   provider_id uuid not null references providers(id) on delete cascade,
@@ -441,17 +451,14 @@ alter table withdrawal_requests enable row level security;
 
 drop policy if exists "provider reads own withdrawals" on withdrawal_requests;
 create policy "provider reads own withdrawals" on withdrawal_requests for select using (
-  auth.uid() = user_id
-  or exists (select 1 from profiles where id = auth.uid() and is_admin)
+  auth.uid() = user_id or is_admin()
 );
 
 drop policy if exists "provider requests withdrawal" on withdrawal_requests;
 create policy "provider requests withdrawal" on withdrawal_requests for insert with check (auth.uid() = user_id);
 
 drop policy if exists "admin resolves withdrawal" on withdrawal_requests;
-create policy "admin resolves withdrawal" on withdrawal_requests for update using (
-  exists (select 1 from profiles where id = auth.uid() and is_admin)
-);
+create policy "admin resolves withdrawal" on withdrawal_requests for update using (is_admin());
 
 create or replace function notify_withdrawal_sent() returns trigger
 language plpgsql security definer as $$
@@ -473,13 +480,9 @@ create trigger trg_notify_withdrawal_sent after update on withdrawal_requests
 -- 14) Let admins actually see all users/jobs
 -- ============================================================
 drop policy if exists "admin reads all profiles" on profiles;
-create policy "admin reads all profiles" on profiles for select using (
-  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
-);
+create policy "admin reads all profiles" on profiles for select using (is_admin());
 
 drop policy if exists "admin reads all jobs" on jobs;
-create policy "admin reads all jobs" on jobs for select using (
-  exists (select 1 from profiles p2 where p2.id = auth.uid() and p2.is_admin)
-);
+create policy "admin reads all jobs" on jobs for select using (is_admin());
 
 -- Done ✅
