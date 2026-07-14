@@ -7,7 +7,10 @@ create extension if not exists postgis;
 create type service_category as enum (
   'plomberie','electricite','peinture','menuiserie',
   'coiffure','mecanique','couture','menage',
-  'cuisine','transport','reparation','cours'
+  'cuisine','transport','reparation','cours',
+  'jardinage','demenagement','securite','photographe',
+  'ferrailleur','macon','soudeur','alu','serigraphie',
+  'coursier','tapissier','cordonnier','onglerie','impression'
 );
 create type request_status as enum ('ouverte','en_cours','terminee','annulee');
 create type user_role as enum ('client','prestataire');

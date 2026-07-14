@@ -6,20 +6,11 @@ import { X, Search, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { CATEGORIES } from '../../src/lib/types';
 
-const EXTRAS = [
-  { key: 'jardinage', label: 'Jardinage', emoji: '🌿' },
-  { key: 'demenagement', label: 'Déménagement', emoji: '📦' },
-  { key: 'securite', label: 'Sécurité / Gardiennage', emoji: '🔒' },
-  { key: 'photographe', label: 'Photographie', emoji: '📷' },
-];
-
-const ALL = [...CATEGORIES, ...EXTRAS];
-
 export default function Categories() {
   const router = useRouter();
   const [search, setSearch] = useState('');
 
-  const filtered = ALL.filter(c => c.label.toLowerCase().includes(search.toLowerCase()));
+  const filtered = CATEGORIES.filter(c => c.label.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>

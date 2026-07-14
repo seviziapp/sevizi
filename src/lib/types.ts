@@ -14,21 +14,49 @@ export type ServiceCategory =
   | 'cuisine'
   | 'transport'
   | 'reparation'
-  | 'cours';
+  | 'cours'
+  | 'jardinage'
+  | 'demenagement'
+  | 'securite'
+  | 'photographe'
+  | 'ferrailleur'
+  | 'macon'
+  | 'soudeur'
+  | 'alu'
+  | 'serigraphie'
+  | 'coursier'
+  | 'tapissier'
+  | 'cordonnier'
+  | 'onglerie'
+  | 'impression';
 
 export const CATEGORIES: { key: ServiceCategory; label: string; emoji: string }[] = [
-  { key: 'plomberie',   label: 'Plomberie',    emoji: '🔧' },
-  { key: 'electricite', label: 'Électricité',  emoji: '⚡' },
-  { key: 'peinture',    label: 'Peinture',     emoji: '🖌️' },
-  { key: 'menuiserie',  label: 'Menuiserie',   emoji: '🪚' },
-  { key: 'coiffure',    label: 'Coiffure',     emoji: '✂️' },
-  { key: 'mecanique',   label: 'Mécanique',    emoji: '🔩' },
-  { key: 'couture',     label: 'Couture',      emoji: '🧵' },
-  { key: 'menage',      label: 'Ménage',       emoji: '🧹' },
-  { key: 'cuisine',     label: 'Cuisine',      emoji: '🍳' },
-  { key: 'transport',   label: 'Transport',    emoji: '🚗' },
-  { key: 'reparation',  label: 'Réparation',   emoji: '🛠️' },
-  { key: 'cours',       label: 'Cours',        emoji: '📚' },
+  { key: 'plomberie',    label: 'Plomberie',    emoji: '🔧' },
+  { key: 'electricite',  label: 'Électricité',  emoji: '⚡' },
+  { key: 'peinture',     label: 'Peinture',     emoji: '🖌️' },
+  { key: 'menuiserie',   label: 'Menuiserie',   emoji: '🪚' },
+  { key: 'coiffure',     label: 'Coiffure',     emoji: '✂️' },
+  { key: 'mecanique',    label: 'Mécanique',    emoji: '🔩' },
+  { key: 'couture',      label: 'Couture',      emoji: '🧵' },
+  { key: 'menage',       label: 'Ménage',       emoji: '🧹' },
+  { key: 'cuisine',      label: 'Cuisine',      emoji: '🍳' },
+  { key: 'transport',    label: 'Transport',    emoji: '🚗' },
+  { key: 'reparation',   label: 'Réparation',   emoji: '🛠️' },
+  { key: 'cours',        label: 'Cours',        emoji: '📚' },
+  { key: 'jardinage',    label: 'Jardinage',    emoji: '🌿' },
+  { key: 'demenagement', label: 'Déménagement', emoji: '📦' },
+  { key: 'securite',     label: 'Sécurité / Gardiennage', emoji: '🔒' },
+  { key: 'photographe',  label: 'Photographie', emoji: '📷' },
+  { key: 'ferrailleur',  label: 'Ferrailleur',  emoji: '♻️' },
+  { key: 'macon',        label: 'Maçon',        emoji: '🧱' },
+  { key: 'soudeur',      label: 'Soudeur',      emoji: '🔥' },
+  { key: 'alu',          label: 'Alu',          emoji: '🪟' },
+  { key: 'serigraphie',  label: 'Sérigraphie',  emoji: '🎨' },
+  { key: 'coursier',     label: 'Coursier',     emoji: '🛵' },
+  { key: 'tapissier',    label: 'Tapissier',    emoji: '🛋️' },
+  { key: 'cordonnier',   label: 'Cordonnier',   emoji: '👞' },
+  { key: 'onglerie',     label: 'Onglerie',     emoji: '💅' },
+  { key: 'impression',   label: 'Impression',   emoji: '🖨️' },
 ];
 
 export type GeoPoint = { lat: number; lng: number };

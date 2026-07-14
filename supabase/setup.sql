@@ -563,4 +563,28 @@ alter table disputes alter column reporter_id drop not null;
 alter table disputes add constraint disputes_reporter_id_fkey
   foreign key (reporter_id) references auth.users(id) on delete set null;
 
+
+-- ============================================================
+-- 16) New service categories
+-- ============================================================
+-- jardinage/demenagement/securite/photographe were already shown as
+-- browsable tiles on the client "Toutes les catégories" screen but were
+-- never real category values — tapping them silently fell back to
+-- "plomberie" on the request form. Promoting them to real categories here
+-- fixes that, alongside the newly requested services.
+alter type service_category add value if not exists 'jardinage';
+alter type service_category add value if not exists 'demenagement';
+alter type service_category add value if not exists 'securite';
+alter type service_category add value if not exists 'photographe';
+alter type service_category add value if not exists 'ferrailleur';
+alter type service_category add value if not exists 'macon';
+alter type service_category add value if not exists 'soudeur';
+alter type service_category add value if not exists 'alu';
+alter type service_category add value if not exists 'serigraphie';
+alter type service_category add value if not exists 'coursier';
+alter type service_category add value if not exists 'tapissier';
+alter type service_category add value if not exists 'cordonnier';
+alter type service_category add value if not exists 'onglerie';
+alter type service_category add value if not exists 'impression';
+
 -- Done ✅
