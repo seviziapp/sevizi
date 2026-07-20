@@ -22,6 +22,7 @@ export default function EditProviderProfile() {
   const [isPro, setIsPro] = useState(false);
   const [primaryCategory, setPrimaryCategory] = useState<ServiceCategory | null>(null);
   const [extraCategories, setExtraCategories] = useState<ServiceCategory[]>([]);
+  const [yearsActive, setYearsActive] = useState('');
 
   const galleryCap = isPro ? Infinity : GALLERY_CAP_FREE;
 
@@ -32,6 +33,7 @@ export default function EditProviderProfile() {
           setName(p.name); setBio(p.bio ?? ''); setGallery(p.gallery ?? []);
           setIsPro(p.tier === 'pro'); setPrimaryCategory(p.category);
           setExtraCategories(p.categories ?? []);
+          setYearsActive(p.yearsActive != null ? String(p.yearsActive) : '');
         }
       })
       .catch(() => {})
@@ -66,12 +68,25 @@ export default function EditProviderProfile() {
     setExtraCategories(list => list.includes(c) ? list.filter(x => x !== c) : [...list, c]);
   }
 
+  function selectPrimaryCategory(c: ServiceCategory) {
+    setPrimaryCategory(c);
+    // Can't be both the main service and an "extra" at the same time.
+    setExtraCategories(list => list.filter(x => x !== c));
+  }
+
   async function save() {
     if (!name.trim()) { setError('Le nom de l\'entreprise est requis.'); return; }
+    if (!primaryCategory) { setError('Choisissez votre service principal.'); return; }
     setError('');
     setSaving(true);
     try {
-      await updateProviderProfile({ name: name.trim(), bio: bio.trim(), gallery, categories: extraCategories });
+      const parsedYears = yearsActive.trim() === '' ? 0 : Math.max(0, parseInt(yearsActive, 10) || 0);
+      await updateProviderProfile({
+        name: name.trim(), bio: bio.trim(), gallery,
+        category: primaryCategory ?? undefined,
+        categories: extraCategories,
+        yearsActive: parsedYears,
+      });
       router.back();
     } catch (e: any) {
       setError(e.message ?? 'Échec de l\'enregistrement.');
@@ -108,6 +123,16 @@ export default function EditProviderProfile() {
             textAlignVertical="top"
           />
 
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>ANNÉES D'EXPÉRIENCE</Text>
+          <TextInput
+            style={styles.input}
+            value={yearsActive}
+            onChangeText={v => setYearsActive(v.replace(/[^0-9]/g, ''))}
+            placeholder="0"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="number-pad"
+          />
+
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
             GALERIE DE TRAVAUX {isPro ? '(illimitée — Pro)' : `(${gallery.length}/${GALLERY_CAP_FREE})`}
           </Text>
@@ -129,6 +154,26 @@ export default function EditProviderProfile() {
                 <Lock size={20} color={colors.textMuted} />
               </Pressable>
             )}
+          </View>
+
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>SERVICE PRINCIPAL</Text>
+          <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>
+            Le métier sous lequel vous apparaissez dans les recherches et catégories.
+          </Text>
+          <View style={styles.chips}>
+            {CATEGORIES.map(c => {
+              const active = c.key === primaryCategory;
+              return (
+                <Pressable
+                  key={c.key}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => selectPrimaryCategory(c.key)}
+                >
+                  <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+                  <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{c.label}</Text>
+                </Pressable>
+              );
+            })}
           </View>
 
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>

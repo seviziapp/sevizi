@@ -44,6 +44,9 @@ export default function ProviderLayout() {
       <Tabs.Screen name="edit-profile" options={{ href: null }} />
       <Tabs.Screen name="upgrade"      options={{ href: null }} />
       <Tabs.Screen name="withdraw"     options={{ href: null }} />
+      <Tabs.Screen name="services"     options={{ href: null }} />
+      <Tabs.Screen name="hours"        options={{ href: null }} />
+      <Tabs.Screen name="agenda"       options={{ href: null }} />
     </Tabs>
   );
 }

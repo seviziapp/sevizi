@@ -4,10 +4,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
+import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount, toggleBookable } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
 import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
@@ -20,12 +20,15 @@ export default function ProviderProfile() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [bookable, setBookable] = useState(false);
+  const [savingBookable, setSavingBookable] = useState(false);
 
   useEffect(() => {
     fetchMyProviderProfile()
       .then(p => {
         if (p) {
           setProvider(p);
+          setBookable(!!p.bookable);
           fetchProviderReviews(p.id).then(setReviews).catch(() => {});
         }
       })
@@ -59,6 +62,19 @@ export default function ProviderProfile() {
     } catch (e: any) {
       setDeleting(false);
       Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+    }
+  }
+
+  async function onToggleBookable(next: boolean) {
+    setBookable(next);
+    setSavingBookable(true);
+    try {
+      await toggleBookable(next);
+    } catch (e: any) {
+      setBookable(!next);
+      Alert.alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+    } finally {
+      setSavingBookable(false);
     }
   }
 
@@ -191,6 +207,30 @@ export default function ProviderProfile() {
               ? <Check size={18} color={colors.vert} />
               : <ChevronRight size={18} color={colors.textMuted} />}
           </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} disabled={savingBookable} onPress={() => onToggleBookable(!bookable)}>
+            <CalendarDays size={20} color={colors.encre} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Rendez-vous en ligne</Text>
+            <Switch value={bookable} onValueChange={onToggleBookable} disabled={savingBookable} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
+          </Pressable>
+          {bookable && (
+            <>
+              <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/services')}>
+                <ListChecks size={20} color={colors.encre} />
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes services & tarifs</Text>
+                <ChevronRight size={18} color={colors.textMuted} />
+              </Pressable>
+              <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/hours')}>
+                <Clock size={20} color={colors.encre} />
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes horaires</Text>
+                <ChevronRight size={18} color={colors.textMuted} />
+              </Pressable>
+              <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/agenda')}>
+                <CalendarClock size={20} color={colors.encre} />
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mon agenda</Text>
+                <ChevronRight size={18} color={colors.textMuted} />
+              </Pressable>
+            </>
+          )}
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/verification')}>
             <ShieldCheck size={20} color={provider?.verified ? colors.vert : colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>

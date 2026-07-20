@@ -90,6 +90,8 @@ export default function ClientLayout() {
       <Tabs.Screen name="payment"       options={{ href: null }} />
       <Tabs.Screen name="favorites"     options={{ href: null }} />
       <Tabs.Screen name="categories"    options={{ href: null }} />
+      <Tabs.Screen name="book-appointment" options={{ href: null }} />
+      <Tabs.Screen name="appointments"  options={{ href: null }} />
     </Tabs>
   );
 

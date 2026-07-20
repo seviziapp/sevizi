@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import {
   Users, Briefcase, CheckCircle, Clock, ShieldCheck,
   AlertTriangle, TrendingUp, MapPin, Wallet,
@@ -15,9 +15,12 @@ export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
 
-  useEffect(() => {
+  // Re-fetch every time this screen regains focus (e.g. coming back from
+  // "Retraits" after marking one sent) — a plain useEffect-on-mount left the
+  // pending-withdrawal alert stuck showing a stale count.
+  useFocusEffect(useCallback(() => {
     fetchAdminStats().then(setStats).catch(() => {});
-  }, []);
+  }, []));
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -102,6 +105,7 @@ export default function AdminDashboard() {
             { label: 'Litiges actifs', route: '/admin/disputes', count: stats?.openDisputes },
             { label: 'Demandes de retrait', route: '/admin/withdrawals', count: stats?.pendingWithdrawals },
             { label: 'Gestion utilisateurs', route: '/admin/users', count: null },
+            { label: 'Codes de réduction', route: '/admin/discounts', count: null },
           ].map(l => (
             <Pressable key={l.label} style={styles.quickLink} onPress={() => router.push(l.route as any)}>
               <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{l.label}</Text>

@@ -21,3 +21,4 @@ alter type service_category add value if not exists 'tapissier';
 alter type service_category add value if not exists 'cordonnier';
 alter type service_category add value if not exists 'onglerie';
 alter type service_category add value if not exists 'impression';
+alter type service_category add value if not exists 'esthetique';

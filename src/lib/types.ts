@@ -28,7 +28,8 @@ export type ServiceCategory =
   | 'tapissier'
   | 'cordonnier'
   | 'onglerie'
-  | 'impression';
+  | 'impression'
+  | 'esthetique';
 
 export const CATEGORIES: { key: ServiceCategory; label: string; emoji: string }[] = [
   { key: 'plomberie',    label: 'Plomberie',    emoji: '🔧' },
@@ -57,6 +58,7 @@ export const CATEGORIES: { key: ServiceCategory; label: string; emoji: string }[
   { key: 'cordonnier',   label: 'Cordonnier',   emoji: '👞' },
   { key: 'onglerie',     label: 'Onglerie',     emoji: '💅' },
   { key: 'impression',   label: 'Impression',   emoji: '🖨️' },
+  { key: 'esthetique',   label: 'Beauté & Bien-être', emoji: '💆' },
 ];
 
 export type GeoPoint = { lat: number; lng: number };
@@ -80,6 +82,64 @@ export interface Provider {
   gallery?: string[];
   tier?: ProviderTier;
   categories?: ServiceCategory[]; // extra services a Pro provider also offers
+  bookable?: boolean; // true = "Prendre rendez-vous" flow instead of "Demander un devis"
+  commissionDiscountPct?: number;
+  commissionDiscountUntil?: string | null;
+}
+
+export type DiscountKind = 'percent' | 'flat';
+export type DiscountAppliesTo = 'commission' | 'membership' | 'both';
+
+export interface DiscountCode {
+  id: string;
+  code: string;
+  label?: string;
+  kind: DiscountKind;
+  appliesTo: DiscountAppliesTo;
+  value: number;
+  durationDays?: number | null;
+  maxRedemptions?: number | null;
+  redemptionCount: number;
+  active: boolean;
+  expiresAt?: string | null;
+  createdAt: string;
+}
+
+export interface ProviderService {
+  id: string;
+  providerId: string;
+  name: string;
+  durationMinutes: number;
+  price: number;
+  depositAmount: number;
+  active: boolean;
+}
+
+export interface ProviderAvailability {
+  id: string;
+  providerId: string;
+  dayOfWeek: number; // 0 = Sunday … 6 = Saturday
+  startTime: string; // "HH:mm"
+  endTime: string;
+}
+
+export type AppointmentStatus = 'confirmed' | 'cancelled' | 'completed' | 'no_show';
+export type DepositStatus = 'none' | 'pending' | 'paid' | 'failed';
+
+export interface Appointment {
+  id: string;
+  providerId: string;
+  providerName?: string;
+  clientId: string;
+  clientName?: string;
+  serviceName: string;
+  price: number;
+  durationMinutes: number;
+  startsAt: string;
+  endsAt: string;
+  status: AppointmentStatus;
+  depositAmount: number;
+  depositStatus: DepositStatus;
 }
 
 export interface ServiceRequest {

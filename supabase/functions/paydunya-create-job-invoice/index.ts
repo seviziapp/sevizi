@@ -20,6 +20,9 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // Keep in sync with src/lib/pricing.ts.
 const COMMISSION_RATE = 0.10;
 const COMMISSION_RATE_PRO = 0.07;
+// Promo: zero commission for every provider until this date — keep in sync
+// with COMMISSION_FREE_UNTIL in src/lib/pricing.ts.
+const COMMISSION_FREE_UNTIL = new Date('2027-01-04T00:00:00Z');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -51,9 +54,17 @@ Deno.serve(async (req: Request) => {
     if (job.payment_status === 'paid') throw new Error('Cette mission est déjà payée.');
 
     const { data: providerRows } = await admin
-      .from('providers').select('tier').eq('id', job.provider_id).limit(1);
-    const tier = providerRows?.[0]?.tier ?? 'free';
-    const rate = tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE;
+      .from('providers').select('tier, commission_discount_pct, commission_discount_until').eq('id', job.provider_id).limit(1);
+    const providerRow = providerRows?.[0];
+    const tier = providerRow?.tier ?? 'free';
+    const isFreePeriod = Date.now() < COMMISSION_FREE_UNTIL.getTime();
+    let rate = isFreePeriod ? 0 : (tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE);
+    // Admin-granted commission discount (redeemed discount code) — a
+    // percentage taken OFF the normal rate, only while still active.
+    const discountPct = providerRow?.commission_discount_pct ?? 0;
+    const discountUntil = providerRow?.commission_discount_until;
+    const discountActive = discountPct > 0 && (!discountUntil || new Date(discountUntil).getTime() > Date.now());
+    if (discountActive) rate = rate * (1 - discountPct / 100);
     const commission = Math.round(job.price * rate);
     const netAmount = job.price - commission;
 

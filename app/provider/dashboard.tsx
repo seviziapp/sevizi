@@ -8,7 +8,8 @@ import { Logo } from '../../src/components/Logo';
 import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME } from '../../src/lib/api';
 import type { ProviderStats, ServiceRequest, GeoPoint } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
-import { COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
+import { COMMISSION_RATE, COMMISSION_RATE_PRO, isCommissionFreePeriod } from '../../src/lib/pricing';
+import { timeAgo } from '../../src/lib/format';
 
 export default function ProviderDashboard() {
   const router = useRouter();
@@ -38,8 +39,10 @@ export default function ProviderDashboard() {
   }, [refreshLive]);
 
   // Concrete, current-numbers tease: what Pro's lower commission would have
-  // saved on this month's earnings so far.
-  const monthlySavings = stats ? Math.round(stats.earnings * (COMMISSION_RATE - COMMISSION_RATE_PRO)) : 0;
+  // saved on this month's earnings so far. Zero during the no-commission
+  // promo — there's nothing to save when nobody's being charged.
+  const monthlySavings = stats && !isCommissionFreePeriod()
+    ? Math.round(stats.earnings * (COMMISSION_RATE - COMMISSION_RATE_PRO)) : 0;
 
   useFocusEffect(useCallback(() => { refreshLive(); }, [refreshLive]));
 
@@ -176,7 +179,7 @@ function StatCard({ icon, value, label }: { icon: React.ReactNode; value: string
 
 function RequestRow({ req, onPress }: { req: ServiceRequest; onPress: () => void }) {
   const cat = CATEGORIES.find(c => c.key === req.category);
-  const mins = Math.round((Date.now() - new Date(req.createdAt).getTime()) / 60000);
+  const ago = timeAgo(req.createdAt);
   return (
     <Pressable style={[styles.reqRow, shadow.card]} onPress={onPress}>
       <View style={styles.catEmoji}>
@@ -189,7 +192,7 @@ function RequestRow({ req, onPress }: { req: ServiceRequest; onPress: () => void
             <View style={styles.urgentTag}><Text style={[text.label, { color: colors.terre }]}>URGENT</Text></View>
           )}
         </View>
-        <Text style={[text.small, { color: colors.textMuted }]}>{req.locationLabel} · {mins}min</Text>
+        <Text style={[text.small, { color: colors.textMuted }]}>{req.locationLabel} · {ago}</Text>
       </View>
       <ChevronRight size={18} color={colors.textMuted} />
     </Pressable>

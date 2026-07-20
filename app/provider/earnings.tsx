@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, TextInput, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat } from 'lucide-react-native';
+import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat, Tag } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
-import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
-import { fetchWalletBalance } from '../../src/lib/api';
+import { computeCommission, formatCommissionPct, type CommissionDiscount } from '../../src/lib/pricing';
+import { fetchWalletBalance, redeemCommissionDiscountCode } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
 
 type Transaction = {
@@ -26,7 +26,26 @@ export default function Earnings() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isPro, setIsPro] = useState(false);
   const [walletBalance, setWalletBalance] = useState(0);
-  const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth, isPro ? 'pro' : 'free');
+  const [discount, setDiscount] = useState<CommissionDiscount | undefined>(undefined);
+  const [promoCode, setPromoCode] = useState('');
+  const [applyingPromo, setApplyingPromo] = useState(false);
+  const tier = isPro ? 'pro' : 'free';
+  const { commission: commissionMonth, net: netMonth } = computeCommission(grossMonth, tier, discount);
+
+  async function applyPromoCode() {
+    if (!promoCode.trim()) return;
+    setApplyingPromo(true);
+    try {
+      const result = await redeemCommissionDiscountCode(promoCode);
+      setDiscount({ pct: result.pct, until: result.durationDays != null ? new Date(Date.now() + result.durationDays * 86400000).toISOString() : null });
+      setPromoCode('');
+      Alert.alert('Code appliqué', `Réduction de ${result.pct}% sur votre commission${result.durationDays ? ` pendant ${result.durationDays} jours` : ''}.`);
+    } catch (e: any) {
+      Alert.alert('Code invalide', e.message ?? "Ce code n'a pas pu être appliqué.");
+    } finally {
+      setApplyingPromo(false);
+    }
+  }
 
   useEffect(() => {
     fetchWalletBalance().then(setWalletBalance).catch(() => {});
@@ -40,11 +59,14 @@ export default function Earnings() {
 
       const { data: provider } = await supabase
         .from('providers')
-        .select('id, category, tier')
+        .select('id, category, tier, commission_discount_pct, commission_discount_until')
         .eq('user_id', user.id)
         .single();
       if (!provider) return;
       setIsPro(provider.tier === 'pro');
+      if (provider.commission_discount_pct > 0) {
+        setDiscount({ pct: provider.commission_discount_pct, until: provider.commission_discount_until });
+      }
 
       const startOfMonth = new Date();
       startOfMonth.setDate(1);
@@ -120,7 +142,7 @@ export default function Earnings() {
               Ce mois — brut : {grossMonth.toLocaleString('fr-FR')} F
             </Text>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
-              Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')}) : −{commissionMonth.toLocaleString('fr-FR')} F
+              Commission Sèvizi ({formatCommissionPct(tier, discount)}) : −{commissionMonth.toLocaleString('fr-FR')} F
             </Text>
           </View>
 
@@ -133,6 +155,31 @@ export default function Earnings() {
             </Pressable>
           </View>
         </View>
+
+        {/* Discount code */}
+        {discount && discount.pct > 0 && (!discount.until || new Date(discount.until).getTime() > Date.now()) ? (
+          <View style={styles.promoActiveRow}>
+            <Tag size={16} color={colors.vert} />
+            <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
+              Réduction de {discount.pct}% active sur votre commission{discount.until ? ` jusqu'au ${new Date(discount.until).toLocaleDateString('fr-FR')}` : ''}.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.promoRow}>
+            <Tag size={16} color={colors.textMuted} />
+            <TextInput
+              style={styles.promoInput}
+              value={promoCode}
+              onChangeText={setPromoCode}
+              placeholder="Code promo commission"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="characters"
+            />
+            <Pressable style={styles.promoBtn} onPress={applyPromoCode} disabled={applyingPromo}>
+              <Text style={[text.small, { color: colors.white }]}>{applyingPromo ? '…' : 'Appliquer'}</Text>
+            </Pressable>
+          </View>
+        )}
 
         {/* Advanced analytics — Pro perk */}
         {isPro ? (
@@ -192,9 +239,9 @@ export default function Earnings() {
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount, isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount, tier, discount).net.toLocaleString('fr-FR')} F</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct(isPro ? 'pro' : 'free')}
+                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct(tier, discount)}
                   </Text>
                   <View style={styles.methodBadge}>
                     <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
@@ -230,4 +277,8 @@ const styles = StyleSheet.create({
   analyticsHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   analyticsRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   analyticsLocked: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
+  promoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.sm, borderWidth: 1, borderColor: colors.border },
+  promoInput: { flex: 1, height: 36, ...text.small, color: colors.encre },
+  promoBtn: { paddingHorizontal: spacing.md, height: 36, borderRadius: radii.sm, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
+  promoActiveRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
 });

@@ -75,6 +75,9 @@ export default function AdminLayout() {
           tabBarIcon: ({ color }) => <Users size={22} color={color} />,
         }}
       />
+      {/* Reachable via the dashboard quick links, not a bottom tab — the bar
+          is already at 5 items. */}
+      <Tabs.Screen name="discounts" options={{ href: null }} />
     </Tabs>
   );
 }

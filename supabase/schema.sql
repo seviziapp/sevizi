@@ -10,7 +10,7 @@ create type service_category as enum (
   'cuisine','transport','reparation','cours',
   'jardinage','demenagement','securite','photographe',
   'ferrailleur','macon','soudeur','alu','serigraphie',
-  'coursier','tapissier','cordonnier','onglerie','impression'
+  'coursier','tapissier','cordonnier','onglerie','impression','esthetique'
 );
 create type request_status as enum ('ouverte','en_cours','terminee','annulee');
 create type user_role as enum ('client','prestataire');
@@ -377,3 +377,193 @@ create policy "dispute parties"      on disputes  for all   using (auth.uid() = 
 create policy "submit own verification" on verification_requests for insert with check (auth.uid() = user_id);
 create policy "read verifications"      on verification_requests for select using (true);
 create policy "update verifications"    on verification_requests for update using (true);
+
+-- ---- Appointment booking (Beauty & Wellness) — see migration_booking.sql ----
+alter table providers add column if not exists bookable boolean not null default false;
+
+create table if not exists provider_services (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references providers(id) on delete cascade,
+  name text not null,
+  duration_minutes int not null check (duration_minutes > 0),
+  price int not null check (price >= 0),
+  deposit_amount int not null default 0 check (deposit_amount >= 0),
+  active boolean not null default true,
+  created_at timestamptz default now()
+);
+create index if not exists provider_services_provider_idx on provider_services(provider_id);
+
+create table if not exists provider_availability (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid not null references providers(id) on delete cascade,
+  day_of_week int not null check (day_of_week between 0 and 6),
+  start_time time not null,
+  end_time time not null check (end_time > start_time),
+  created_at timestamptz default now()
+);
+create index if not exists provider_availability_provider_idx on provider_availability(provider_id);
+
+create table if not exists appointments (
+  id uuid primary key default gen_random_uuid(),
+  provider_id uuid references providers(id) on delete set null,
+  client_id uuid references auth.users(id) on delete set null,
+  service_id uuid references provider_services(id) on delete set null,
+  service_name text not null,
+  price int not null,
+  duration_minutes int not null,
+  starts_at timestamptz not null,
+  ends_at timestamptz not null,
+  status text not null default 'confirmed' check (status in ('confirmed','cancelled','completed','no_show')),
+  deposit_amount int not null default 0,
+  deposit_status text not null default 'pending' check (deposit_status in ('none','pending','paid','failed')),
+  paydunya_token text unique,
+  invoice_url text,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+create index if not exists appointments_provider_idx on appointments(provider_id);
+create index if not exists appointments_client_idx on appointments(client_id);
+create index if not exists appointments_starts_idx on appointments(provider_id, starts_at);
+
+alter table provider_services   enable row level security;
+alter table provider_availability enable row level security;
+alter table appointments        enable row level security;
+
+create policy "services readable"    on provider_services    for select using (true);
+create policy "own services"         on provider_services    for all using (
+  exists (select 1 from providers p where p.id = provider_services.provider_id and p.user_id = auth.uid())
+);
+create policy "availability readable" on provider_availability for select using (true);
+create policy "own availability"      on provider_availability for all using (
+  exists (select 1 from providers p where p.id = provider_availability.provider_id and p.user_id = auth.uid())
+);
+create policy "appointment parties"  on appointments for select using (
+  auth.uid() = client_id or auth.uid() = (select user_id from providers where id = appointments.provider_id) or is_admin()
+);
+create policy "client cancels own appointment" on appointments for update using (auth.uid() = client_id);
+create policy "provider manages own appointment" on appointments for update using (
+  auth.uid() = (select user_id from providers where id = appointments.provider_id)
+);
+
+create or replace function protect_appointment_deposit_status() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    new.deposit_status := old.deposit_status;
+    new.paydunya_token := old.paydunya_token;
+    new.invoice_url := old.invoice_url;
+  end if;
+  return new;
+end; $$;
+create trigger trg_protect_appointment_deposit_status before update on appointments
+  for each row execute function protect_appointment_deposit_status();
+
+create or replace function notify_appointment_booked() returns trigger
+language plpgsql security definer as $$
+declare v_provider_user uuid; v_client_name text;
+begin
+  if new.deposit_status in ('paid', 'none') and (old is null or old.deposit_status is distinct from new.deposit_status) then
+    select user_id into v_provider_user from providers where id = new.provider_id;
+    select coalesce(full_name, 'Client') into v_client_name from profiles where id = new.client_id;
+    if v_provider_user is not null then
+      insert into notifications (user_id, type, title, body, action_route)
+      values (v_provider_user, 'system', 'Nouveau rendez-vous 📅',
+              v_client_name || ' a réservé ' || new.service_name || '.', '/provider/agenda');
+    end if;
+    if new.client_id is not null then
+      insert into notifications (user_id, type, title, body, action_route)
+      values (new.client_id, 'system', 'Rendez-vous confirmé ✅',
+              'Votre rendez-vous pour ' || new.service_name || ' est confirmé.', '/client/appointments');
+    end if;
+  end if;
+  return new;
+end; $$;
+create trigger trg_notify_appointment_booked after insert or update on appointments
+  for each row execute function notify_appointment_booked();
+
+-- ---- Discount codes (commission + Sèvizi Pro membership) — see migration_discounts.sql ----
+create table if not exists discount_codes (
+  id uuid primary key default gen_random_uuid(),
+  code text not null unique,
+  label text,
+  kind text not null check (kind in ('percent', 'flat')),
+  applies_to text not null check (applies_to in ('commission', 'membership', 'both')),
+  value int not null check (value >= 0),
+  duration_days int,
+  max_redemptions int,
+  redemption_count int not null default 0,
+  active boolean not null default true,
+  expires_at timestamptz,
+  created_at timestamptz default now()
+);
+
+create table if not exists discount_redemptions (
+  id uuid primary key default gen_random_uuid(),
+  code_id uuid not null references discount_codes(id) on delete cascade,
+  provider_id uuid references providers(id) on delete set null,
+  user_id uuid references auth.users(id) on delete set null,
+  purpose text not null check (purpose in ('commission', 'membership')),
+  amount_saved int,
+  created_at timestamptz default now(),
+  unique (code_id, provider_id)
+);
+
+alter table providers add column if not exists commission_discount_pct int not null default 0 check (commission_discount_pct between 0 and 100);
+alter table providers add column if not exists commission_discount_until timestamptz;
+alter table pro_payments add column if not exists discount_code_id uuid references discount_codes(id) on delete set null;
+alter table pro_payments add column if not exists discount_amount int not null default 0;
+
+alter table discount_codes       enable row level security;
+alter table discount_redemptions enable row level security;
+
+create policy "admin manages discount codes" on discount_codes for all using (is_admin());
+create policy "admin reads all redemptions"  on discount_redemptions for select using (is_admin());
+create policy "provider reads own redemptions" on discount_redemptions for select using (auth.uid() = user_id);
+
+create or replace function redeem_discount_code(p_code text, p_purpose text) returns jsonb
+language plpgsql security definer as $$
+declare
+  v_code discount_codes%rowtype;
+  v_provider providers%rowtype;
+begin
+  select * into v_provider from providers where user_id = auth.uid() order by created_at limit 1;
+  if v_provider.id is null then
+    raise exception 'Profil prestataire introuvable.';
+  end if;
+
+  select * into v_code from discount_codes where code = upper(trim(p_code));
+  if v_code.id is null then
+    raise exception 'Code invalide.';
+  end if;
+  if not v_code.active then
+    raise exception 'Ce code n''est plus actif.';
+  end if;
+  if v_code.expires_at is not null and v_code.expires_at < now() then
+    raise exception 'Ce code a expiré.';
+  end if;
+  if v_code.applies_to <> p_purpose and v_code.applies_to <> 'both' then
+    raise exception 'Ce code ne s''applique pas ici.';
+  end if;
+  if v_code.max_redemptions is not null and v_code.redemption_count >= v_code.max_redemptions then
+    raise exception 'Ce code a atteint sa limite d''utilisation.';
+  end if;
+  if exists (select 1 from discount_redemptions where code_id = v_code.id and provider_id = v_provider.id) then
+    raise exception 'Vous avez déjà utilisé ce code.';
+  end if;
+
+  if p_purpose = 'commission' then
+    if v_code.kind <> 'percent' then
+      raise exception 'Ce code ne s''applique pas à la commission.';
+    end if;
+    update providers set
+      commission_discount_pct = v_code.value,
+      commission_discount_until = case when v_code.duration_days is null then null else now() + (v_code.duration_days || ' days')::interval end
+    where id = v_provider.id;
+
+    insert into discount_redemptions (code_id, provider_id, user_id, purpose)
+    values (v_code.id, v_provider.id, auth.uid(), p_purpose);
+    update discount_codes set redemption_count = redemption_count + 1 where id = v_code.id;
+  end if;
+
+  return jsonb_build_object('codeId', v_code.id, 'kind', v_code.kind, 'value', v_code.value, 'label', v_code.label, 'durationDays', v_code.duration_days);
+end; $$;

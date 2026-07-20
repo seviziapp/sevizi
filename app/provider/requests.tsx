@@ -6,6 +6,7 @@ import { MapPin, Clock, ChevronRight, SlidersHorizontal, Crown } from 'lucide-re
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, resolveMyLocation, fetchMyProviderProfile, LOME } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
+import { timeAgo } from '../../src/lib/format';
 
 export default function ProviderRequests() {
   const router = useRouter();
@@ -92,7 +93,7 @@ export default function ProviderRequests() {
 
 function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => void }) {
   const cat = CATEGORIES.find(c => c.key === req.category);
-  const mins = Math.round((Date.now() - new Date(req.createdAt).getTime()) / 60000);
+  const ago = timeAgo(req.createdAt);
   const offersCount = req.offersCount ?? 0;
 
   return (
@@ -126,7 +127,7 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
         </View>
         <View style={styles.metaItem}>
           <Clock size={13} color={colors.textMuted} />
-          <Text style={[text.label, { color: colors.textMuted }]}>Il y a {mins} min</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>Il y a {ago}</Text>
         </View>
         <View style={[styles.offersTag, offersCount === 0 && styles.offersTagNew]}>
           <Text style={[text.label, { color: offersCount === 0 ? colors.vert : colors.textMuted }]}>

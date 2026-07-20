@@ -161,20 +161,32 @@ export default function ProviderProfileView() {
         <Pressable style={styles.messageBtn} onPress={() => router.push({ pathname: '/shared/thread', params: { otherName: provider.name } })}>
           <MessageCircle size={20} color={colors.encre} />
         </Pressable>
-        <Button
-          label="Demander ce prestataire"
-          onPress={() => router.push({
-            pathname: '/client/new-request',
-            params: {
-              providerId: provider.id,
-              providerName: provider.name,
-              category: provider.category,
-              categories: (provider.categories ?? []).join(','),
-            },
-          })}
-          full={false}
-          style={{ flex: 1 }}
-        />
+        {provider.bookable ? (
+          <Button
+            label="Prendre rendez-vous"
+            onPress={() => router.push({
+              pathname: '/client/book-appointment',
+              params: { providerId: provider.id, providerName: provider.name },
+            })}
+            full={false}
+            style={{ flex: 1 }}
+          />
+        ) : (
+          <Button
+            label="Demander ce prestataire"
+            onPress={() => router.push({
+              pathname: '/client/new-request',
+              params: {
+                providerId: provider.id,
+                providerName: provider.name,
+                category: provider.category,
+                categories: (provider.categories ?? []).join(','),
+              },
+            })}
+            full={false}
+            style={{ flex: 1 }}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

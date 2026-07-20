@@ -12,14 +12,16 @@ import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
 import { saveProviderDetails, createProSubscriptionInvoice } from '../../src/lib/api';
 import { CATEGORIES, type ServiceCategory, type ProviderTier } from '../../src/lib/types';
-import { PRO_FEATURES, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
+import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, freeTierCommissionLabel } from '../../src/lib/pricing';
 
-const FREE_FEATURES = [
-  '1 service proposé',
-  `Commission standard (${Math.round(COMMISSION_RATE * 100)}%)`,
-  'Classement normal dans les recherches',
-  `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
-];
+function getFreeFeatures(): string[] {
+  return [
+    '1 service proposé',
+    freeTierCommissionLabel(),
+    'Classement normal dans les recherches',
+    `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
+  ];
+}
 
 export default function ProviderDetails() {
   const router = useRouter();
@@ -132,7 +134,7 @@ export default function ProviderDetails() {
                 <Text style={[text.bodyMd, { color: colors.encre }]}>Gratuit</Text>
                 {tier === 'free' && <Check size={16} color={colors.vert} />}
               </View>
-              {FREE_FEATURES.map((f, i) => (
+              {getFreeFeatures().map((f, i) => (
                 <Text key={i} style={[text.small, { color: colors.textMuted, marginTop: 4 }]}>· {f}</Text>
               ))}
             </Pressable>
@@ -147,7 +149,7 @@ export default function ProviderDetails() {
               <Text style={[text.small, { color: colors.vertDark, marginBottom: 2 }]}>
                 {PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois
               </Text>
-              {PRO_FEATURES.map((f, i) => (
+              {getProFeatures().map((f, i) => (
                 <Text key={i} style={[text.small, { color: colors.encre, marginTop: 4 }]}>· {f}</Text>
               ))}
             </Pressable>

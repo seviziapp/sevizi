@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Linking, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
@@ -7,14 +7,16 @@ import { ArrowLeft, Check, Crown, ShieldCheck, Clock } from 'lucide-react-native
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchMyProviderProfile, createProSubscriptionInvoice, fetchLatestProPayment } from '../../src/lib/api';
-import { PRO_FEATURES, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO } from '../../src/lib/pricing';
+import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO, freeTierCommissionLabel, isCommissionFreePeriod } from '../../src/lib/pricing';
 
-const FREE_FEATURES = [
-  '1 service proposé',
-  `Commission standard (${Math.round(COMMISSION_RATE * 100)}%)`,
-  'Classement normal dans les recherches',
-  `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
-];
+function getFreeFeatures(): string[] {
+  return [
+    '1 service proposé',
+    freeTierCommissionLabel(),
+    'Classement normal dans les recherches',
+    `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
+  ];
+}
 
 function buildRedirectUrl(status: 'return' | 'cancel'): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -34,6 +36,7 @@ export default function UpgradeToPro() {
   // assuming success/failure immediately.
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
+  const [discountCode, setDiscountCode] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(() => {
@@ -75,11 +78,17 @@ export default function UpgradeToPro() {
     setError('');
     setStartingCheckout(true);
     try {
-      const { invoiceUrl } = await createProSubscriptionInvoice(buildRedirectUrl('return'), buildRedirectUrl('cancel'));
+      const result: any = await createProSubscriptionInvoice(buildRedirectUrl('return'), buildRedirectUrl('cancel'), discountCode);
+      // A 100%-off code skips PayDunya entirely and grants Pro immediately
+      // (see paydunya-create-invoice) — no invoiceUrl to redirect to.
+      if (result.confirmed) {
+        setIsPro(true);
+        return;
+      }
       if (Platform.OS === 'web') {
-        window.location.href = invoiceUrl;
+        window.location.href = result.invoiceUrl;
       } else {
-        await Linking.openURL(invoiceUrl);
+        await Linking.openURL(result.invoiceUrl);
       }
     } catch (e: any) {
       setError(e.message ?? "Échec du démarrage du paiement.");
@@ -128,7 +137,9 @@ export default function UpgradeToPro() {
               Passez plus de missions, gardez plus d'argent
             </Text>
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              {PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission réduite ({Math.round(COMMISSION_RATE_PRO * 100)}% au lieu de {Math.round(COMMISSION_RATE * 100)}%) suffit à couvrir l'abonnement dès votre premier gros contrat du mois.
+              {isCommissionFreePeriod()
+                ? `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission est à 0% pour tout le monde en ce moment, alors profitez-en pour construire votre visibilité avec le placement prioritaire.`
+                : `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission réduite (${Math.round(COMMISSION_RATE_PRO * 100)}% au lieu de ${Math.round(COMMISSION_RATE * 100)}%) suffit à couvrir l'abonnement dès votre premier gros contrat du mois.`}
             </Text>
           </View>
 
@@ -136,7 +147,7 @@ export default function UpgradeToPro() {
             <View style={[styles.planCard, shadow.card]}>
               <Text style={[text.h3, { color: colors.encre }]}>Gratuit</Text>
               <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.sm }]}>Votre plan actuel</Text>
-              {FREE_FEATURES.map((f, i) => (
+              {getFreeFeatures().map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Text style={[text.small, { color: colors.textMuted }]}>· {f}</Text>
                 </View>
@@ -149,7 +160,7 @@ export default function UpgradeToPro() {
               </View>
               <Text style={[text.h3, { color: colors.encre }]}>{PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois</Text>
               <Text style={[text.small, { color: colors.vertDark, marginBottom: spacing.sm }]}>Résiliable à tout moment</Text>
-              {PRO_FEATURES.map((f, i) => (
+              {getProFeatures().map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Check size={14} color={colors.vert} />
                   <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{f}</Text>
@@ -165,6 +176,18 @@ export default function UpgradeToPro() {
                 Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte. Votre badge vérifié est activé automatiquement dès la confirmation.
               </Text>
             </View>
+          </View>
+
+          <View style={styles.section}>
+            <Text style={[text.label, { color: colors.textMuted }]}>CODE PROMO (OPTIONNEL)</Text>
+            <TextInput
+              style={styles.promoInput}
+              value={discountCode}
+              onChangeText={setDiscountCode}
+              placeholder="Ex. LANCEMENT2027"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="characters"
+            />
           </View>
 
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -194,6 +217,7 @@ const styles = StyleSheet.create({
   section: { gap: spacing.sm },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   error: { color: colors.terre, fontSize: 14 },
+  promoInput: { height: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, ...text.body, color: colors.encre, marginTop: spacing.xs, backgroundColor: colors.white } as any,
   activeWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl },
   activeIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
 });
