@@ -160,10 +160,12 @@ export interface Offer {
   id: string;
   requestId: string;
   provider: Provider;
-  price: number;       // FCFA
+  price: number;       // FCFA — "starting from" price when visitRequired
   availability: string; // e.g. "Sous 2h"
   message?: string;
   bestPrice?: boolean;
+  visitRequired?: boolean; // true = an on-site visit is needed before a firm price
+  priceMax?: number;       // upper end of the estimate range (visitRequired only)
 }
 
 export interface Message {

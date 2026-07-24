@@ -254,6 +254,8 @@ export async function fetchOffers(requestId: string): Promise<Offer[]> {
     price: o.price,
     availability: o.availability ?? '',
     message: o.message ?? undefined,
+    visitRequired: !!o.visit_required,
+    priceMax: o.price_max ?? undefined,
     provider: {
       id: o.provider?.id, name: o.provider?.name ?? 'Prestataire', category: o.provider?.category,
       rating: o.provider?.rating ?? 0, reviews: o.provider?.reviews ?? 0,
@@ -940,7 +942,7 @@ export async function fetchNearbyRequests(category?: ServiceCategory, center?: G
   }));
 }
 
-export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string }): Promise<void> {
+export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string; visitRequired?: boolean; priceMax?: number }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
@@ -949,6 +951,8 @@ export async function sendOffer(input: { requestId: string; price: number; avail
   const { error } = await supabase.from('offers').insert({
     request_id: input.requestId, provider_id: providerData.id,
     price: input.price, availability: input.availability, message: input.message,
+    visit_required: input.visitRequired ?? false,
+    price_max: input.visitRequired ? (input.priceMax ?? null) : null,
   });
   if (error) throw error;
 }

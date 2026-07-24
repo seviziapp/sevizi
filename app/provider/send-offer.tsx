@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Send, Clock, Crown, Lock } from 'lucide-react-native';
+import { X, Send, Clock, Crown, Lock, MapPin } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { sendOffer, fetchMyProviderProfile, fetchOfferStatsForRequest } from '../../src/lib/api';
@@ -19,6 +19,8 @@ export default function SendOffer() {
     requestId?: string; description?: string; category?: string;
   }>();
   const [price, setPrice] = useState('');
+  const [priceMax, setPriceMax] = useState('');
+  const [visitRequired, setVisitRequired] = useState(false);
   const [eta, setEta] = useState('Sous 2h');
   const [note, setNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,7 +40,10 @@ export default function SendOffer() {
     setError('');
     setLoading(true);
     try {
-      await sendOffer({ requestId: requestId ?? 'r1', price: parseInt(price, 10), availability: eta, message: note || undefined });
+      await sendOffer({
+        requestId: requestId ?? 'r1', price: parseInt(price, 10), availability: eta, message: note || undefined,
+        visitRequired, priceMax: priceMax ? parseInt(priceMax, 10) : undefined,
+      });
       router.back();
     } catch (e: any) {
       const msg = e?.message ?? '';
@@ -93,9 +98,24 @@ export default function SendOffer() {
             </Pressable>
           )}
 
+          {/* Site visit toggle — some trades can't give a firm price sight-unseen */}
+          <Pressable style={styles.visitToggle} onPress={() => setVisitRequired(v => !v)}>
+            <View style={[styles.checkbox, visitRequired && styles.checkboxActive]}>
+              {visitRequired && <MapPin size={12} color={colors.white} />}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>Visite sur place nécessaire</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>
+                Je ne peux pas donner de prix ferme sans voir le chantier — j'envoie une estimation.
+              </Text>
+            </View>
+          </Pressable>
+
           {/* Price */}
           <View style={styles.field}>
-            <Text style={[text.label, { color: colors.textMuted }]}>VOTRE PRIX (FCFA)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>
+              {visitRequired ? 'ESTIMATION — À PARTIR DE (FCFA)' : 'VOTRE PRIX (FCFA)'}
+            </Text>
             <View style={styles.priceRow}>
               <TextInput
                 style={styles.priceInput}
@@ -110,11 +130,30 @@ export default function SendOffer() {
             </View>
           </View>
 
+          {visitRequired && (
+            <View style={styles.field}>
+              <Text style={[text.label, { color: colors.textMuted }]}>JUSQU'À (FCFA, OPTIONNEL)</Text>
+              <View style={styles.priceRow}>
+                <TextInput
+                  style={styles.priceInput}
+                  placeholder="0"
+                  placeholderTextColor={colors.textMuted}
+                  keyboardType="number-pad"
+                  value={priceMax}
+                  onChangeText={setPriceMax}
+                />
+                <Text style={[text.h3, { color: colors.textMuted }]}>F CFA</Text>
+              </View>
+            </View>
+          )}
+
           {/* ETA chips */}
           <View style={styles.field}>
             <View style={styles.fieldLabel}>
               <Clock size={14} color={colors.textMuted} />
-              <Text style={[text.label, { color: colors.textMuted }]}>DISPONIBILITÉ</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>
+                {visitRequired ? 'DISPONIBILITÉ POUR LA VISITE' : 'DISPONIBILITÉ'}
+              </Text>
             </View>
             <View style={styles.chips}>
               {ETA_CHIPS.map(chip => (
@@ -146,27 +185,39 @@ export default function SendOffer() {
           {/* Preview */}
           {price ? (
             <View style={styles.preview}>
-              <Text style={[text.label, { color: colors.textMuted }]}>APERÇU DE VOTRE OFFRE</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>
+                {visitRequired ? 'APERÇU DE VOTRE ESTIMATION' : 'APERÇU DE VOTRE OFFRE'}
+              </Text>
               <View style={styles.previewCard}>
                 <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>
-                  {parseInt(price || '0', 10).toLocaleString('fr-FR')} F
+                  {visitRequired
+                    ? `À partir de ${parseInt(price || '0', 10).toLocaleString('fr-FR')} F${priceMax ? ` – ${parseInt(priceMax, 10).toLocaleString('fr-FR')} F` : ''}`
+                    : `${parseInt(price || '0', 10).toLocaleString('fr-FR')} F`}
                 </Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>{eta}</Text>
                 {note ? <Text style={[text.small, { color: colors.textMuted, fontStyle: 'italic' }]}>« {note} »</Text> : null}
-                <View style={styles.commissionRow}>
-                  <Text style={[text.label, { color: colors.textMuted }]}>
-                    Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')})
+                {visitRequired ? (
+                  <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.xs }]}>
+                    Le client devra d'abord accepter une visite avant tout paiement — la commission ne s'applique qu'au devis ferme envoyé ensuite.
                   </Text>
-                  <Text style={[text.label, { color: colors.textMuted }]}>
-                    − {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').commission.toLocaleString('fr-FR')} F
-                  </Text>
-                </View>
-                <View style={styles.commissionRow}>
-                  <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>Vous recevrez</Text>
-                  <Text style={[text.small, { color: colors.vertDark, fontFamily: text.bodyMd.fontFamily }]}>
-                    {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F
-                  </Text>
-                </View>
+                ) : (
+                  <>
+                    <View style={styles.commissionRow}>
+                      <Text style={[text.label, { color: colors.textMuted }]}>
+                        Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')})
+                      </Text>
+                      <Text style={[text.label, { color: colors.textMuted }]}>
+                        − {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').commission.toLocaleString('fr-FR')} F
+                      </Text>
+                    </View>
+                    <View style={styles.commissionRow}>
+                      <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>Vous recevrez</Text>
+                      <Text style={[text.small, { color: colors.vertDark, fontFamily: text.bodyMd.fontFamily }]}>
+                        {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F
+                      </Text>
+                    </View>
+                  </>
+                )}
               </View>
             </View>
           ) : null}
@@ -175,7 +226,7 @@ export default function SendOffer() {
         <View style={styles.footer}>
           {!!error && <Text style={styles.error}>{error}</Text>}
           <Button
-            label="Envoyer l'offre Express"
+            label={visitRequired ? "Envoyer l'estimation" : "Envoyer l'offre Express"}
             icon={<Send size={18} color={colors.white} />}
             onPress={submit}
             loading={loading}
@@ -195,6 +246,9 @@ const styles = StyleSheet.create({
   requestBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   bidsBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#FCEFC7', borderRadius: radii.md, padding: spacing.md },
   bidsBoxLocked: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md },
+  visitToggle: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, padding: spacing.lg },
+  checkbox: { width: 22, height: 22, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  checkboxActive: { backgroundColor: colors.vert, borderColor: colors.vert },
   field: { gap: spacing.sm },
   fieldLabel: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   priceRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderWidth: 1.5, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 64 },

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Wrench, Star, ShieldCheck, Clock, Hourglass, Crown } from 'lucide-react-native';
+import { ArrowLeft, Wrench, Star, ShieldCheck, Clock, Hourglass, Crown, MapPin } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
@@ -35,9 +35,11 @@ export default function Offers() {
     return () => clearInterval(t);
   }, [rid]);
 
-  // cheapest offer gets the "best price" tag
-  const cheapestId = offers.length
-    ? offers.reduce((min, o) => (o.price < min.price ? o : min), offers[0]).id
+  // cheapest FIRM offer gets the "best price" tag — an estimate (visitRequired)
+  // isn't a real commitment yet, so it's excluded from this comparison.
+  const firmOffers = offers.filter(o => !o.visitRequired);
+  const cheapestId = firmOffers.length
+    ? firmOffers.reduce((min, o) => (o.price < min.price ? o : min), firmOffers[0]).id
     : null;
 
   async function accept(o: Offer) {
@@ -133,9 +135,20 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
           </View>
         </Pressable>
         <Text style={[text.data, { color: colors.encre, fontSize: 18 }]}>
-          {offer.price.toLocaleString('fr-FR')} F
+          {offer.visitRequired
+            ? `À partir de ${offer.price.toLocaleString('fr-FR')} F`
+            : `${offer.price.toLocaleString('fr-FR')} F`}
         </Text>
       </View>
+
+      {offer.visitRequired && (
+        <View style={styles.visitBadge}>
+          <MapPin size={13} color={colors.terre} />
+          <Text style={[text.label, { color: colors.terre }]}>
+            VISITE REQUISE — ESTIMATION{offer.priceMax ? ` ${offer.price.toLocaleString('fr-FR')}–${offer.priceMax.toLocaleString('fr-FR')} F` : ''}
+          </Text>
+        </View>
+      )}
 
       {offer.message && (
         <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.sm }]}>
@@ -144,8 +157,14 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
       )}
 
       <View style={styles.actions}>
-        <Button label="Message" variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
-        <Button label="Accepter" full={false} style={{ flex: 1 }} onPress={onAccept} loading={accepting} disabled={disabled} />
+        {offer.visitRequired ? (
+          <Button label="Discuter de la visite" full style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
+        ) : (
+          <>
+            <Button label="Message" variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
+            <Button label="Accepter" full={false} style={{ flex: 1 }} onPress={onAccept} loading={accepting} disabled={disabled} />
+          </>
+        )}
       </View>
     </View>
   );
@@ -162,6 +181,7 @@ const styles = StyleSheet.create({
   card: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   cardFeatured: { borderColor: colors.vert, borderWidth: 2 },
   bestTag: { alignSelf: 'flex-end', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.sm, marginBottom: spacing.sm },
+  visitBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F8E2DA', alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radii.sm, marginTop: spacing.sm },
   cardTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
   iconWrap: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

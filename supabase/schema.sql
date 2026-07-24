@@ -77,11 +77,13 @@ create table offers (
   id uuid primary key default gen_random_uuid(),
   request_id uuid not null references requests(id) on delete cascade,
   provider_id uuid references providers(id) on delete set null,
-  price int not null,            -- FCFA
+  price int not null,            -- FCFA — an estimate's "starting from" price when visit_required
   availability text,
   message text,
   accepted boolean default false,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  visit_required boolean not null default false, -- true = firm price needs an on-site visit first
+  price_max int                  -- upper end of the estimated range (visit_required only)
 );
 create index offers_request_idx on offers(request_id);
 

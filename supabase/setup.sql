@@ -789,4 +789,10 @@ begin
   return jsonb_build_object('codeId', v_code.id, 'kind', v_code.kind, 'value', v_code.value, 'label', v_code.label, 'durationDays', v_code.duration_days);
 end; $$;
 
+-- ============================================================
+-- 19) "Devis sur place" — site visit required before a firm quote
+-- ============================================================
+alter table offers add column if not exists visit_required boolean not null default false;
+alter table offers add column if not exists price_max int;
+
 -- Done ✅
