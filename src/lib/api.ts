@@ -782,6 +782,7 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
     bookable: !!data.bookable,
     commissionDiscountPct: data.commission_discount_pct ?? 0,
     commissionDiscountUntil: data.commission_discount_until ?? null,
+    username: data.username ?? null,
   };
 }
 
@@ -800,6 +801,55 @@ export async function updateProviderProfile(input: { name?: string; bio?: string
   if (input.yearsActive !== undefined) patch.years_active = input.yearsActive;
   const { error } = await supabase.from('providers').update(patch).eq('user_id', user.id);
   if (error) throw error;
+}
+
+// ---- Shareable booking link (Sèvizi Pro) ----
+
+// Cheap client-side format check mirroring the DB constraint
+// (providers_username_format) — checked again server-side on save regardless.
+export function isValidUsername(username: string): boolean {
+  return /^[a-z0-9-]{3,30}$/.test(username);
+}
+
+export async function isUsernameAvailable(username: string): Promise<boolean> {
+  if (!hasSupabase) return true;
+  const user = await currentUser();
+  const { data } = await supabase.from('providers').select('id, user_id').eq('username', username).maybeSingle();
+  if (!data) return true;
+  // Taken by someone else — unless it's already this provider's own username.
+  return data.user_id === user?.id;
+}
+
+export async function updateProviderUsername(username: string): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  if (!isValidUsername(username)) {
+    throw new Error('3 à 30 caractères : lettres minuscules, chiffres et tirets uniquement.');
+  }
+  const { error } = await supabase.from('providers').update({ username }).eq('user_id', user.id);
+  if (error) {
+    // Postgres unique_violation — someone claimed it between the availability
+    // check and this save.
+    if ((error as any).code === '23505') throw new Error('Ce nom est déjà pris. Essayez-en un autre.');
+    throw error;
+  }
+}
+
+// Public lookup for the /b/<username> share-link landing page — no auth
+// required, matches the "providers readable" (select using (true)) policy.
+export async function fetchProviderByUsername(username: string): Promise<Provider | null> {
+  if (!hasSupabase) return null;
+  const { data } = await supabase.from('providers').select('*').eq('username', username).maybeSingle();
+  if (!data) return null;
+  return {
+    id: data.id, name: data.name, category: data.category, rating: data.rating ?? 0,
+    reviews: data.reviews ?? 0, verified: !!data.verified, online: !!data.online,
+    missions: data.missions ?? 0, yearsActive: data.years_active ?? 0, responseRate: data.response_rate ?? 0,
+    bio: data.bio ?? undefined, gallery: data.gallery ?? [], distanceKm: 0, location: LOME,
+    tier: data.tier ?? 'free', categories: data.categories ?? [],
+    bookable: !!data.bookable, username: data.username ?? null,
+  };
 }
 
 // Self-service account deletion. Irreversible — deletes the caller's own

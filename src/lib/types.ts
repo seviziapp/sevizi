@@ -85,6 +85,7 @@ export interface Provider {
   bookable?: boolean; // true = "Prendre rendez-vous" flow instead of "Demander un devis"
   commissionDiscountPct?: number;
   commissionDiscountUntil?: string | null;
+  username?: string | null; // Pro only — powers the shareable sevizi.app/b/<username> booking link
 }
 
 export type DiscountKind = 'percent' | 'flat';

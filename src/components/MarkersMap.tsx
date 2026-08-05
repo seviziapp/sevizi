@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Platform } from 'react-native';
+import Constants from 'expo-constants';
 import { colors, radii } from '../theme/tokens';
 import type { GeoPoint } from '../lib/types';
 
@@ -12,9 +13,18 @@ export type MapMarker = {
   onPress?: () => void;
 };
 
-// Native: use react-native-maps (loaded lazily so web never bundles it).
+// react-native-maps' native MapView requires a Google Maps API key configured
+// in app.json (android.config.googleMaps.apiKey / ios.config.googleMapsApiKey)
+// — without one, initializing the native map view can crash the app outright
+// on Android rather than just failing to load tiles. Only load the native
+// module when a key is actually present; otherwise fall back to the same
+// plain placeholder used on web, so a missing key degrades gracefully
+// instead of crashing every screen that renders a map.
 let MapView: any, Marker: any;
-if (Platform.OS !== 'web') {
+const androidMapsKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
+const iosMapsKey = Constants.expoConfig?.ios?.config?.googleMapsApiKey;
+const hasNativeMapsKey = Platform.OS === 'android' ? !!androidMapsKey : Platform.OS === 'ios' ? !!iosMapsKey : false;
+if (Platform.OS !== 'web' && hasNativeMapsKey) {
   const maps = require('react-native-maps');
   MapView = maps.default;
   Marker = maps.Marker;

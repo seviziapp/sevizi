@@ -795,4 +795,14 @@ end; $$;
 alter table offers add column if not exists visit_required boolean not null default false;
 alter table offers add column if not exists price_max int;
 
+-- ============================================================
+-- 20) Shareable booking link for Sèvizi Pro providers
+-- ============================================================
+alter table providers add column if not exists username text unique;
+do $$ begin
+  alter table providers add constraint providers_username_format
+    check (username is null or username ~ '^[a-z0-9-]{3,30}$');
+exception when duplicate_object then null;
+end $$;
+
 -- Done ✅

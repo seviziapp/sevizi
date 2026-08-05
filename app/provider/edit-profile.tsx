@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image, ActivityIndicator, Share, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Plus, X, ImagePlus, Lock } from 'lucide-react-native';
+import { ArrowLeft, Plus, X, ImagePlus, Lock, Check, Copy, Share2 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { pickFile } from '../../src/lib/pickFile';
-import { fetchMyProviderProfile, updateProviderProfile, uploadDocument } from '../../src/lib/api';
+import { fetchMyProviderProfile, updateProviderProfile, uploadDocument, isUsernameAvailable, updateProviderUsername, isValidUsername } from '../../src/lib/api';
 import { CATEGORIES, type ServiceCategory } from '../../src/lib/types';
 import { GALLERY_CAP_FREE } from '../../src/lib/pricing';
+import { slugify } from '../../src/lib/format';
+
+const BOOKING_LINK_ORIGIN = 'https://sevizi.app';
+type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
 export default function EditProviderProfile() {
   const router = useRouter();
@@ -23,6 +27,11 @@ export default function EditProviderProfile() {
   const [primaryCategory, setPrimaryCategory] = useState<ServiceCategory | null>(null);
   const [extraCategories, setExtraCategories] = useState<ServiceCategory[]>([]);
   const [yearsActive, setYearsActive] = useState('');
+  const [username, setUsername] = useState('');
+  const [originalUsername, setOriginalUsername] = useState<string | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<UsernameStatus>('idle');
+  const [copied, setCopied] = useState(false);
+  const checkSeq = useRef(0);
 
   const galleryCap = isPro ? Infinity : GALLERY_CAP_FREE;
 
@@ -34,11 +43,46 @@ export default function EditProviderProfile() {
           setIsPro(p.tier === 'pro'); setPrimaryCategory(p.category);
           setExtraCategories(p.categories ?? []);
           setYearsActive(p.yearsActive != null ? String(p.yearsActive) : '');
+          const initialUsername = p.username ?? slugify(p.name);
+          setUsername(initialUsername);
+          setOriginalUsername(p.username ?? null);
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  // Debounced availability check — skip entirely if unchanged from what's
+  // already saved (no point re-checking a username this provider already owns).
+  useEffect(() => {
+    if (!isPro) return;
+    if (username === originalUsername) { setUsernameStatus('idle'); return; }
+    if (!isValidUsername(username)) { setUsernameStatus('invalid'); return; }
+    setUsernameStatus('checking');
+    const seq = ++checkSeq.current;
+    const t = setTimeout(() => {
+      isUsernameAvailable(username).then(ok => {
+        if (checkSeq.current === seq) setUsernameStatus(ok ? 'available' : 'taken');
+      }).catch(() => { if (checkSeq.current === seq) setUsernameStatus('idle'); });
+    }, 500);
+    return () => clearTimeout(t);
+  }, [username, isPro, originalUsername]);
+
+  const bookingUrl = `${BOOKING_LINK_ORIGIN}/b/${username}`;
+
+  async function copyLink() {
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
+      await navigator.clipboard.writeText(bookingUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      await Share.share({ message: bookingUrl });
+    }
+  }
+
+  async function shareLink() {
+    await Share.share({ message: `Réservez directement avec ${name} sur Sèvizi : ${bookingUrl}` });
+  }
 
   async function addPhoto() {
     setError('');
@@ -77,6 +121,10 @@ export default function EditProviderProfile() {
   async function save() {
     if (!name.trim()) { setError('Le nom de l\'entreprise est requis.'); return; }
     if (!primaryCategory) { setError('Choisissez votre service principal.'); return; }
+    if (isPro && username !== originalUsername && usernameStatus !== 'available') {
+      setError(usernameStatus === 'taken' ? 'Ce nom de lien est déjà pris.' : 'Choisissez un nom de lien valide et disponible avant d\'enregistrer.');
+      return;
+    }
     setError('');
     setSaving(true);
     try {
@@ -87,6 +135,9 @@ export default function EditProviderProfile() {
         categories: extraCategories,
         yearsActive: parsedYears,
       });
+      if (isPro && username !== originalUsername) {
+        await updateProviderUsername(username);
+      }
       router.back();
     } catch (e: any) {
       setError(e.message ?? 'Échec de l\'enregistrement.');
@@ -201,6 +252,59 @@ export default function EditProviderProfile() {
             })}
           </View>
 
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
+            LIEN DE RÉSERVATION {!isPro && '(Pro)'}
+          </Text>
+          {isPro ? (
+            <View style={{ gap: spacing.sm }}>
+              <Text style={[text.small, { color: colors.textMuted }]}>
+                Partagez ce lien avec vos clients pour qu'ils réservent directement avec vous.
+              </Text>
+              <View style={styles.usernameRow}>
+                <Text style={[text.body, { color: colors.textMuted }]}>{BOOKING_LINK_ORIGIN}/b/</Text>
+                <TextInput
+                  style={styles.usernameInput}
+                  value={username}
+                  onChangeText={v => setUsername(slugify(v))}
+                  placeholder="votre-nom"
+                  placeholderTextColor={colors.textMuted}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                {usernameStatus === 'checking' && <ActivityIndicator size="small" color={colors.textMuted} />}
+                {usernameStatus === 'available' && <Check size={18} color={colors.vert} />}
+              </View>
+              {usernameStatus === 'taken' && <Text style={styles.error}>Ce nom est déjà pris.</Text>}
+              {usernameStatus === 'invalid' && <Text style={styles.error}>3 à 30 caractères : lettres, chiffres, tirets.</Text>}
+              {originalUsername && (
+                <View style={styles.linkActions}>
+                  <Button
+                    label={copied ? 'Copié !' : 'Copier le lien'}
+                    variant="ghost"
+                    icon={copied ? <Check size={16} color={colors.encre} /> : <Copy size={16} color={colors.encre} />}
+                    full={false}
+                    style={{ flex: 1 }}
+                    onPress={copyLink}
+                  />
+                  <Button
+                    label="Partager"
+                    icon={<Share2 size={16} color={colors.white} />}
+                    full={false}
+                    style={{ flex: 1 }}
+                    onPress={shareLink}
+                  />
+                </View>
+              )}
+            </View>
+          ) : (
+            <Pressable style={styles.lockedBox} onPress={() => router.push('/provider/upgrade')}>
+              <Lock size={14} color={colors.textMuted} />
+              <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
+                Passez à Sèvizi Pro pour obtenir un lien de réservation à partager avec vos clients.
+              </Text>
+            </Pressable>
+          )}
+
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <View style={{ height: spacing.xl }} />
@@ -236,4 +340,8 @@ const styles = StyleSheet.create({
   chipActive: { backgroundColor: colors.encre, borderColor: colors.encre },
   chipLocked: { opacity: 0.6 },
   error: { color: colors.terre, fontSize: 14, marginTop: spacing.md },
+  usernameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 52 },
+  usernameInput: { flex: 1, fontSize: 16, fontFamily: 'HankenGrotesk_400Regular', color: colors.encre, outlineStyle: 'none' } as any,
+  linkActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
+  lockedBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.sm },
 });

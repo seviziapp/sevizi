@@ -569,3 +569,11 @@ begin
 
   return jsonb_build_object('codeId', v_code.id, 'kind', v_code.kind, 'value', v_code.value, 'label', v_code.label, 'durationDays', v_code.duration_days);
 end; $$;
+
+-- ---- Shareable booking link for Sèvizi Pro providers ----
+alter table providers add column if not exists username text unique;
+do $$ begin
+  alter table providers add constraint providers_username_format
+    check (username is null or username ~ '^[a-z0-9-]{3,30}$');
+exception when duplicate_object then null;
+end $$;
