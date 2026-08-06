@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Clock, Calendar as CalendarIcon } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { alert } from '../../src/lib/alert';
 import { fetchMyAppointments, cancelAppointment } from '../../src/lib/api';
 import type { Appointment } from '../../src/lib/types';
 
@@ -36,7 +37,7 @@ export default function ClientAppointments() {
   const past = appointments.filter(a => !upcoming.includes(a));
 
   function onCancel(a: Appointment) {
-    Alert.alert('Annuler ce rendez-vous ?', `${a.serviceName} — ${fmtDate(a.startsAt)} à ${fmtTime(a.startsAt)}`, [
+    alert('Annuler ce rendez-vous ?', `${a.serviceName} — ${fmtDate(a.startsAt)} à ${fmtTime(a.startsAt)}`, [
       { text: 'Non', style: 'cancel' },
       { text: 'Oui, annuler', style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
     ]);

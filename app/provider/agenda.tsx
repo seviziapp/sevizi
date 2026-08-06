@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Clock, User, Check, X as XIcon } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { alert } from '../../src/lib/alert';
 import { fetchProviderAppointments, markAppointmentStatus, cancelAppointment } from '../../src/lib/api';
 import type { Appointment } from '../../src/lib/types';
 
@@ -42,7 +43,7 @@ export default function ProviderAgenda() {
     load();
   }
   function onCancel(a: Appointment) {
-    Alert.alert('Annuler ce rendez-vous ?', a.clientName ?? '', [
+    alert('Annuler ce rendez-vous ?', a.clientName ?? '', [
       { text: 'Non', style: 'cancel' },
       { text: 'Oui, annuler', style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
     ]);

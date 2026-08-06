@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Mail, Lock, ShieldCheck, ShieldAlert, Clock, Upload, Check, ChevronRight, Trash2 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
+import { alert } from '../../src/lib/alert';
 import { pickFile } from '../../src/lib/pickFile';
 import { uploadDocument, submitClientVerification, fetchMyVerificationStatus, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
 
@@ -63,11 +64,11 @@ export default function Security() {
     setResetting(true);
     const { error: e } = await supabase.auth.resetPasswordForEmail(email);
     setResetting(false);
-    Alert.alert(e ? 'Erreur' : 'Email envoyé', e ? e.message : `Un lien de réinitialisation a été envoyé à ${email}.`);
+    alert(e ? 'Erreur' : 'Email envoyé', e ? e.message : `Un lien de réinitialisation a été envoyé à ${email}.`);
   }
 
   function confirmDeleteAccount() {
-    Alert.alert(
+    alert(
       'Supprimer le compte',
       'Cette action est irréversible. Votre profil, vos messages, vos favoris et vos documents de vérification seront définitivement supprimés.',
       [
@@ -85,7 +86,7 @@ export default function Security() {
       router.replace('/onboarding/auth');
     } catch (e: any) {
       setDeleting(false);
-      Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
     }
   }
 

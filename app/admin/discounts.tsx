@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Tag, Plus, Trash2, Pencil, X } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
+import { alert } from '../../src/lib/alert';
 import { fetchDiscountCodes, saveDiscountCode, deleteDiscountCode } from '../../src/lib/api';
 import type { DiscountCode } from '../../src/lib/types';
 
@@ -54,11 +55,11 @@ export default function AdminDiscounts() {
 
   async function onSave() {
     if (!code.trim() || !value) {
-      Alert.alert('Champs requis', 'Renseignez le code et la valeur de la réduction.');
+      alert('Champs requis', 'Renseignez le code et la valeur de la réduction.');
       return;
     }
     if (kind === 'flat' && appliesTo !== 'membership') {
-      Alert.alert('Combinaison invalide', "Un code à montant fixe ne peut s'appliquer qu'à l'abonnement Pro (pas de montant fixe sur un taux de commission).");
+      alert('Combinaison invalide', "Un code à montant fixe ne peut s'appliquer qu'à l'abonnement Pro (pas de montant fixe sur un taux de commission).");
       return;
     }
     setSaving(true);
@@ -74,14 +75,14 @@ export default function AdminDiscounts() {
       setShowForm(false);
       load();
     } catch (e: any) {
-      Alert.alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+      alert('Erreur', e.message ?? "Échec de l'enregistrement.");
     } finally {
       setSaving(false);
     }
   }
 
   function onDelete(c: DiscountCode) {
-    Alert.alert('Supprimer ce code ?', c.code, [
+    alert('Supprimer ce code ?', c.code, [
       { text: 'Annuler', style: 'cancel' },
       { text: 'Supprimer', style: 'destructive', onPress: async () => { await deleteDiscountCode(c.id); load(); } },
     ]);

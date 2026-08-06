@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat, Tag } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
+import { alert } from '../../src/lib/alert';
 import { computeCommission, formatCommissionPct, type CommissionDiscount } from '../../src/lib/pricing';
 import { fetchWalletBalance, redeemCommissionDiscountCode } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
@@ -39,9 +40,9 @@ export default function Earnings() {
       const result = await redeemCommissionDiscountCode(promoCode);
       setDiscount({ pct: result.pct, until: result.durationDays != null ? new Date(Date.now() + result.durationDays * 86400000).toISOString() : null });
       setPromoCode('');
-      Alert.alert('Code appliqué', `Réduction de ${result.pct}% sur votre commission${result.durationDays ? ` pendant ${result.durationDays} jours` : ''}.`);
+      alert('Code appliqué', `Réduction de ${result.pct}% sur votre commission${result.durationDays ? ` pendant ${result.durationDays} jours` : ''}.`);
     } catch (e: any) {
-      Alert.alert('Code invalide', e.message ?? "Ce code n'a pas pu être appliqué.");
+      alert('Code invalide', e.message ?? "Ce code n'a pas pu être appliqué.");
     } finally {
       setApplyingPromo(false);
     }

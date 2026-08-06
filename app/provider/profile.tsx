@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -9,6 +9,7 @@ import {
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount, toggleBookable } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
+import { alert } from '../../src/lib/alert';
 import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
 
@@ -43,7 +44,7 @@ export default function ProviderProfile() {
   }
 
   function confirmDeleteAccount() {
-    Alert.alert(
+    alert(
       'Supprimer le compte',
       'Cette action est irréversible. Votre profil, votre galerie, vos messages et vos documents de vérification seront définitivement supprimés. Votre historique de missions terminées reste visible pour vos clients (anonymisé).',
       [
@@ -61,7 +62,7 @@ export default function ProviderProfile() {
       router.replace('/onboarding/auth');
     } catch (e: any) {
       setDeleting(false);
-      Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
     }
   }
 
@@ -72,7 +73,7 @@ export default function ProviderProfile() {
       await toggleBookable(next);
     } catch (e: any) {
       setBookable(!next);
-      Alert.alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+      alert('Erreur', e.message ?? "Échec de l'enregistrement.");
     } finally {
       setSavingBookable(false);
     }

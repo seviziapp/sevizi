@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Trash2, LogIn, Check, X } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
+import { alert } from '../../src/lib/alert';
 import { deleteMyAccount } from '../../src/lib/api';
 
 function Row({ ok, children }: { ok: boolean; children: React.ReactNode }) {
@@ -32,7 +33,7 @@ export default function DeleteAccount() {
   }, []);
 
   function confirmDelete() {
-    Alert.alert(
+    alert(
       'Supprimer le compte',
       'Cette action est immédiate et irréversible. Voulez-vous continuer ?',
       [
@@ -49,7 +50,7 @@ export default function DeleteAccount() {
       await supabase.auth.signOut();
       setDone(true);
     } catch (e: any) {
-      Alert.alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
     } finally {
       setDeleting(false);
     }
