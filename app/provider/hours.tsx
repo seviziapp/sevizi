@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft } from 'lucide-react-native';
@@ -15,6 +15,7 @@ export default function ProviderHours() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ text: string; error?: boolean } | null>(null);
   const [rows, setRows] = useState<DayRow[]>(
     DAYS.map(() => ({ enabled: false, startTime: '09:00', endTime: '18:00' }))
   );
@@ -35,14 +36,15 @@ export default function ProviderHours() {
 
   async function onSave() {
     setSaving(true);
+    setMessage(null);
     try {
       const slots = rows
         .map((r, i) => ({ dayOfWeek: i, startTime: r.startTime, endTime: r.endTime, enabled: r.enabled }))
         .filter(r => r.enabled && r.startTime < r.endTime);
       await saveMyAvailability(slots);
-      Alert.alert('Enregistré', 'Vos horaires ont été mis à jour.');
+      setMessage({ text: 'Vos horaires ont été mis à jour.' });
     } catch (e: any) {
-      Alert.alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+      setMessage({ text: e.message ?? "Échec de l'enregistrement.", error: true });
     } finally {
       setSaving(false);
     }
@@ -95,6 +97,11 @@ export default function ProviderHours() {
               )}
             </View>
           ))}
+          {message && (
+            <Text style={[text.small, { color: message.error ? colors.terre : colors.vertDark, textAlign: 'center' }]}>
+              {message.text}
+            </Text>
+          )}
           <Button label={saving ? 'Enregistrement…' : 'Enregistrer les horaires'} onPress={onSave} loading={saving} style={{ marginTop: spacing.lg }} />
         </ScrollView>
       )}
@@ -109,6 +116,9 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxxl },
   dayCard: { backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.md },
   dayHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  timeInput: { flex: 1, height: 44, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: spacing.md, ...text.body, color: colors.encre, backgroundColor: colors.creme, textAlign: 'center' },
+  // minWidth: 0 is required on web — without it, a flex:1 child won't shrink
+  // below its content's implicit width, so this row silently overflowed the
+  // card and got clipped by the screen edge instead of the inputs shrinking.
+  timeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, minWidth: 0 },
+  timeInput: { flex: 1, minWidth: 0, height: 44, borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, paddingHorizontal: spacing.sm, ...text.body, color: colors.encre, backgroundColor: colors.creme, textAlign: 'center' },
 });

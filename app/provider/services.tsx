@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, Trash2, Pencil, X } from 'lucide-react-native';
@@ -19,6 +19,8 @@ export default function ProviderServices() {
   const [price, setPrice] = useState('');
   const [deposit, setDeposit] = useState('');
   const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [listError, setListError] = useState('');
 
   function load() {
     setLoading(true);
@@ -30,20 +32,23 @@ export default function ProviderServices() {
   function openNew() {
     setEditing(null);
     setName(''); setDuration('30'); setPrice(''); setDeposit('');
+    setFormError('');
     setShowForm(true);
   }
 
   function openEdit(s: ProviderService) {
     setEditing(s);
     setName(s.name); setDuration(String(s.durationMinutes)); setPrice(String(s.price)); setDeposit(String(s.depositAmount));
+    setFormError('');
     setShowForm(true);
   }
 
   async function onSave() {
     if (!name.trim() || !duration || !price) {
-      Alert.alert('Champs requis', 'Renseignez le nom, la durée et le prix.');
+      setFormError('Renseignez le nom, la durée et le prix.');
       return;
     }
+    setFormError('');
     setSaving(true);
     try {
       await saveService({
@@ -56,16 +61,33 @@ export default function ProviderServices() {
       setShowForm(false);
       load();
     } catch (e: any) {
-      Alert.alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+      setFormError(e.message ?? "Échec de l'enregistrement.");
     } finally {
       setSaving(false);
     }
   }
 
+  // Alert.alert is a no-op on web (react-native-web ships an empty stub), so
+  // a confirm dialog built on it never appears there — window.confirm is the
+  // web-native equivalent; native keeps the platform Alert.
   function onDelete(s: ProviderService) {
+    async function doDelete() {
+      setListError('');
+      try {
+        await deleteService(s.id);
+        load();
+      } catch (e: any) {
+        setListError(e.message ?? 'Échec de la suppression.');
+      }
+    }
+    if (Platform.OS === 'web') {
+      if (typeof window !== 'undefined' && window.confirm(`Supprimer "${s.name}" ?`)) doDelete();
+      return;
+    }
+    const { Alert } = require('react-native');
     Alert.alert('Supprimer ce service ?', s.name, [
       { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => { await deleteService(s.id); load(); } },
+      { text: 'Supprimer', style: 'destructive', onPress: doDelete },
     ]);
   }
 
@@ -80,6 +102,8 @@ export default function ProviderServices() {
           <Plus size={22} color={colors.vert} />
         </Pressable>
       </View>
+
+      {!!listError && <Text style={[styles.error, { marginHorizontal: spacing.xl }]}>{listError}</Text>}
 
       {loading ? (
         <ActivityIndicator color={colors.vert} style={{ marginTop: 60 }} />
@@ -127,6 +151,7 @@ export default function ProviderServices() {
             <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.md }]}>
               Un acompte réduit les rendez-vous manqués — le client le paie en ligne pour confirmer, et il est déduit du prix final.
             </Text>
+            {!!formError && <Text style={styles.error}>{formError}</Text>}
             <Button label={saving ? 'Enregistrement…' : 'Enregistrer'} onPress={onSave} loading={saving} />
           </View>
         </View>
@@ -145,5 +170,6 @@ const styles = StyleSheet.create({
   modalOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(6,41,31,0.4)', alignItems: 'center', justifyContent: 'center', padding: spacing.xl },
   modal: { width: '100%', maxWidth: 420, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.xl },
   modalHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.lg },
+  error: { color: colors.terre, fontSize: 14, marginBottom: spacing.md },
   input: { height: 48, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, ...text.body, color: colors.encre, marginTop: spacing.xs, marginBottom: spacing.md, backgroundColor: colors.creme },
 });
