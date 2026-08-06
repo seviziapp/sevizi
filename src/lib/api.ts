@@ -3,7 +3,7 @@ import { getCurrentPosition } from './geolocation';
 import {
   Provider, ServiceRequest, Offer, ServiceCategory, GeoPoint,
   Job, Notification, ProviderStats, AdminStats, VerificationRequest, Dispute, Review,
-  WithdrawalRequest, ProviderService, ProviderAvailability, Appointment, DiscountCode,
+  WithdrawalRequest, ProviderService, ProviderAvailability, Appointment, DiscountCode, AdminActivityItem,
 } from './types';
 
 // Lomé / Bè-Kpota anchor used by the mockups
@@ -1211,6 +1211,7 @@ export async function fetchProviderServices(providerId: string): Promise<Provide
     id: s.id, providerId: s.provider_id, name: s.name,
     durationMinutes: s.duration_minutes, price: s.price,
     depositAmount: s.deposit_amount ?? 0, active: !!s.active,
+    photoUrl: s.photo_url ?? undefined,
   }));
 }
 
@@ -1231,10 +1232,11 @@ export async function fetchMyServices(): Promise<ProviderService[]> {
     id: s.id, providerId: s.provider_id, name: s.name,
     durationMinutes: s.duration_minutes, price: s.price,
     depositAmount: s.deposit_amount ?? 0, active: !!s.active,
+    photoUrl: s.photo_url ?? undefined,
   }));
 }
 
-export async function saveService(input: { id?: string; name: string; durationMinutes: number; price: number; depositAmount: number }): Promise<void> {
+export async function saveService(input: { id?: string; name: string; durationMinutes: number; price: number; depositAmount: number; photoUrl?: string }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
@@ -1245,12 +1247,14 @@ export async function saveService(input: { id?: string; name: string; durationMi
     const { error } = await supabase.from('provider_services').update({
       name: input.name, duration_minutes: input.durationMinutes,
       price: input.price, deposit_amount: input.depositAmount,
+      photo_url: input.photoUrl ?? null,
     }).eq('id', input.id).eq('provider_id', providerId);
     if (error) throw error;
   } else {
     const { error } = await supabase.from('provider_services').insert({
       provider_id: providerId, name: input.name, duration_minutes: input.durationMinutes,
       price: input.price, deposit_amount: input.depositAmount,
+      photo_url: input.photoUrl ?? null,
     });
     if (error) throw error;
   }
@@ -1480,4 +1484,56 @@ export async function redeemCommissionDiscountCode(code: string): Promise<{ pct:
   const { data, error } = await supabase.rpc('redeem_discount_code', { p_code: code.trim(), p_purpose: 'commission' });
   if (error) throw new Error(error.message);
   return { pct: data.value, durationDays: data.durationDays ?? null, label: data.label ?? undefined };
+}
+
+// ---- ADMIN: activity feed ----
+
+// Merges recent "new service" listings and completed sales (job payments,
+// appointment deposits, Pro subscriptions) into one time-sorted feed — no
+// dedicated audit-log table, just a few parallel reads across tables admin
+// can already see (see migration_service_photos_and_admin_activity.sql for
+// the two RLS additions this needed on job_payments/pro_payments).
+export async function fetchAdminActivity(limit = 50): Promise<AdminActivityItem[]> {
+  if (!hasSupabase) return [];
+  const [services, jobSales, apptSales, proSales] = await Promise.all([
+    supabase.from('provider_services').select('id, name, price, created_at, provider:providers(name)')
+      .order('created_at', { ascending: false }).limit(limit),
+    supabase.from('job_payments').select('id, amount, net_amount, confirmed_at, created_at, status, provider:providers(name)')
+      .eq('status', 'completed').order('confirmed_at', { ascending: false }).limit(limit),
+    supabase.from('appointments').select('id, service_name, price, deposit_amount, confirmed_at, created_at, deposit_status, provider:providers(name)')
+      .eq('deposit_status', 'paid').order('confirmed_at', { ascending: false }).limit(limit),
+    supabase.from('pro_payments').select('id, amount, confirmed_at, created_at, status, provider:providers(name)')
+      .eq('status', 'completed').order('confirmed_at', { ascending: false }).limit(limit),
+  ]);
+
+  const items: AdminActivityItem[] = [
+    ...(services.data ?? []).map((s: any): AdminActivityItem => ({
+      id: `service-${s.id}`, kind: 'service_created',
+      title: `Nouveau service : ${s.name}`,
+      subtitle: `${s.provider?.name ?? 'Prestataire'} · ${(s.price ?? 0).toLocaleString('fr-FR')} F`,
+      createdAt: s.created_at,
+    })),
+    ...(jobSales.data ?? []).map((j: any): AdminActivityItem => ({
+      id: `job-${j.id}`, kind: 'job_sale',
+      title: `Mission payée`,
+      subtitle: `${j.provider?.name ?? 'Prestataire'} · net ${(j.net_amount ?? 0).toLocaleString('fr-FR')} F`,
+      amount: j.amount, createdAt: j.confirmed_at ?? j.created_at,
+    })),
+    ...(apptSales.data ?? []).map((a: any): AdminActivityItem => ({
+      id: `appt-${a.id}`, kind: 'appointment_sale',
+      title: `Acompte rendez-vous : ${a.service_name}`,
+      subtitle: `${a.provider?.name ?? 'Prestataire'} · ${(a.deposit_amount ?? 0).toLocaleString('fr-FR')} F`,
+      amount: a.deposit_amount, createdAt: a.confirmed_at ?? a.created_at,
+    })),
+    ...(proSales.data ?? []).map((p: any): AdminActivityItem => ({
+      id: `pro-${p.id}`, kind: 'pro_sale',
+      title: `Abonnement Sèvizi Pro`,
+      subtitle: `${p.provider?.name ?? 'Prestataire'} · ${(p.amount ?? 0).toLocaleString('fr-FR')} F`,
+      amount: p.amount, createdAt: p.confirmed_at ?? p.created_at,
+    })),
+  ];
+
+  return items
+    .sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))
+    .slice(0, limit);
 }

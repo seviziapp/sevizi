@@ -114,6 +114,18 @@ export interface ProviderService {
   price: number;
   depositAmount: number;
   active: boolean;
+  photoUrl?: string;
+}
+
+export type AdminActivityKind = 'service_created' | 'job_sale' | 'appointment_sale' | 'pro_sale';
+
+export interface AdminActivityItem {
+  id: string;
+  kind: AdminActivityKind;
+  title: string;
+  subtitle: string;
+  amount?: number;
+  createdAt: string;
 }
 
 export interface ProviderAvailability {

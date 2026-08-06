@@ -78,6 +78,7 @@ export default function AdminLayout() {
       {/* Reachable via the dashboard quick links, not a bottom tab — the bar
           is already at 5 items. */}
       <Tabs.Screen name="discounts" options={{ href: null }} />
+      <Tabs.Screen name="activity" options={{ href: null }} />
     </Tabs>
   );
 }

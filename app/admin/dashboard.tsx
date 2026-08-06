@@ -106,6 +106,7 @@ export default function AdminDashboard() {
             { label: 'Demandes de retrait', route: '/admin/withdrawals', count: stats?.pendingWithdrawals },
             { label: 'Gestion utilisateurs', route: '/admin/users', count: null },
             { label: 'Codes de réduction', route: '/admin/discounts', count: null },
+            { label: 'Activité (services & ventes)', route: '/admin/activity', count: null },
           ].map(l => (
             <Pressable key={l.label} style={styles.quickLink} onPress={() => router.push(l.route as any)}>
               <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{l.label}</Text>

@@ -805,4 +805,13 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+-- ============================================================
+-- 21) Service photos + admin activity-feed read access
+-- ============================================================
+alter table provider_services add column if not exists photo_url text;
+drop policy if exists "admin reads all job payments" on job_payments;
+create policy "admin reads all job payments" on job_payments for select using (is_admin());
+drop policy if exists "admin reads all pro payments" on pro_payments;
+create policy "admin reads all pro payments" on pro_payments for select using (is_admin());
+
 -- Done ✅
