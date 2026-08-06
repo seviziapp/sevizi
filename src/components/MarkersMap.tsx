@@ -20,10 +20,16 @@ export type MapMarker = {
 // module when a key is actually present; otherwise fall back to the same
 // plain placeholder used on web, so a missing key degrades gracefully
 // instead of crashing every screen that renders a map.
+//
+// NOTE: Expo strips android.config/ios.config from the "public" config that
+// Constants.expoConfig exposes at runtime (that's build-time-only data baked
+// straight into AndroidManifest.xml / Info.plist), so it can't be read back
+// here directly. Instead, app.json also sets extra.hasAndroidGoogleMapsKey
+// as an explicit signal — `extra` is a plain passthrough field that IS kept
+// in the public config, unlike android.config/ios.config.
 let MapView: any, Marker: any;
-const androidMapsKey = Constants.expoConfig?.android?.config?.googleMaps?.apiKey;
-const iosMapsKey = Constants.expoConfig?.ios?.config?.googleMapsApiKey;
-const hasNativeMapsKey = Platform.OS === 'android' ? !!androidMapsKey : Platform.OS === 'ios' ? !!iosMapsKey : false;
+const hasAndroidMapsKey = !!Constants.expoConfig?.extra?.hasAndroidGoogleMapsKey;
+const hasNativeMapsKey = Platform.OS === 'android' ? hasAndroidMapsKey : false;
 if (Platform.OS !== 'web' && hasNativeMapsKey) {
   const maps = require('react-native-maps');
   MapView = maps.default;
