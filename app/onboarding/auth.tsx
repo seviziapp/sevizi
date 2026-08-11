@@ -17,17 +17,33 @@ export default function Auth() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
   const [agreedTC, setAgreedTC] = useState(false);
+  const [pendingConfirmEmail, setPendingConfirmEmail] = useState('');
+  const [resending, setResending] = useState(false);
 
   async function handleEmail() {
     setError('');
+    setInfo('');
+    setPendingConfirmEmail('');
     if (!email || !password) { setError('Remplissez tous les champs.'); return; }
     if (mode === 'signup' && !agreedTC) { setError('Veuillez accepter les conditions d\'utilisation.'); return; }
     setLoading(true);
     try {
       if (mode === 'login') {
         const { error: e } = await supabase.auth.signInWithPassword({ email, password });
-        if (e) throw e;
+        if (e) {
+          // Supabase's own message for this case ("Email not confirmed") is in
+          // English regardless of app locale — offer a resend instead of just
+          // surfacing the raw error.
+          if (e.message?.toLowerCase().includes('email not confirmed') || (e as any).code === 'email_not_confirmed') {
+            setPendingConfirmEmail(email);
+            setError('Confirmez votre e-mail avant de vous connecter.');
+            setLoading(false);
+            return;
+          }
+          throw e;
+        }
       } else {
         const { data, error: e } = await supabase.auth.signUp({ email, password });
         if (e) throw e;
@@ -36,7 +52,8 @@ export default function Auth() {
         // "Non connecté"); ask them to confirm, then log in.
         if (!data.session) {
           setMode('login');
-          setError('Compte créé ✅ Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
+          setPendingConfirmEmail(email);
+          setInfo('Compte créé ✅ Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
           setLoading(false);
           return;
         }
@@ -46,6 +63,21 @@ export default function Auth() {
       setError(e.message ?? 'Une erreur est survenue.');
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function resendConfirmation() {
+    if (!pendingConfirmEmail) return;
+    setResending(true);
+    setError('');
+    try {
+      const { error: e } = await supabase.auth.resend({ type: 'signup', email: pendingConfirmEmail });
+      if (e) throw e;
+      setInfo(`E-mail de confirmation renvoyé à ${pendingConfirmEmail}.`);
+    } catch (e: any) {
+      setError(e.message ?? "Échec de l'envoi.");
+    } finally {
+      setResending(false);
     }
   }
 
@@ -161,8 +193,16 @@ export default function Auth() {
             </Pressable>
           )}
 
-          {/* Error */}
+          {/* Info / error */}
+          {!!info && <Text style={styles.infoText}>{info}</Text>}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
+          {!!pendingConfirmEmail && (
+            <Pressable onPress={resendConfirmation} disabled={resending} style={{ marginBottom: spacing.md }}>
+              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>
+                {resending ? 'Envoi…' : "Renvoyer l'e-mail de confirmation"}
+              </Text>
+            </Pressable>
+          )}
 
           {/* Submit */}
           <Pressable style={[styles.submitBtn, loading && { opacity: 0.6 }]} onPress={handleEmail} disabled={loading}>
@@ -175,7 +215,7 @@ export default function Auth() {
           </Pressable>
 
           {/* Toggle mode */}
-          <Pressable style={styles.toggleRow} onPress={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(''); }}>
+          <Pressable style={styles.toggleRow} onPress={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(''); setInfo(''); setPendingConfirmEmail(''); }}>
             <Text style={[text.small, { color: colors.textMuted }]}>
               {mode === 'login' ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
             </Text>
@@ -208,6 +248,7 @@ const styles = StyleSheet.create({
   },
   input: { flex: 1, color: colors.encre, fontSize: 16, fontFamily: 'HankenGrotesk_400Regular' },
   errorText: { color: colors.terre, fontSize: 14, marginBottom: spacing.md },
+  infoText: { color: colors.vertDark, fontSize: 14, marginBottom: spacing.md },
   tcRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   checkbox: { width: 22, height: 22, borderRadius: radii.sm, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   checkboxOn: { backgroundColor: colors.vert, borderColor: colors.vert },
