@@ -584,3 +584,33 @@ drop policy if exists "admin reads all job payments" on job_payments;
 create policy "admin reads all job payments" on job_payments for select using (is_admin());
 drop policy if exists "admin reads all pro payments" on pro_payments;
 create policy "admin reads all pro payments" on pro_payments for select using (is_admin());
+
+-- ---- Lock tier/pro_since/commission_discount_*/verified to service-role
+-- (or a SECURITY DEFINER function like redeem_discount_code) writes only —
+-- the "own provider" RLS policy above otherwise lets a provider write any
+-- column on their own row directly, bypassing Pro payment confirmation,
+-- discount-code redemption limits, and admin verification review.
+create or replace function protect_provider_tier_columns() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    if tg_op = 'INSERT' then
+      new.tier := 'free';
+      new.pro_since := null;
+      new.commission_discount_pct := 0;
+      new.commission_discount_until := null;
+      new.verified := false;
+    elsif tg_op = 'UPDATE' then
+      new.tier := old.tier;
+      new.pro_since := old.pro_since;
+      new.commission_discount_pct := old.commission_discount_pct;
+      new.commission_discount_until := old.commission_discount_until;
+      new.verified := old.verified;
+    end if;
+  end if;
+  return new;
+end; $$;
+
+drop trigger if exists trg_protect_provider_tier on providers;
+create trigger trg_protect_provider_tier before insert or update on providers
+  for each row execute function protect_provider_tier_columns();

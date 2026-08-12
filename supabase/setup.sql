@@ -330,8 +330,10 @@ create policy "read own pro payments" on pro_payments for select using (auth.uid
 -- No client insert/update policy: both Edge Functions write via the
 -- service-role key, which bypasses RLS entirely.
 
--- Lock tier/pro_since to service-role writes only — only the PayDunya
--- webhook (service-role) can grant Pro; a provider's own session cannot.
+-- Lock tier/pro_since/commission_discount_*/verified to service-role (or a
+-- SECURITY DEFINER function like redeem_discount_code) writes only — a
+-- provider's own session cannot self-grant Pro, a commission discount, or
+-- the verified badge by writing straight to these columns.
 create or replace function protect_provider_tier_columns() returns trigger
 language plpgsql as $$
 begin
@@ -339,9 +341,15 @@ begin
     if tg_op = 'INSERT' then
       new.tier := 'free';
       new.pro_since := null;
+      new.commission_discount_pct := 0;
+      new.commission_discount_until := null;
+      new.verified := false;
     elsif tg_op = 'UPDATE' then
       new.tier := old.tier;
       new.pro_since := old.pro_since;
+      new.commission_discount_pct := old.commission_discount_pct;
+      new.commission_discount_until := old.commission_discount_until;
+      new.verified := old.verified;
     end if;
   end if;
   return new;
