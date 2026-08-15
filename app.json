@@ -37,7 +37,7 @@
         "foregroundImage": "./assets/icon-adaptive-foreground.png",
         "backgroundColor": "#0FA76A"
       },
-      "versionCode": 12,
+      "versionCode": 13,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyA7rU3gIONLXaM96u_lN5YIoiEm5Q-qmso"
