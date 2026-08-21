@@ -6,12 +6,7 @@
 // This function never marks the job as paid itself — only
 // paydunya-job-webhook does, after re-confirming with PayDunya.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const PAYDUNYA_MASTER_KEY = Deno.env.get('PAYDUNYA_MASTER_KEY')!;
-const PAYDUNYA_PRIVATE_KEY = Deno.env.get('PAYDUNYA_PRIVATE_KEY')!;
-const PAYDUNYA_PUBLIC_KEY = Deno.env.get('PAYDUNYA_PUBLIC_KEY')!;
-const PAYDUNYA_TOKEN = Deno.env.get('PAYDUNYA_TOKEN')!;
-const PAYDUNYA_MODE = Deno.env.get('PAYDUNYA_MODE') ?? 'live';
+import { corsHeaders, createInvoice } from '../_shared/paydunya.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -23,11 +18,6 @@ const COMMISSION_RATE_PRO = 0.07;
 // Promo: zero commission for every provider until this date — keep in sync
 // with COMMISSION_FREE_UNTIL in src/lib/pricing.ts.
 const COMMISSION_FREE_UNTIL = new Date('2027-01-04T00:00:00Z');
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -70,36 +60,13 @@ Deno.serve(async (req: Request) => {
 
     const callbackUrl = `${SUPABASE_URL}/functions/v1/paydunya-job-webhook`;
 
-    const invoiceRes = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'PAYDUNYA-MASTER-KEY': PAYDUNYA_MASTER_KEY,
-        'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_PRIVATE_KEY,
-        'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_PUBLIC_KEY,
-        'PAYDUNYA-TOKEN': PAYDUNYA_TOKEN,
-      },
-      body: JSON.stringify({
-        mode: PAYDUNYA_MODE,
-        invoice: {
-          total_amount: job.price,
-          description: 'Paiement mission Sevizi',
-        },
-        store: { name: 'Sevizi' },
-        actions: {
-          cancel_url: cancelUrl ?? 'https://sevizi.app',
-          return_url: returnUrl ?? 'https://sevizi.app',
-          callback_url: callbackUrl,
-        },
-        custom_data: { job_id: job.id, client_id: user.id, provider_id: job.provider_id },
-      }),
+    const { token, invoiceUrl } = await createInvoice({
+      totalAmount: job.price,
+      description: 'Paiement mission Sevizi',
+      callbackUrl, returnUrl, cancelUrl,
+      customData: { job_id: job.id, client_id: user.id, provider_id: job.provider_id },
+      storeName: 'Sevizi',
     });
-    const invoiceData = await invoiceRes.json();
-    if (invoiceData.response_code !== '00' || !invoiceData.token) {
-      throw new Error(invoiceData.response_text ?? "Échec de la création de la facture PayDunya.");
-    }
-
-    const invoiceUrl = `https://paydunya.com/checkout/invoice/${invoiceData.token}`;
 
     await admin.from('job_payments').insert({
       job_id: job.id,
@@ -109,7 +76,7 @@ Deno.serve(async (req: Request) => {
       commission,
       net_amount: netAmount,
       status: 'pending',
-      paydunya_token: invoiceData.token,
+      paydunya_token: token,
       invoice_url: invoiceUrl,
     });
 

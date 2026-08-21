@@ -4,14 +4,7 @@
 // paydunya-webhook confirms the payment — this function never grants Pro
 // itself, it only starts the checkout.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const PAYDUNYA_MASTER_KEY = Deno.env.get('PAYDUNYA_MASTER_KEY')!;
-const PAYDUNYA_PRIVATE_KEY = Deno.env.get('PAYDUNYA_PRIVATE_KEY')!;
-const PAYDUNYA_PUBLIC_KEY = Deno.env.get('PAYDUNYA_PUBLIC_KEY')!;
-const PAYDUNYA_TOKEN = Deno.env.get('PAYDUNYA_TOKEN')!;
-// 'test' while integrating (PayDunya test API keys), 'live' once real keys
-// are in use — see the PayDunya dashboard's "API keys" page for both sets.
-const PAYDUNYA_MODE = Deno.env.get('PAYDUNYA_MODE') ?? 'live';
+import { corsHeaders, createInvoice } from '../_shared/paydunya.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -19,11 +12,6 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Keep in sync with src/lib/pricing.ts PRO_MONTHLY_FEE.
 const PRO_MONTHLY_FEE = 5000;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -102,43 +90,19 @@ Deno.serve(async (req: Request) => {
 
     const callbackUrl = `${SUPABASE_URL}/functions/v1/paydunya-webhook`;
 
-    const invoiceRes = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'PAYDUNYA-MASTER-KEY': PAYDUNYA_MASTER_KEY,
-        'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_PRIVATE_KEY,
-        'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_PUBLIC_KEY,
-        'PAYDUNYA-TOKEN': PAYDUNYA_TOKEN,
-      },
-      body: JSON.stringify({
-        mode: PAYDUNYA_MODE,
-        invoice: {
-          total_amount: totalAmount,
-          description: discountCodeId ? 'Abonnement Sèvizi Pro - 1 mois (code promo appliqué)' : 'Abonnement Sèvizi Pro - 1 mois',
-        },
-        store: { name: 'Sèvizi' },
-        actions: {
-          cancel_url: cancelUrl ?? 'https://sevizi.app',
-          return_url: returnUrl ?? 'https://sevizi.app',
-          callback_url: callbackUrl,
-        },
-        custom_data: { provider_id: provider.id, user_id: user.id },
-      }),
+    const { token, invoiceUrl } = await createInvoice({
+      totalAmount,
+      description: discountCodeId ? 'Abonnement Sèvizi Pro - 1 mois (code promo appliqué)' : 'Abonnement Sèvizi Pro - 1 mois',
+      callbackUrl, returnUrl, cancelUrl,
+      customData: { provider_id: provider.id, user_id: user.id },
     });
-    const invoiceData = await invoiceRes.json();
-    if (invoiceData.response_code !== '00' || !invoiceData.token) {
-      throw new Error(invoiceData.response_text ?? "Échec de la création de la facture PayDunya.");
-    }
-
-    const invoiceUrl = `https://paydunya.com/checkout/invoice/${invoiceData.token}`;
 
     await admin.from('pro_payments').insert({
       provider_id: provider.id,
       user_id: user.id,
       amount: totalAmount,
       status: 'pending',
-      paydunya_token: invoiceData.token,
+      paydunya_token: token,
       invoice_url: invoiceUrl,
       discount_code_id: discountCodeId,
       discount_amount: discountAmount,

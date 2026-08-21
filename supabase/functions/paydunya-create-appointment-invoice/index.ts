@@ -6,21 +6,11 @@
 // with PayDunya. Services with no deposit skip PayDunya entirely and the
 // appointment is confirmed immediately.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const PAYDUNYA_MASTER_KEY = Deno.env.get('PAYDUNYA_MASTER_KEY')!;
-const PAYDUNYA_PRIVATE_KEY = Deno.env.get('PAYDUNYA_PRIVATE_KEY')!;
-const PAYDUNYA_PUBLIC_KEY = Deno.env.get('PAYDUNYA_PUBLIC_KEY')!;
-const PAYDUNYA_TOKEN = Deno.env.get('PAYDUNYA_TOKEN')!;
-const PAYDUNYA_MODE = Deno.env.get('PAYDUNYA_MODE') ?? 'live';
+import { corsHeaders, createInvoice } from '../_shared/paydunya.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -104,40 +94,23 @@ Deno.serve(async (req: Request) => {
 
     const callbackUrl = `${SUPABASE_URL}/functions/v1/paydunya-appointment-webhook`;
 
-    const invoiceRes = await fetch('https://app.paydunya.com/api/v1/checkout-invoice/create', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'PAYDUNYA-MASTER-KEY': PAYDUNYA_MASTER_KEY,
-        'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_PRIVATE_KEY,
-        'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_PUBLIC_KEY,
-        'PAYDUNYA-TOKEN': PAYDUNYA_TOKEN,
-      },
-      body: JSON.stringify({
-        mode: PAYDUNYA_MODE,
-        invoice: {
-          total_amount: deposit,
-          description: `Acompte rendez-vous - ${service.name}`,
-        },
-        store: { name: 'Sevizi' },
-        actions: {
-          cancel_url: cancelUrl ?? 'https://sevizi.app',
-          return_url: returnUrl ?? 'https://sevizi.app',
-          callback_url: callbackUrl,
-        },
-        custom_data: { appointment_id: appt.id, client_id: user.id, provider_id: service.provider_id },
-      }),
-    });
-    const invoiceData = await invoiceRes.json();
-    if (invoiceData.response_code !== '00' || !invoiceData.token) {
+    let token: string, invoiceUrl: string;
+    try {
+      ({ token, invoiceUrl } = await createInvoice({
+        totalAmount: deposit,
+        description: `Acompte rendez-vous - ${service.name}`,
+        callbackUrl, returnUrl, cancelUrl,
+        customData: { appointment_id: appt.id, client_id: user.id, provider_id: service.provider_id },
+        storeName: 'Sevizi',
+      }));
+    } catch (e) {
       // Roll back the pending appointment so the slot isn't held forever.
       await admin.from('appointments').delete().eq('id', appt.id);
-      throw new Error(invoiceData.response_text ?? "Échec de la création de la facture PayDunya.");
+      throw e;
     }
 
-    const invoiceUrl = `https://paydunya.com/checkout/invoice/${invoiceData.token}`;
     await admin.from('appointments')
-      .update({ paydunya_token: invoiceData.token, invoice_url: invoiceUrl })
+      .update({ paydunya_token: token, invoice_url: invoiceUrl })
       .eq('id', appt.id);
 
     return new Response(JSON.stringify({ appointmentId: appt.id, invoiceUrl }), {

@@ -6,46 +6,17 @@
 // PayDunya's API using our own private key. Only a "completed" result from
 // that re-confirmation call ever grants Pro.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const PAYDUNYA_MASTER_KEY = Deno.env.get('PAYDUNYA_MASTER_KEY')!;
-const PAYDUNYA_PRIVATE_KEY = Deno.env.get('PAYDUNYA_PRIVATE_KEY')!;
-const PAYDUNYA_PUBLIC_KEY = Deno.env.get('PAYDUNYA_PUBLIC_KEY')!;
-const PAYDUNYA_TOKEN = Deno.env.get('PAYDUNYA_TOKEN')!;
+import { confirmInvoice, extractWebhookToken } from '../_shared/paydunya.ts';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-function extractToken(body: any): string | undefined {
-  return body?.data?.token ?? body?.data?.invoice?.token ?? body?.token;
-}
-
 Deno.serve(async (req: Request) => {
   try {
-    const contentType = req.headers.get('content-type') ?? '';
-    let token: string | undefined;
-
-    if (contentType.includes('application/json')) {
-      token = extractToken(await req.json());
-    } else {
-      const form = await req.formData();
-      const raw = form.get('data');
-      if (raw) {
-        try { token = extractToken(JSON.parse(String(raw))); } catch { /* fall through */ }
-      }
-      token ??= (form.get('token') as string | null) ?? undefined;
-    }
-    if (!token) throw new Error('token manquant');
+    const token = await extractWebhookToken(req);
 
     // Re-confirm with PayDunya directly — the only source of truth here.
-    const confirmRes = await fetch(`https://app.paydunya.com/api/v1/checkout-invoice/confirm/${token}`, {
-      headers: {
-        'PAYDUNYA-MASTER-KEY': PAYDUNYA_MASTER_KEY,
-        'PAYDUNYA-PRIVATE-KEY': PAYDUNYA_PRIVATE_KEY,
-        'PAYDUNYA-PUBLIC-KEY': PAYDUNYA_PUBLIC_KEY,
-        'PAYDUNYA-TOKEN': PAYDUNYA_TOKEN,
-      },
-    });
-    const confirm = await confirmRes.json();
+    const confirm = await confirmInvoice(token);
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
