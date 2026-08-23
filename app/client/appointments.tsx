@@ -72,7 +72,7 @@ export default function ClientAppointments() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Mes rendez-vous</Text>
@@ -105,9 +105,9 @@ export default function ClientAppointments() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.sm, paddingBottom: spacing.xxxl },
-  card: { backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: 4 },
+  card: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', gap: 4 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill, backgroundColor: colors.creme },
   statusPillActive: { backgroundColor: colors.surface },

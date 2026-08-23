@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platf
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
+import { LinearGradient } from 'expo-linear-gradient';
 import { ArrowLeft, Clock, Check } from 'lucide-react-native';
-import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchProviderServices, fetchAvailableSlots, createAppointmentInvoice, fetchAppointmentDepositStatus } from '../../src/lib/api';
 import type { ProviderService } from '../../src/lib/types';
@@ -118,8 +119,10 @@ export default function BookAppointment() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.confirmedWrap}>
-          <View style={styles.confirmedIcon}>
-            <Check size={36} color={colors.white} />
+          <View style={[styles.confirmedIconWrap, shadow.glow]}>
+            <LinearGradient colors={gradients.mint} style={styles.confirmedIcon}>
+              <Check size={36} color={colors.white} />
+            </LinearGradient>
           </View>
           <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Rendez-vous confirmé !</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
@@ -134,7 +137,7 @@ export default function BookAppointment() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]} numberOfLines={1}>{providerName ?? 'Rendez-vous'}</Text>
@@ -229,15 +232,16 @@ export default function BookAppointment() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.sm },
-  serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  serviceCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   serviceCardActive: { borderColor: colors.vert, backgroundColor: colors.surface },
-  dayChip: { width: 56, height: 64, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', gap: 2 },
+  dayChip: { width: 56, height: 64, borderRadius: radii.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', gap: 2 },
   dayChipActive: { backgroundColor: colors.vert, borderColor: colors.vert },
   slotGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  slot: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  slot: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.pill, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', backgroundColor: colors.white },
   slotActive: { backgroundColor: colors.vert, borderColor: colors.vert },
   confirmedWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: spacing.xl, gap: spacing.sm },
-  confirmedIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.md },
+  confirmedIconWrap: { borderRadius: 36, marginBottom: spacing.md },
+  confirmedIcon: { width: 72, height: 72, borderRadius: 36, alignItems: 'center', justifyContent: 'center' },
 });
