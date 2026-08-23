@@ -16,7 +16,7 @@ export default function Categories() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
         <Text style={[text.h2, { color: colors.encre }]}>Toutes les catégories</Text>
-        <Pressable style={styles.close} onPress={() => router.back()}>
+        <Pressable style={[styles.close, shadow.sm]} onPress={() => router.back()}>
           <X size={20} color={colors.encre} />
         </Pressable>
       </View>
@@ -54,10 +54,10 @@ export default function Categories() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md },
-  close: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  searchBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.xl, marginBottom: spacing.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, borderRadius: radii.md, paddingHorizontal: spacing.lg, height: 48 },
+  close: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.xl, marginBottom: spacing.md, backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', borderRadius: radii.lg, paddingHorizontal: spacing.lg, height: 48, ...shadow.sm },
   searchInput: { flex: 1, ...text.body, color: colors.encre },
   scroll: { padding: spacing.xl, paddingTop: 0, paddingBottom: spacing.xxxl },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
-  card: { flexBasis: 100, flexGrow: 1, maxWidth: 180, height: 120, backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.sm },
+  card: { flexBasis: 100, flexGrow: 1, maxWidth: 180, height: 120, backgroundColor: colors.white, borderRadius: radii.xl, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, padding: spacing.sm },
 });
