@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import {
   ArrowLeft, Star, ShieldCheck, MapPin, MessageCircle,
   Heart, Briefcase, Clock, TrendingUp, Crown,
 } from 'lucide-react-native';
-import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchProvider, fetchProviderReviews, fetchProviderCompletedCount, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
 import { Image } from 'react-native';
@@ -55,42 +56,46 @@ export default function ProviderProfileView() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Hero */}
-        <View style={styles.hero}>
-          <View style={styles.avatar}>
-            <Text style={[text.display, { color: colors.creme }]}>{provider.name[0]}</Text>
-          </View>
-          <View style={styles.nameRow}>
-            <Text style={[text.h2, { color: colors.encre }]}>{provider.name}</Text>
-            {provider.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
-            {provider.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
-          </View>
-          <View style={styles.catRow}>
-            <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
-            <Text style={[text.body, { color: colors.textMuted }]}>
-              {[cat?.label, ...(provider.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')}
-            </Text>
-          </View>
-          <View style={styles.badgeRow}>
-            {provider.verified && (
-              <View style={styles.verifiedBadge}>
-                <ShieldCheck size={14} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
+        {/* Hero — gradient cover panel with the avatar floating over it */}
+        <View style={[styles.heroWrap, shadow.lg]}>
+          <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+            <View style={styles.avatarRing}>
+              <View style={styles.avatar}>
+                <Text style={[text.display, { color: colors.creme }]}>{provider.name[0]}</Text>
               </View>
-            )}
-            {provider.tier === 'pro' && (
-              <View style={styles.proBadge}>
-                <Crown size={14} color={colors.encre} fill={colors.soleil} />
-                <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
-              </View>
-            )}
-          </View>
-          <View style={[styles.onlineRow, provider.online && styles.onlineRowActive]}>
-            <View style={[styles.onlineDot, provider.online && styles.onlineDotActive]} />
-            <Text style={[text.small, { color: provider.online ? colors.vert : colors.textMuted }]}>
-              {provider.online ? 'Disponible maintenant' : 'Hors ligne'}
-            </Text>
-          </View>
+            </View>
+            <View style={styles.nameRow}>
+              <Text style={[text.h2, { color: colors.creme }]}>{provider.name}</Text>
+              {provider.verified && <ShieldCheck size={20} color={colors.vert} fill={colors.surface} />}
+              {provider.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
+            </View>
+            <View style={styles.catRow}>
+              <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
+              <Text style={[text.body, { color: colors.textMutedDark }]}>
+                {[cat?.label, ...(provider.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+            <View style={styles.badgeRow}>
+              {provider.verified && (
+                <View style={styles.verifiedBadge}>
+                  <ShieldCheck size={14} color={colors.vert} />
+                  <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
+                </View>
+              )}
+              {provider.tier === 'pro' && (
+                <View style={styles.proBadge}>
+                  <Crown size={14} color={colors.encre} fill={colors.soleil} />
+                  <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
+                </View>
+              )}
+            </View>
+            <View style={[styles.onlineRow, provider.online && styles.onlineRowActive]}>
+              <View style={[styles.onlineDot, provider.online && styles.onlineDotActive]} />
+              <Text style={[text.small, { color: provider.online ? colors.vert : colors.textMutedDark }]}>
+                {provider.online ? 'Disponible maintenant' : 'Hors ligne'}
+              </Text>
+            </View>
+          </LinearGradient>
         </View>
 
         {/* Stats */}
@@ -208,26 +213,28 @@ const styles = StyleSheet.create({
   back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   heartBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: 120 },
-  hero: { alignItems: 'center', gap: spacing.sm },
+  heroWrap: { borderRadius: radii.xxl, overflow: 'hidden' },
+  hero: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl, paddingHorizontal: spacing.xl },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  avatarRing: { padding: 4, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.14)' },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   catRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   distancePill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 3, borderRadius: radii.pill },
   badgeRow: { flexDirection: 'row', gap: spacing.sm },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
   proBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FCEFC7', paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
-  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border },
-  onlineRowActive: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
-  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.textMuted },
+  onlineRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)' },
+  onlineRowActive: { borderColor: colors.vert, backgroundColor: 'rgba(15,167,106,0.15)' },
+  onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.textMutedDark },
   onlineDotActive: { backgroundColor: colors.vert },
-  statsRow: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  statsRow: { flexDirection: 'row', backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   stat: { flex: 1, alignItems: 'center', gap: 4 },
   div: { width: 1, backgroundColor: colors.border },
   responseRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, padding: spacing.md, borderRadius: radii.md },
   section: { gap: spacing.sm },
   gallery: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   galleryItem: { width: '31%', aspectRatio: 1, borderRadius: radii.md, backgroundColor: colors.surface },
-  reviewCard: { backgroundColor: colors.white, borderRadius: radii.md, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.xs },
+  reviewCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', gap: spacing.xs },
   reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   stars: { flexDirection: 'row', gap: 2 },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, flexDirection: 'row', gap: spacing.sm, padding: spacing.lg, backgroundColor: colors.white, borderTopWidth: 1, borderTopColor: colors.border },

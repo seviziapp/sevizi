@@ -38,7 +38,10 @@ export function ProviderCard({
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.card, highlighted && styles.highlighted, shadow.card]}
+      style={({ pressed }) => [
+        styles.card, highlighted && styles.highlighted, shadow.card,
+        pressed && styles.pressed,
+      ]}
     >
       <View style={styles.iconWrap}>
         <Wrench size={20} color={colors.vert} strokeWidth={2.2} />
@@ -101,15 +104,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.md,
     backgroundColor: colors.white,
-    borderRadius: radii.lg,
+    borderRadius: radii.xl,
     padding: spacing.lg,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: 'rgba(6,41,31,0.05)', // hairline definition without the flat, utilitarian look of a solid border
   },
-  highlighted: { borderColor: colors.vert, borderWidth: 2 },
+  pressed: { opacity: 0.92, transform: [{ scale: 0.995 }] },
+  highlighted: { borderColor: colors.vert, borderWidth: 1.5 },
   iconWrap: {
-    width: 44, height: 44, borderRadius: radii.md,
+    width: 46, height: 46, borderRadius: radii.lg,
     backgroundColor: colors.surface,
+    borderWidth: 1, borderColor: colors.vertSoft,
     alignItems: 'center', justifyContent: 'center',
   },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },

@@ -66,7 +66,7 @@ export const spacing = {
 };
 
 export const radii = {
-  sm: 8, md: 12, lg: 16, xl: 20, pill: 999,
+  sm: 8, md: 12, lg: 16, xl: 20, xxl: 28, pill: 999,
 };
 
 export const shadow = {
@@ -77,4 +77,40 @@ export const shadow = {
     shadowOffset: { width: 0, height: 6 },
     elevation: 3,
   },
+  // Softer, closer shadow for small elements (chips, avatars) — card's 16px
+  // radius reads as too heavy at small sizes.
+  sm: {
+    shadowColor: '#06291F',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  // Deeper, softer-edged shadow for hero/elevated surfaces (feature banners,
+  // modals) — more diffusion reads as "premium" vs. a tight drop shadow.
+  lg: {
+    shadowColor: '#06291F',
+    shadowOpacity: 0.10,
+    shadowRadius: 28,
+    shadowOffset: { width: 0, height: 14 },
+    elevation: 8,
+  },
+  // Brand-colored glow for a primary CTA or highlighted card — a subtle green
+  // halo rather than a neutral shadow.
+  glow: {
+    shadowColor: '#0FA76A',
+    shadowOpacity: 0.28,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
+};
+
+// Gradient pairs for hero/CTA surfaces (used with expo-linear-gradient).
+// Kept as plain hex tuples rather than gradient objects so any consumer
+// (LinearGradient, SVG, etc.) can use them directly.
+export const gradients = {
+  forest: ['#0C3A2B', '#06291F'] as const,   // dark hero / CTA banners
+  mint: ['#12B876', '#0B8A57'] as const,     // brand-colored CTA accents
+  sunrise: ['#FCC419', '#F5A623'] as const,  // warm accent (badges, highlights)
 };
