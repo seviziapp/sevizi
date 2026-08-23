@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Camera, ArrowRight, User } from 'lucide-react-native';
-import { colors, text, radii, spacing } from '../../src/theme/tokens';
+import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { CATEGORIES, ServiceCategory } from '../../src/lib/types';
 import { createRequest, fetchMyProfile, LOME } from '../../src/lib/api';
@@ -70,7 +70,7 @@ export default function NewRequest() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.back()} style={styles.close}>
+        <Pressable onPress={() => router.back()} style={[styles.close, shadow.sm]}>
           <X size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Nouvelle demande</Text>
@@ -173,27 +173,27 @@ const styles = StyleSheet.create({
   },
   close: {
     width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white,
-    borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
   },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
-  providerBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md },
+  providerBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.lg, padding: spacing.md },
   textarea: {
-    backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border,
-    borderRadius: radii.md, padding: spacing.lg, minHeight: 96,
-    ...text.body, color: colors.encre,
+    backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)',
+    borderRadius: radii.lg, padding: spacing.lg, minHeight: 96,
+    ...text.body, color: colors.encre, ...shadow.sm,
   },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.lg, height: 38, borderRadius: radii.pill,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white,
+    borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', backgroundColor: colors.white,
     justifyContent: 'center',
   },
   chipActive: { backgroundColor: colors.encre, borderColor: colors.encre },
   attachRow: { flexDirection: 'row', gap: spacing.md },
   attach: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
-    paddingHorizontal: spacing.lg, height: 44, borderRadius: radii.md,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white,
+    paddingHorizontal: spacing.lg, height: 44, borderRadius: radii.lg,
+    borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', backgroundColor: colors.white,
   },
   urgentActive: { borderColor: colors.terre, backgroundColor: '#F8E2DA' },
   footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme, gap: spacing.sm },

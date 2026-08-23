@@ -119,7 +119,7 @@ export default function JobStatus() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Suivi de mission</Text>
@@ -128,7 +128,7 @@ export default function JobStatus() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Provider card */}
-        <View style={[styles.providerCard, shadow.card]}>
+        <View style={styles.providerCard}>
           <View style={styles.providerAvatar}>
             <Text style={[text.h2, { color: colors.creme }]}>{providerName[0]?.toUpperCase() ?? 'P'}</Text>
           </View>
@@ -225,16 +225,16 @@ export default function JobStatus() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
-  providerCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  providerAvatar: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
+  providerCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', ...shadow.sm },
+  providerAvatar: { width: 48, height: 48, borderRadius: radii.lg, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   actions: { flexDirection: 'row', gap: spacing.sm },
   actionBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  safetyBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.md, padding: spacing.md },
-  miniMap: { height: 160, borderRadius: radii.lg, backgroundColor: '#DDEEE6', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
+  safetyBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: '#F2FBF6', borderRadius: radii.lg, padding: spacing.md },
+  miniMap: { height: 160, borderRadius: radii.xl, backgroundColor: '#DDEEE6', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   mapCoord: { position: 'absolute', bottom: spacing.md, left: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.encre, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.sm },
   navBtn: { position: 'absolute', bottom: spacing.md, right: spacing.md, flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: colors.vert, paddingHorizontal: spacing.md, paddingVertical: 8, borderRadius: radii.md },
   stepRow: { flexDirection: 'row', gap: spacing.md },

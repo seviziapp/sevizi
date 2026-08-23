@@ -71,7 +71,7 @@ export default function Payment() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Paiement</Text>
@@ -91,7 +91,7 @@ export default function Payment() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Summary */}
-          <View style={[styles.summary, shadow.card]}>
+          <View style={[styles.summary, shadow.lg]}>
             <Text style={[text.label, { color: colors.textMuted }]}>MONTANT À RÉGLER</Text>
             <Text style={[text.display, { color: colors.encre, fontSize: 40 }]}>
               {amountNum.toLocaleString('fr-FR')} F
@@ -132,10 +132,10 @@ export default function Payment() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xxxl },
-  summary: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.xl, gap: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: colors.border },
-  noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.lg },
+  summary: { backgroundColor: colors.white, borderRadius: radii.xxl, padding: spacing.xl, gap: spacing.sm, alignItems: 'center', borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
+  noteRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.lg, padding: spacing.lg },
   error: { color: colors.terre, fontSize: 14, textAlign: 'center' },
   footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme },
   verifyingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl },

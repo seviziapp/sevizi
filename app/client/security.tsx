@@ -93,7 +93,7 @@ export default function Security() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Sécurité & confiance</Text>
@@ -155,7 +155,7 @@ export default function Security() {
 
           {/* Account */}
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>MON COMPTE</Text>
-          <View style={[styles.list, shadow.card]}>
+          <View style={styles.list}>
             <View style={styles.row}>
               <Mail size={20} color={colors.encre} />
               <View style={{ flex: 1 }}>
@@ -174,7 +174,7 @@ export default function Security() {
 
           {/* Danger */}
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>ZONE SENSIBLE</Text>
-          <View style={[styles.list, shadow.card]}>
+          <View style={styles.list}>
             <Pressable style={styles.row} onPress={confirmDeleteAccount} disabled={deleting}>
               {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={20} color={colors.terre} />}
               <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>
@@ -192,17 +192,17 @@ export default function Security() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl },
-  statusCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1.5 },
+  statusCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1.5, ...shadow.sm },
   uploadRow: {
     flexDirection: 'row', alignItems: 'center', gap: spacing.md,
-    height: 52, borderRadius: radii.md, borderWidth: 1.5, borderStyle: 'dashed',
+    height: 52, borderRadius: radii.lg, borderWidth: 1.5, borderStyle: 'dashed',
     borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: spacing.lg,
   },
   uploadDone: { borderStyle: 'solid', borderColor: colors.vert, backgroundColor: '#F2FBF6' },
-  list: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden' },
+  list: { backgroundColor: colors.white, borderRadius: radii.xl, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', overflow: 'hidden', ...shadow.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
-  rowBorder: { borderTopWidth: 1, borderTopColor: colors.border },
+  rowBorder: { borderTopWidth: 1, borderTopColor: 'rgba(6,41,31,0.05)' },
   error: { color: colors.terre, fontSize: 14, marginTop: spacing.sm },
 });

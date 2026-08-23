@@ -21,7 +21,7 @@ export default function Help() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Aide</Text>
@@ -29,7 +29,7 @@ export default function Help() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <View style={[styles.hero, shadow.card]}>
+        <View style={styles.hero}>
           <View style={styles.heroIcon}><HelpCircle size={26} color={colors.vert} /></View>
           <View style={{ flex: 1 }}>
             <Text style={[text.bodyMd, { color: colors.encre }]}>Comment pouvons-nous aider ?</Text>
@@ -54,7 +54,7 @@ export default function Help() {
         </View>
 
         <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>CONTACTER LE SUPPORT</Text>
-        <View style={[styles.contactList, shadow.card]}>
+        <View style={styles.contactList}>
           <Pressable style={styles.contactRow} onPress={() => Linking.openURL('mailto:support@sevizi.app')}>
             <Mail size={20} color={colors.vert} />
             <View style={{ flex: 1 }}>
@@ -85,14 +85,14 @@ export default function Help() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl },
-  hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  heroIcon: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
-  faqList: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.lg, marginTop: spacing.sm },
+  hero: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', ...shadow.sm },
+  heroIcon: { width: 48, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  faqList: { backgroundColor: colors.white, borderRadius: radii.xl, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', paddingHorizontal: spacing.lg, marginTop: spacing.sm },
   faqItem: { paddingVertical: spacing.xs },
   faqBorder: { borderTopWidth: 1, borderTopColor: colors.border },
   faqQ: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.md },
-  contactList: { backgroundColor: colors.white, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, overflow: 'hidden', marginTop: spacing.sm },
+  contactList: { backgroundColor: colors.white, borderRadius: radii.xl, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', overflow: 'hidden', marginTop: spacing.sm, ...shadow.sm },
   contactRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg },
 });

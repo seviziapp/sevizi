@@ -46,7 +46,7 @@ export default function MyRequests() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.replace('/client/home')}>
+        <Pressable style={[styles.back, shadow.sm]} onPress={() => router.replace('/client/home')}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Mes demandes</Text>
@@ -78,7 +78,7 @@ export default function MyRequests() {
             return (
               <Pressable
                 key={r.id}
-                style={[styles.card, shadow.card]}
+                style={styles.card}
                 onPress={() => r.status === 'ouverte'
                   ? router.push({ pathname: '/client/offers', params: { requestId: r.id } })
                   : router.push('/client/job-status')}
@@ -115,12 +115,12 @@ export default function MyRequests() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.lg, paddingHorizontal: spacing.xxl },
   cta: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.vert, paddingHorizontal: spacing.xl, height: 48, borderRadius: radii.md },
   scroll: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxxl },
-  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  catIcon: { width: 48, height: 48, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  card: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', ...shadow.sm },
+  catIcon: { width: 48, height: 48, borderRadius: radii.lg, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   badges: { flexDirection: 'row', gap: spacing.sm, marginTop: 4 },
   statusBadge: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   offersBadge: { backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },

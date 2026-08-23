@@ -114,7 +114,7 @@ export default function MapScreen() {
       </View>
 
       {/* Bottom sheet */}
-      <View style={[styles.sheet, shadow.card]}>
+      <View style={styles.sheet}>
         <View style={styles.handle} />
         <View style={styles.sheetHead}>
           <Text style={[text.h3, { color: colors.encre }]}>
@@ -163,10 +163,10 @@ const styles = StyleSheet.create({
   filterChips: { flexDirection: 'row', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingTop: spacing.md },
   fchip: { paddingHorizontal: spacing.md, height: 32, borderRadius: radii.pill, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center', ...shadow.card },
   fchipActive: { backgroundColor: colors.encre },
-  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, padding: spacing.lg, maxHeight: 340 },
+  sheet: { backgroundColor: colors.white, borderTopLeftRadius: radii.xxl, borderTopRightRadius: radii.xxl, padding: spacing.lg, maxHeight: 340, ...shadow.lg },
   handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: colors.border, alignSelf: 'center', marginBottom: spacing.md },
   sheetHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
-  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radii.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   rowActive: { borderColor: colors.vert, borderWidth: 2 },
   iconWrap: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },

@@ -55,7 +55,7 @@ export default function Offers() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Pressable onPress={() => router.replace('/client/home')} style={styles.back}>
+        <Pressable onPress={() => router.replace('/client/home')} style={[styles.back, shadow.sm]}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
         <Text style={[text.h2, { color: colors.encre }]}>Offres reçues</Text>
@@ -173,17 +173,17 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.xl, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.md },
+  back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginHorizontal: spacing.xl, backgroundColor: colors.surface, paddingHorizontal: spacing.lg, paddingVertical: spacing.md, borderRadius: radii.lg },
   noticeDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.vert },
   scroll: { padding: spacing.xl, gap: spacing.md, paddingBottom: spacing.xxxl },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingHorizontal: spacing.xxl, marginTop: -spacing.xxxl },
-  card: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
-  cardFeatured: { borderColor: colors.vert, borderWidth: 2 },
+  card: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
+  cardFeatured: { borderColor: colors.vert, borderWidth: 1.5 },
   bestTag: { alignSelf: 'flex-end', backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 4, borderRadius: radii.sm, marginBottom: spacing.sm },
   visitBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F8E2DA', alignSelf: 'flex-start', paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radii.sm, marginTop: spacing.sm },
   cardTop: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start' },
-  iconWrap: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
+  iconWrap: { width: 44, height: 44, borderRadius: radii.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.vertSoft, alignItems: 'center', justifyContent: 'center' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.xs, flexWrap: 'wrap' },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
