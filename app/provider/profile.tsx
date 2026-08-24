@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock,
+  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount, toggleBookable } from '../../src/lib/api';
@@ -86,6 +86,29 @@ export default function ProviderProfile() {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
         <ActivityIndicator color={colors.vert} style={{ marginTop: 80 }} />
+      </SafeAreaView>
+    );
+  }
+
+  if (!provider) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.emptyWrap}>
+          <View style={styles.emptyIcon}>
+            <UserCircle size={40} color={colors.vert} />
+          </View>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Complétez votre profil</Text>
+          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
+            Renseignez le nom de votre entreprise et votre catégorie pour commencer à recevoir des demandes.
+          </Text>
+          <Pressable style={styles.emptyCta} onPress={() => router.push('/onboarding/provider-details')}>
+            <Text style={[text.bodyMd, { color: colors.white }]}>Compléter mon profil</Text>
+          </Pressable>
+          <Pressable style={styles.emptyLogout} onPress={logout}>
+            <LogOut size={18} color={colors.terre} />
+            <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>
+          </Pressable>
+        </View>
       </SafeAreaView>
     );
   }
@@ -282,6 +305,10 @@ function Stat({ value, label, icon }: { value: string; label: string; icon: Reac
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.xl },
+  emptyWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xxl },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center', marginBottom: spacing.sm },
+  emptyCta: { backgroundColor: colors.vert, borderRadius: radii.md, height: 52, paddingHorizontal: spacing.xxl, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md, ...shadow.glow },
+  emptyLogout: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   hero: { alignItems: 'center', gap: spacing.sm },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatarWrap: { position: 'relative' },

@@ -2,6 +2,7 @@ import React, { useCallback } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import * as Sentry from '@sentry/react-native';
 import { View, StyleSheet } from 'react-native';
 import {
   useFonts,
@@ -17,7 +18,12 @@ import { colors } from '../src/theme/tokens';
 
 SplashScreen.preventAutoHideAsync();
 
-export default function RootLayout() {
+Sentry.init({
+  dsn: 'https://2f48b209cccc07195ff559a41ef97a7c@o4511963789852672.ingest.de.sentry.io/4511963799617616',
+  sendDefaultPii: true,
+});
+
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     HankenGrotesk_300Light,
     HankenGrotesk_400Regular,
@@ -50,3 +56,5 @@ export default function RootLayout() {
 }
 
 const styles = StyleSheet.create({});
+
+export default Sentry.wrap(RootLayout);

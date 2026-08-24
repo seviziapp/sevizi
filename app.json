@@ -56,7 +56,8 @@
             "targetSdkVersion": 36
           }
         }
-      ]
+      ],
+      "@sentry/react-native"
     ],
     "experiments": {
       "typedRoutes": true

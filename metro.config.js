@@ -9,10 +9,16 @@ const config = getDefaultConfig(__dirname);
 // web graph, which fails to resolve `react-native/Libraries/Utilities/Platform`.
 // Redirect it to a harmless stub when bundling for web.
 const mapsStub = path.resolve(__dirname, 'src/lib/react-native-maps-stub.js');
+// `@sentry/react-native`'s exports field breaks Metro's web resolution — see
+// src/lib/sentry-web-stub.js for details. Native builds are unaffected.
+const sentryStub = path.resolve(__dirname, 'src/lib/sentry-web-stub.js');
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (platform === 'web' && moduleName === 'react-native-maps') {
     return { type: 'sourceFile', filePath: mapsStub };
+  }
+  if (platform === 'web' && moduleName === '@sentry/react-native') {
+    return { type: 'sourceFile', filePath: sentryStub };
   }
   return context.resolveRequest(context, moduleName, platform);
 };
