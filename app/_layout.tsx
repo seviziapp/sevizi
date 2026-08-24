@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Sentry from '@sentry/react-native';
+import { PostHogProvider } from 'posthog-react-native';
 import { View, StyleSheet } from 'react-native';
 import {
   useFonts,
@@ -42,16 +43,22 @@ function RootLayout() {
   if (!fontsLoaded) return null;
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.creme }} onLayout={onReady}>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.creme },
-          animation: 'slide_from_right',
-        }}
-      />
-    </View>
+    <PostHogProvider
+      apiKey="phc_qPZzf7oYNXruP7UVZZnXg7tKMHYJi3Q6gUFjLNjwXhQ9"
+      options={{ host: 'https://eu.i.posthog.com' }}
+      autocapture
+    >
+      <View style={{ flex: 1, backgroundColor: colors.creme }} onLayout={onReady}>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.creme },
+            animation: 'slide_from_right',
+          }}
+        />
+      </View>
+    </PostHogProvider>
   );
 }
 

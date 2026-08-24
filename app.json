@@ -64,7 +64,8 @@
           "organization": "we-are-aurum",
           "project": "react-native"
         }
-      ]
+      ],
+      "expo-localization"
     ],
     "experiments": {
       "typedRoutes": true
