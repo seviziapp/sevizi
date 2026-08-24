@@ -45,7 +45,22 @@ function RootLayout() {
   return (
     <PostHogProvider
       apiKey="phc_qPZzf7oYNXruP7UVZZnXg7tKMHYJi3Q6gUFjLNjwXhQ9"
-      options={{ host: 'https://eu.i.posthog.com' }}
+      options={{
+        host: 'https://eu.i.posthog.com',
+        enableSessionReplay: true,
+        sessionReplayConfig: {
+          maskAllTextInputs: true,
+          maskAllImages: false,
+          captureLog: true,
+        },
+        errorTracking: {
+          autocapture: {
+            uncaughtExceptions: true,
+            unhandledRejections: true,
+            console: true,
+          },
+        },
+      }}
       autocapture
     >
       <View style={{ flex: 1, backgroundColor: colors.creme }} onLayout={onReady}>
