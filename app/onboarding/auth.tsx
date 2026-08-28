@@ -4,10 +4,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import * as WebBrowser from 'expo-web-browser';
+import * as AuthSession from 'expo-auth-session';
+import { getQueryParams } from 'expo-auth-session/build/QueryParams';
 import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LogoFull } from '../../src/components/Logo';
 import { supabase } from '../../src/lib/supabase';
+
+// Required so the in-app browser tab used for OAuth closes itself and hands
+// control back to the app once Google redirects to our `sevizi://` scheme.
+WebBrowser.maybeCompleteAuthSession();
 
 export default function Auth() {
   const router = useRouter();
@@ -89,14 +96,47 @@ export default function Auth() {
       // the account's real data (dashboard / home / finish onboarding / role).
       // Redirecting straight to /onboarding/role sent EVERY Google login — even
       // already-registered users — back to the welcome screen.
-      const redirectTo = Platform.OS === 'web'
-        ? window.location.origin + '/'
-        : 'sevizi://';
-      const { error: e } = await supabase.auth.signInWithOAuth({
+      if (Platform.OS === 'web') {
+        const { error: e } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin + '/' },
+        });
+        if (e) throw e;
+        // On web, Supabase redirects the whole page to Google — execution
+        // stops here, so `loading` is intentionally left true.
+        return;
+      }
+
+      // On native, signInWithOAuth only returns a URL — it doesn't open a
+      // browser or handle the redirect on its own. We have to drive both:
+      // open Google's consent screen ourselves, wait for it to redirect back
+      // to our `sevizi://` scheme, then hand the returned tokens to Supabase.
+      const redirectTo = AuthSession.makeRedirectUri({ scheme: 'sevizi' });
+      const { data, error: e } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo },
+        options: { redirectTo, skipBrowserRedirect: true },
       });
       if (e) throw e;
+      if (!data?.url) throw new Error('Connexion Google échouée.');
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+      if (result.type !== 'success' || !result.url) {
+        // User closed the browser / cancelled — not an error to surface.
+        setLoading(false);
+        return;
+      }
+
+      const { params, errorCode } = getQueryParams(result.url);
+      if (errorCode) throw new Error(errorCode);
+      if (!params.access_token || !params.refresh_token) {
+        throw new Error('Connexion Google échouée.');
+      }
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: params.access_token,
+        refresh_token: params.refresh_token,
+      });
+      if (sessionError) throw sessionError;
+      router.replace('/');
     } catch (e: any) {
       setError(e.message ?? 'Connexion Google échouée.');
       setLoading(false);
