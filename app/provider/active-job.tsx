@@ -2,17 +2,18 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, Linking, Platform, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, MessageCircle, Navigation, CheckCircle, ChevronRight, Briefcase, AlertTriangle, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, MessageCircle, Navigation, CheckCircle, ChevronRight, Briefcase, AlertTriangle, ShieldAlert, Handshake, Car, MapPin, Wrench, Flag } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
 
-const STEPS: { key: JobStatus; label: string; action: string; emoji: string }[] = [
-  { key: 'accepte',  label: 'Mission acceptée',      action: 'Démarrer le trajet',  emoji: '✅' },
-  { key: 'en_route', label: 'En route',               action: 'Je suis arrivé',      emoji: '🚗' },
-  { key: 'arrive',   label: 'Arrivé chez le client',  action: 'Démarrer la mission', emoji: '📍' },
-  { key: 'en_cours', label: 'Mission en cours',        action: 'Mission terminée',    emoji: '🔧' },
-  { key: 'termine',  label: 'Mission terminée',        action: '',                    emoji: '🏁' },
+type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
+const STEPS: { key: JobStatus; label: string; action: string; Icon: StepIcon }[] = [
+  { key: 'accepte',  label: 'Mission acceptée',       action: 'Démarrer le trajet',  Icon: Handshake },
+  { key: 'en_route', label: 'En route',               action: 'Je suis arrivé',      Icon: Car },
+  { key: 'arrive',   label: 'Arrivé chez le client',  action: 'Démarrer la mission', Icon: MapPin },
+  { key: 'en_cours', label: 'Mission en cours',        action: 'Mission terminée',    Icon: Wrench },
+  { key: 'termine',  label: 'Mission terminée',        action: '',                    Icon: Flag },
 ];
 
 export default function ActiveJob() {
@@ -106,7 +107,7 @@ export default function ActiveJob() {
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <View style={[styles.statusCard, isDone && styles.statusCardDone]}>
-          <Text style={{ fontSize: 40 }}>{current.emoji}</Text>
+          <current.Icon size={34} color={isDone ? colors.creme : colors.vert} />
           <Text style={[text.h2, { color: isDone ? colors.creme : colors.encre }]}>{current.label}</Text>
           <Text style={[text.small, { color: isDone ? colors.textMutedDark : colors.textMuted }]}>
             {clientName}{locationLabel ? ` · ${locationLabel}` : ''}
@@ -158,7 +159,7 @@ export default function ActiveJob() {
                   <View style={[styles.dot, done && styles.dotDone, active && styles.dotActive]}>
                     {done
                       ? <CheckCircle size={14} color={colors.white} />
-                      : <Text style={{ fontSize: 12 }}>{step.emoji}</Text>}
+                      : <step.Icon size={13} color={active ? colors.white : colors.textMuted} />}
                   </View>
                   {i < STEPS.length - 1 && <View style={[styles.line, done && styles.lineDone]} />}
                 </View>
@@ -184,7 +185,7 @@ export default function ActiveJob() {
         ) : (
           <View style={{ gap: spacing.md }}>
             <View style={styles.doneCard}>
-              <Text style={{ fontSize: 32 }}>🎉</Text>
+              <CheckCircle size={30} color={colors.vert} />
               <Text style={[text.h3, { color: colors.encre }]}>Mission accomplie !</Text>
               <Text style={[text.small, { color: colors.textMuted }]}>Le client va vous évaluer sous peu.</Text>
             </View>

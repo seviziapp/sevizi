@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-nat
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight, Crown } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME } from '../../src/lib/api';
@@ -143,7 +144,7 @@ export default function ProviderDashboard() {
             <View style={{ flex: 1 }}>
               <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
               <Text style={[text.small, { color: colors.textMutedDark }]}>
-                {activeJob.clientName || 'Client'} · {activeJob.status === 'en_route' ? 'En route 🚗' : activeJob.status === 'arrive' ? 'Arrivé 📍' : 'En cours 🔧'}
+                {activeJob.clientName || 'Client'} · {activeJob.status === 'en_route' ? 'En route' : activeJob.status === 'arrive' ? 'Arrivé' : 'En cours'}
               </Text>
             </View>
             <Text style={[text.small, { color: colors.vert }]}>Gérer →</Text>
@@ -183,7 +184,7 @@ function RequestRow({ req, onPress }: { req: ServiceRequest; onPress: () => void
   return (
     <Pressable style={[styles.reqRow, shadow.card]} onPress={onPress}>
       <View style={styles.catEmoji}>
-        <Text style={{ fontSize: 20 }}>{cat?.emoji}</Text>
+        <CategoryIcon category={req.category} size={18} />
       </View>
       <View style={{ flex: 1 }}>
         <View style={styles.reqTop}>

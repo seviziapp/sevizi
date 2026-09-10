@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView, TextInput, ActivityIndicator, Linking, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, MapPin, MessageCircle, Navigation, Star, CheckCircle, AlertTriangle, ShieldAlert } from 'lucide-react-native';
+import { ArrowLeft, MapPin, MessageCircle, Navigation, Star, CheckCircle, AlertTriangle, ShieldAlert, Handshake, Car, Wrench, Flag, Search } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus, submitReview } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
 import { LOME } from '../../src/lib/api';
 
-const STEPS: { key: JobStatus; label: string; desc: string; emoji: string }[] = [
-  { key: 'accepte',  label: 'Accepté',     desc: 'Le prestataire a accepté votre demande',  emoji: '✅' },
-  { key: 'en_route', label: 'En route',    desc: 'Le prestataire est en chemin vers vous',   emoji: '🚗' },
-  { key: 'arrive',   label: 'Arrivé',      desc: 'Le prestataire est arrivé à votre adresse', emoji: '📍' },
-  { key: 'en_cours', label: 'En cours',    desc: 'La mission est en cours de réalisation',   emoji: '🔧' },
-  { key: 'termine',  label: 'Terminé',     desc: 'Mission accomplie !',                      emoji: '🏁' },
+type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
+const STEPS: { key: JobStatus; label: string; desc: string; Icon: StepIcon }[] = [
+  { key: 'accepte',  label: 'Accepté',     desc: 'Le prestataire a accepté votre demande',    Icon: Handshake },
+  { key: 'en_route', label: 'En route',    desc: 'Le prestataire est en chemin vers vous',    Icon: Car },
+  { key: 'arrive',   label: 'Arrivé',      desc: 'Le prestataire est arrivé à votre adresse', Icon: MapPin },
+  { key: 'en_cours', label: 'En cours',    desc: 'La mission est en cours de réalisation',    Icon: Wrench },
+  { key: 'termine',  label: 'Terminé',     desc: 'Mission accomplie !',                       Icon: Flag },
 ];
 
 export default function JobStatus() {
@@ -51,7 +52,7 @@ export default function JobStatus() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
-          <Text style={{ fontSize: 48 }}>🔍</Text>
+          <Search size={44} color={colors.border} />
           <Text style={[text.body, { color: colors.textMuted }]}>Aucune mission en cours.</Text>
           <Pressable style={styles.backBtn} onPress={() => router.replace('/client/home')}>
             <Text style={[text.bodyMd, { color: colors.vert }]}>Retour à l'accueil</Text>
@@ -77,7 +78,7 @@ export default function JobStatus() {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.reviewScreen}>
-          <Text style={{ fontSize: 56 }}>⭐</Text>
+          <Star size={52} color={colors.soleil} fill={colors.soleil} />
           <Text style={[text.h1, { color: colors.encre, textAlign: 'center' }]}>Mission terminée !</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
             Notez votre expérience avec {providerName}
@@ -185,7 +186,9 @@ export default function JobStatus() {
               <View key={step.key} style={styles.stepRow}>
                 <View style={styles.stepLeft}>
                   <View style={[styles.stepDot, done && styles.stepDone, active && styles.stepActive, future && styles.stepFuture]}>
-                    {done ? <CheckCircle size={16} color={colors.white} /> : <Text style={{ fontSize: 14 }}>{step.emoji}</Text>}
+                    {done
+                      ? <CheckCircle size={16} color={colors.white} />
+                      : <step.Icon size={15} color={active ? colors.white : colors.textMuted} />}
                   </View>
                   {i < STEPS.length - 1 && <View style={[styles.stepLine, done && styles.stepLineDone]} />}
                 </View>

@@ -2,7 +2,8 @@ import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react'
 import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Navigation, ChevronRight, Crosshair } from 'lucide-react-native';
+import { Navigation, ChevronRight, Crosshair, X } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, resolveMyLocation, LOME } from '../../src/lib/api';
 import { getCurrentPosition } from '../../src/lib/geolocation';
@@ -80,7 +81,7 @@ export default function ProviderMap() {
     .filter(r => r.location && Number.isFinite(r.location.lat))
     .map(r => ({
       id: r.id, lat: r.location.lat, lng: r.location.lng,
-      emoji: CATEGORIES.find(c => c.key === r.category)?.emoji, urgent: r.urgent,
+      urgent: r.urgent,
       onPress: () => setSelected(r),
     }));
 
@@ -104,7 +105,7 @@ export default function ProviderMap() {
           </Pressable>
           {TOP_CATS.map(c => (
             <Pressable key={c.key} style={[styles.chip, filter === c.key && styles.chipActive]} onPress={() => setFilter(c.key)}>
-              <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+              <CategoryIcon category={c.key} size={14} color={filter === c.key ? colors.white : colors.vert} />
               <Text style={[text.small, { color: filter === c.key ? colors.white : colors.encre }]}>{c.label}</Text>
             </Pressable>
           ))}
@@ -118,14 +119,14 @@ export default function ProviderMap() {
           <View style={{ gap: spacing.md }}>
             <View style={styles.selectedHead}>
               <View style={styles.catIcon}>
-                <Text style={{ fontSize: 22 }}>{cat?.emoji}</Text>
+                <CategoryIcon category={selected.category} size={20} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[text.h3, { color: colors.encre }]}>{cat?.label}</Text>
                 <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={2}>{selected.description}</Text>
               </View>
               <Pressable onPress={() => setSelected(null)} style={styles.closeBtn}>
-                <Text style={[text.label, { color: colors.textMuted }]}>✕</Text>
+                <X size={16} color={colors.textMuted} />
               </Pressable>
             </View>
             <View style={styles.selectedMeta}>
@@ -133,7 +134,7 @@ export default function ProviderMap() {
               <Text style={[text.small, { color: colors.textMuted }]}>
                 {selected.locationLabel}{selected.distanceKm != null ? ` · ${selected.distanceKm.toFixed(1)} km` : ''}
               </Text>
-              {selected.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>⚡ URGENT</Text></View>}
+              {selected.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>URGENT</Text></View>}
             </View>
             <Pressable
               style={styles.offerBtn}
@@ -156,7 +157,7 @@ export default function ProviderMap() {
                 const c = CATEGORIES.find(cc => cc.key === r.category);
                 return (
                   <Pressable key={r.id} style={[styles.row, i === 0 && styles.rowFirst]} onPress={() => setSelected(r)}>
-                    <Text style={{ fontSize: 18 }}>{c?.emoji}</Text>
+                    <CategoryIcon category={r.category} size={18} />
                     <View style={{ flex: 1 }}>
                       <Text style={[text.bodyMd, { color: colors.encre }]}>{c?.label}</Text>
                       {r.distanceKm != null && (

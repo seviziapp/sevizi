@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, Image, Activi
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Plus, X, ImagePlus, Lock, Check, Copy, Share2 } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { pickFile } from '../../src/lib/pickFile';
@@ -220,7 +221,7 @@ export default function EditProviderProfile() {
                   style={[styles.chip, active && styles.chipActive]}
                   onPress={() => selectPrimaryCategory(c.key)}
                 >
-                  <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+                  <CategoryIcon category={c.key} size={14} color={active ? colors.white : colors.vert} />
                   <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{c.label}</Text>
                 </Pressable>
               );
@@ -244,7 +245,7 @@ export default function EditProviderProfile() {
                   style={[styles.chip, active && styles.chipActive, !isPro && styles.chipLocked]}
                   onPress={() => toggleExtraCategory(c.key)}
                 >
-                  <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+                  <CategoryIcon category={c.key} size={14} color={active ? colors.white : colors.vert} />
                   <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{c.label}</Text>
                   {!isPro && <Lock size={11} color={colors.textMuted} />}
                 </Pressable>

@@ -101,7 +101,7 @@ function VerifCard({ item, onApprove, onReject, readonly }: {
             <View style={styles.typeBadge}>
               <Text style={[text.label, { color: colors.encre }]}>{isProvider ? 'PRESTATAIRE' : 'CLIENT'}</Text>
             </View>
-            {cat && <Text style={[text.small, { color: colors.textMuted }]}>{cat.emoji} {cat.label}</Text>}
+            {cat && <Text style={[text.small, { color: colors.textMuted }]}>{cat.label}</Text>}
           </View>
           <View style={styles.metaRow}>
             <Clock size={12} color={colors.textMuted} />

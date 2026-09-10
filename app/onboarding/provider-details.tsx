@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
 import { Building2, User, Phone, Mail, ArrowRight, Check, Crown } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
@@ -104,7 +105,7 @@ export default function ProviderDetails() {
               const active = c.key === category;
               return (
                 <Pressable key={c.key} onPress={() => setCategory(c.key)} style={[styles.chip, active && styles.chipActive]}>
-                  <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+                  <CategoryIcon category={c.key} size={14} color={active ? colors.white : colors.vert} />
                   <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{c.label}</Text>
                 </Pressable>
               );

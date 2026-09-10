@@ -5,6 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { X, Send, Clock, Crown, Lock, MapPin } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { sendOffer, fetchMyProviderProfile, fetchOfferStatsForRequest } from '../../src/lib/api';
@@ -70,7 +71,7 @@ export default function SendOffer() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Request summary */}
           <View style={[styles.requestBox, shadow.card]}>
-            <Text style={{ fontSize: 28 }}>{cat?.emoji ?? '🔧'}</Text>
+            <CategoryIcon category={category} size={24} />
             <View style={{ flex: 1 }}>
               <Text style={[text.bodyMd, { color: colors.encre }]}>{cat?.label}</Text>
               <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={2}>

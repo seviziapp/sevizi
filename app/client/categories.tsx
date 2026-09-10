@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, TextInput } from 'react-
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { X, Search, ChevronRight } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { CATEGORIES } from '../../src/lib/types';
 
@@ -41,7 +42,7 @@ export default function Categories() {
               style={[styles.card, shadow.card]}
               onPress={() => router.push({ pathname: '/client/new-request', params: { category: c.key } })}
             >
-              <Text style={{ fontSize: 32 }}>{c.emoji}</Text>
+              <CategoryIcon category={c.key} size={26} strokeWidth={1.75} />
               <Text style={[text.small, { color: colors.encre, textAlign: 'center' }]}>{c.label}</Text>
             </Pressable>
           ))}

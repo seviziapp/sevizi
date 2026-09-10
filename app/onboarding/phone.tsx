@@ -10,9 +10,9 @@ import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
 
 const COUNTRY_CODES = [
-  { flag: '🇹🇬', code: '+228', country: 'Togo' },
-  { flag: '🇧🇯', code: '+229', country: 'Bénin' },
-  { flag: '🇬🇭', code: '+233', country: 'Ghana' },
+  { iso: 'TG', code: '+228', country: 'Togo' },
+  { iso: 'BJ', code: '+229', country: 'Bénin' },
+  { iso: 'GH', code: '+233', country: 'Ghana' },
 ];
 
 export default function PhoneScreen() {
@@ -51,7 +51,7 @@ export default function PhoneScreen() {
               style={styles.countryBtn}
               onPress={() => setCountryIdx((countryIdx + 1) % COUNTRY_CODES.length)}
             >
-              <Text style={{ fontSize: 22 }}>{country.flag}</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{country.iso}</Text>
               <Text style={[text.bodyMd, { color: colors.encre }]}>{country.code}</Text>
             </Pressable>
 

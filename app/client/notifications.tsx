@@ -2,18 +2,19 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Bell, CheckCheck } from 'lucide-react-native';
+import { ArrowLeft, Bell, CheckCheck, MessageCircle, CircleCheck, MapPin, Flag, Star } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNotifications, markAllNotificationsRead } from '../../src/lib/api';
 import type { Notification } from '../../src/lib/types';
 
-const ICONS: Record<string, string> = {
-  offer: '💬',
-  accepted: '✅',
-  arrived: '📍',
-  completed: '🏁',
-  review: '⭐',
-  system: '🔔',
+type NotifIcon = React.ComponentType<{ size?: number; color?: string }>;
+const ICONS: Record<string, NotifIcon> = {
+  offer: MessageCircle,
+  accepted: CircleCheck,
+  arrived: MapPin,
+  completed: Flag,
+  review: Star,
+  system: Bell,
 };
 
 function timeAgo(iso: string) {
@@ -86,7 +87,7 @@ export default function Notifications() {
             onPress={() => n.actionRoute && router.push(n.actionRoute as any)}
           >
             <View style={styles.iconCircle}>
-              <Text style={{ fontSize: 22 }}>{ICONS[n.type] ?? '🔔'}</Text>
+              {(() => { const Icon = ICONS[n.type] ?? Bell; return <Icon size={18} color={colors.vert} />; })()}
             </View>
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[text.bodyMd, { color: colors.encre }]}>{n.title}</Text>

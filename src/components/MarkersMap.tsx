@@ -8,7 +8,6 @@ export type MapMarker = {
   id: string;
   lat: number;
   lng: number;
-  emoji?: string;
   urgent?: boolean;
   onPress?: () => void;
 };
@@ -54,6 +53,7 @@ export function MarkersMap({ center, markers, height = 300, fill }: {
             key={m.id}
             coordinate={{ latitude: m.lat, longitude: m.lng }}
             onPress={m.onPress}
+            pinColor={m.urgent ? colors.terre : colors.vert}
           />
         ))}
       </MapView>

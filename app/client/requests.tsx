@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Refre
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowLeft, ChevronRight, Inbox, Plus } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyRequestsWithOffers } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest } from '../../src/lib/types';
@@ -83,7 +84,7 @@ export default function MyRequests() {
                   ? router.push({ pathname: '/client/offers', params: { requestId: r.id } })
                   : router.push('/client/job-status')}
               >
-                <View style={styles.catIcon}><Text style={{ fontSize: 22 }}>{cat?.emoji ?? '🔧'}</Text></View>
+                <View style={styles.catIcon}><CategoryIcon category={r.category} size={20} /></View>
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{r.description}</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>

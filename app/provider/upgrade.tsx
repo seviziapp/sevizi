@@ -114,7 +114,7 @@ export default function UpgradeToPro() {
           <View style={styles.activeIcon}>
             <Crown size={36} color={colors.soleil} fill={colors.soleil} />
           </View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Vous êtes Pro 🎉</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Vous êtes Pro</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
             Commission réduite, placement prioritaire et badge vérifié sont déjà actifs sur votre profil.
           </Text>

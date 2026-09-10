@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { MapPin, Clock, ChevronRight, SlidersHorizontal, Crown } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, resolveMyLocation, fetchMyProviderProfile, LOME } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
@@ -57,7 +58,7 @@ export default function ProviderRequests() {
         </Pressable>
         {topCats.map(c => (
           <Pressable key={c.key} style={[styles.chip, filter === c.key && styles.chipActive]} onPress={() => setFilter(c.key)}>
-            <Text style={{ fontSize: 14 }}>{c.emoji}</Text>
+            <CategoryIcon category={c.key} size={14} color={filter === c.key ? colors.white : colors.vert} />
             <Text style={[text.small, { color: filter === c.key ? colors.white : colors.encre }]}>{c.label}</Text>
           </Pressable>
         ))}
@@ -100,14 +101,14 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
     <Pressable style={[styles.card, shadow.card, req.urgent && styles.cardUrgent]} onPress={onPress}>
       <View style={styles.cardTop}>
         <View style={styles.catIcon}>
-          <Text style={{ fontSize: 22 }}>{cat?.emoji}</Text>
+          <CategoryIcon category={req.category} size={20} />
         </View>
         <View style={{ flex: 1 }}>
           <View style={styles.titleRow}>
             <Text style={[text.bodyMd, { color: colors.encre }]}>{cat?.label}</Text>
             {req.urgent && (
               <View style={styles.urgentBadge}>
-                <Text style={[text.label, { color: colors.terre }]}>⚡ URGENT</Text>
+                <Text style={[text.label, { color: colors.terre }]}>URGENT</Text>
               </View>
             )}
           </View>
@@ -131,7 +132,7 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
         </View>
         <View style={[styles.offersTag, offersCount === 0 && styles.offersTagNew]}>
           <Text style={[text.label, { color: offersCount === 0 ? colors.vert : colors.textMuted }]}>
-            {offersCount === 0 ? '✦ Nouveau' : `${offersCount} offre${offersCount > 1 ? 's' : ''}`}
+            {offersCount === 0 ? 'Nouveau' : `${offersCount} offre${offersCount > 1 ? 's' : ''}`}
           </Text>
         </View>
       </View>

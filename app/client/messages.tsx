@@ -13,7 +13,6 @@ type Thread = {
   time: string;
   unread: number;
   online: boolean;
-  emoji: string;
   status: string | null;
 };
 
@@ -32,7 +31,6 @@ export default function Messages() {
           time: t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
           unread: t.unreadCount ?? 0,
           online: false,
-          emoji: '💬',
           status: null,
         })));
       })
@@ -72,7 +70,7 @@ export default function Messages() {
             >
               <View style={styles.avatarWrap}>
                 <View style={styles.avatar}>
-                  <Text style={{ fontSize: 22 }}>{t.emoji}</Text>
+                  <Text style={[text.h3, { color: colors.vert }]}>{t.name?.[0]?.toUpperCase() ?? '?'}</Text>
                 </View>
                 {t.online && <View style={styles.onlineDot} />}
               </View>

@@ -68,7 +68,6 @@ export default function MapScreen() {
     .filter(p => p.location && Number.isFinite(p.location.lat))
     .map(p => ({
       id: p.id, lat: p.location.lat, lng: p.location.lng,
-      emoji: CATEGORIES.find(c => c.key === p.category)?.emoji ?? '🔧',
       onPress: () => router.push({ pathname: '/shared/provider-profile', params: { id: p.id } }),
     }));
 

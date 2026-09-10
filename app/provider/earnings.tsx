@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat, Tag } from 'lucide-react-native';
+import { ArrowLeft, Wallet, TrendingUp, Crown, Lock, Repeat, Tag, Wrench } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { alert } from '../../src/lib/alert';
@@ -232,7 +232,7 @@ export default function Earnings() {
             {transactions.map(t => (
               <View key={t.id} style={[styles.txCard, shadow.card]}>
                 <View style={styles.txLeft}>
-                  <Text style={{ fontSize: 22 }}>🔧</Text>
+                  <View style={styles.txIcon}><Wrench size={16} color={colors.vert} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={[text.bodyMd, { color: colors.encre }]}>{t.client}</Text>
                     <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={1}>{t.service}</Text>
@@ -273,6 +273,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.xxxl },
   txCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
   txLeft: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, flex: 1 },
+  txIcon: { width: 36, height: 36, borderRadius: radii.md, backgroundColor: colors.surface, alignItems: 'center', justifyContent: 'center' },
   methodBadge: { backgroundColor: colors.surface, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: radii.sm },
   analyticsCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border, gap: spacing.sm },
   analyticsHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },

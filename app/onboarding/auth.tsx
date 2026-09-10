@@ -60,7 +60,7 @@ export default function Auth() {
         if (!data.session) {
           setMode('login');
           setPendingConfirmEmail(email);
-          setInfo('Compte créé ✅ Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
+          setInfo('Compte créé. Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
           setLoading(false);
           return;
         }
@@ -153,7 +153,7 @@ export default function Auth() {
           </View>
 
           <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>
-            {mode === 'login' ? 'Bon retour 👋' : 'Créer un compte'}
+            {mode === 'login' ? 'Bon retour' : 'Créer un compte'}
           </Text>
           <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.xl }]}>
             {mode === 'login'

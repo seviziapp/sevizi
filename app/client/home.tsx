@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, MapPin, ChevronDown, Plus, ChevronRight } from 'lucide-react-native';
+import { Search, Bell, MapPin, ChevronDown, Plus, ChevronRight, MoreHorizontal } from 'lucide-react-native';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { ProviderCard } from '../../src/components/ProviderCard';
@@ -81,7 +82,7 @@ export default function Home() {
               <View style={{ flex: 1 }}>
                 <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
                 <Text style={[text.small, { color: colors.textMutedDark }]}>
-                  {activeJob.provider?.name ?? 'Prestataire'} · {activeJob.status === 'en_route' ? 'En route 🚗' : activeJob.status === 'arrive' ? 'Arrivé 📍' : activeJob.status === 'en_cours' ? 'En cours 🔧' : 'Accepté ✅'}
+                  {activeJob.provider?.name ?? 'Prestataire'} · {activeJob.status === 'en_route' ? 'En route' : activeJob.status === 'arrive' ? 'Arrivé' : activeJob.status === 'en_cours' ? 'En cours' : 'Accepté'}
                 </Text>
               </View>
               <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
@@ -106,7 +107,7 @@ export default function Home() {
                   style={[styles.reqRow, shadow.card]}
                   onPress={() => router.push({ pathname: '/client/offers', params: { requestId: r.id } })}
                 >
-                  <View style={styles.reqIcon}><Text style={{ fontSize: 20 }}>{cat?.emoji ?? '🔧'}</Text></View>
+                  <View style={styles.reqIcon}><CategoryIcon category={r.category} size={18} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{r.description}</Text>
                     <Text style={[text.label, { color: colors.textMuted }]}>{cat?.label} · Ouverte</Text>
@@ -136,14 +137,14 @@ export default function Home() {
               onPress={() => router.push({ pathname: '/client/new-request', params: { category: c.key } })}
             >
               <View style={[styles.catIcon, shadow.sm]}>
-                <Text style={{ fontSize: 22 }}>{c.emoji}</Text>
+                <CategoryIcon category={c.key} size={22} />
               </View>
               <Text style={[text.label, { color: colors.encre, textAlign: 'center', fontSize: 11 }]} numberOfLines={1}>{c.label}</Text>
             </Pressable>
           ))}
           <Pressable style={styles.cat} onPress={() => router.push('/client/categories')}>
             <View style={[styles.catIcon, shadow.sm]}>
-              <Text style={{ fontSize: 22 }}>⋯</Text>
+              <MoreHorizontal size={22} color={colors.vert} />
             </View>
             <Text style={[text.label, { color: colors.encre, fontSize: 11 }]}>Plus</Text>
           </Pressable>

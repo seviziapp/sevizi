@@ -9,6 +9,7 @@ import {
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
+import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { fetchProvider, fetchProviderReviews, fetchProviderCompletedCount, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
 import { Image } from 'react-native';
 import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
@@ -70,7 +71,7 @@ export default function ProviderProfileView() {
               {provider.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
             </View>
             <View style={styles.catRow}>
-              <Text style={{ fontSize: 18 }}>{cat?.emoji}</Text>
+              <CategoryIcon category={provider.category} size={15} color={colors.creme} />
               <Text style={[text.body, { color: colors.textMutedDark }]}>
                 {[cat?.label, ...(provider.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')}
               </Text>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, TextInput, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Search, Navigation, ArrowRight } from 'lucide-react-native';
+import { MapPin, Search, Navigation, ArrowRight, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { saveMyAddress } from '../../src/lib/api';
@@ -94,7 +94,7 @@ export default function LocationScreen() {
             <Text style={[text.small, { color: colors.textMuted }]}>Localisation précise en temps réel</Text>
           </View>
           {selected === 'Ma position GPS' && !locating && (
-            <View style={styles.check}><Text style={[text.label, { color: colors.vert }]}>✓</Text></View>
+            <View style={styles.check}><Check size={16} color={colors.vert} /></View>
           )}
         </Pressable>
 
@@ -110,7 +110,7 @@ export default function LocationScreen() {
               >
                 <MapPin size={16} color={selected === q ? colors.vert : colors.textMuted} />
                 <Text style={[text.body, { color: colors.encre, flex: 1 }]}>{q}, Lomé</Text>
-                {selected === q && <Text style={[text.label, { color: colors.vert }]}>✓</Text>}
+                {selected === q && <Check size={15} color={colors.vert} />}
               </Pressable>
             ))}
           </View>
