@@ -7,6 +7,7 @@ import {
   ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
+import { SevigoMark } from '../../src/components/SevigoLogo';
 import { fetchMyProviderProfile, fetchProviderReviews, fetchMyProfile, deleteMyAccount, toggleBookable } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
 import { alert } from '../../src/lib/alert';
@@ -230,6 +231,11 @@ export default function ProviderProfile() {
             {provider?.tier === 'pro'
               ? <Check size={18} color={colors.vert} />
               : <ChevronRight size={18} color={colors.textMuted} />}
+          </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/sevigo/dashboard')}>
+            <SevigoMark size={20} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Sèvi Go — Factures & paiements</Text>
+            <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} disabled={savingBookable} onPress={() => onToggleBookable(!bookable)}>
             <CalendarDays size={20} color={colors.encre} />
