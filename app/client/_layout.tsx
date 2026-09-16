@@ -4,6 +4,7 @@ import { View, Pressable, StyleSheet, Text, Platform, useWindowDimensions } from
 import { Home, Map, Plus, MessageCircle, User, LayoutGrid, ClipboardList } from 'lucide-react-native';
 import { colors, radii, shadow, spacing, text } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
+import { SevigoMark } from '../../src/components/SevigoLogo';
 
 const NAV_ITEMS = [
   { label: 'Accueil',     icon: Home,          route: '/client/home' },
@@ -11,6 +12,7 @@ const NAV_ITEMS = [
   { label: 'Carte',       icon: Map,           route: '/client/map' },
   { label: 'Messages',    icon: MessageCircle, route: '/client/messages' },
   { label: 'Catégories',  icon: LayoutGrid,    route: '/client/categories' },
+  { label: 'Sèvi Go',     icon: null,          route: '/sevigo/dashboard' },
   { label: 'Profil',      icon: User,          route: '/client/profile' },
 ];
 
@@ -27,14 +29,16 @@ function DesktopSidebar() {
 
       <View style={styles.sidebarNav}>
         {NAV_ITEMS.map(({ label, icon: Icon, route }) => {
-          const active = pathname === route;
+          const active = route === '/sevigo/dashboard' ? pathname.startsWith('/sevigo') : pathname === route;
           return (
             <Pressable
               key={route}
               style={[styles.sidebarItem, active && styles.sidebarItemActive]}
               onPress={() => router.push(route as any)}
             >
-              <Icon size={20} color={active ? colors.vert : colors.textMutedDark} />
+              {Icon
+                ? <Icon size={20} color={active ? colors.vert : colors.textMutedDark} />
+                : <SevigoMark size={20} />}
               <Text style={[text.bodyMd, { color: active ? colors.creme : colors.textMutedDark }]}>
                 {label}
               </Text>
