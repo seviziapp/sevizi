@@ -822,4 +822,10 @@ create policy "admin reads all job payments" on job_payments for select using (i
 drop policy if exists "admin reads all pro payments" on pro_payments;
 create policy "admin reads all pro payments" on pro_payments for select using (is_admin());
 
+-- ============================================================
+-- 22) Admin can close/cancel a stale open request
+-- ============================================================
+drop policy if exists "admin manages requests" on requests;
+create policy "admin manages requests" on requests for update using (is_admin());
+
 -- Done ✅

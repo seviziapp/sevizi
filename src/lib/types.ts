@@ -270,6 +270,21 @@ export interface Dispute {
   status: 'ouvert' | 'resolu';
 }
 
+// Admin's "close it out" view of an open request — includes contact info
+// the client-facing ServiceRequest doesn't carry, so admin can call the
+// client (or chase providers) and manually resolve stale ones by phone.
+export interface AdminOpenRequest {
+  id: string;
+  clientName: string;
+  clientPhone: string | null;
+  description: string;
+  category: ServiceCategory;
+  urgent: boolean;
+  locationLabel: string;
+  createdAt: string;
+  offersCount: number;
+}
+
 export interface WithdrawalRequest {
   id: string;
   providerName: string;

@@ -79,6 +79,7 @@ export default function AdminLayout() {
           is already at 5 items. */}
       <Tabs.Screen name="discounts" options={{ href: null }} />
       <Tabs.Screen name="activity" options={{ href: null }} />
+      <Tabs.Screen name="requests" options={{ href: null }} />
     </Tabs>
   );
 }

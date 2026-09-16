@@ -40,8 +40,14 @@ export default function AdminDashboard() {
         </View>
 
         {/* Alert row */}
-        {stats && (stats.pendingVerifications > 0 || stats.openDisputes > 0 || stats.pendingWithdrawals > 0) && (
+        {stats && (stats.openRequests > 0 || stats.pendingVerifications > 0 || stats.openDisputes > 0 || stats.pendingWithdrawals > 0) && (
           <View style={styles.alertsRow}>
+            {stats.openRequests > 0 && (
+              <Pressable style={[styles.alertCard, { borderColor: colors.soleil }]} onPress={() => router.push('/admin/requests')}>
+                <Clock size={16} color={colors.soleil} />
+                <Text style={[text.small, { color: colors.encre }]}>{stats.openRequests} demande{stats.openRequests > 1 ? 's' : ''} ouverte{stats.openRequests > 1 ? 's' : ''} — à suivre</Text>
+              </Pressable>
+            )}
             {stats.pendingVerifications > 0 && (
               <Pressable style={[styles.alertCard, { borderColor: colors.soleil }]} onPress={() => router.push('/admin/verification')}>
                 <ShieldCheck size={16} color={colors.soleil} />
@@ -68,7 +74,7 @@ export default function AdminDashboard() {
           <View style={styles.kpiGrid}>
             <KPI icon={<Users size={20} color={colors.vert} />} value={stats.totalUsers.toLocaleString('fr-FR')} label="Utilisateurs" />
             <KPI icon={<Briefcase size={20} color={colors.vert} />} value={String(stats.totalProviders)} label="Prestataires" />
-            <KPI icon={<Clock size={20} color={colors.soleil} />} value={String(stats.openRequests)} label="Demandes ouvertes" />
+            <KPI icon={<Clock size={20} color={colors.soleil} />} value={String(stats.openRequests)} label="Demandes ouvertes" onPress={() => router.push('/admin/requests')} />
             <KPI icon={<CheckCircle size={20} color={colors.vert} />} value={String(stats.completedToday)} label="Terminées auj." />
             <KPI icon={<TrendingUp size={20} color={colors.vert} />} value={`${stats.responseRate}%`} label="Taux de réponse" />
             <KPI icon={<AlertTriangle size={20} color={stats.openDisputes > 0 ? colors.terre : colors.textMuted} />} value={String(stats.openDisputes)} label="Litiges" />
@@ -101,6 +107,7 @@ export default function AdminDashboard() {
         {/* Quick links */}
         <View style={styles.quickLinks}>
           {[
+            { label: 'Demandes ouvertes', route: '/admin/requests', count: stats?.openRequests },
             { label: 'File de vérification', route: '/admin/verification', count: stats?.pendingVerifications },
             { label: 'Litiges actifs', route: '/admin/disputes', count: stats?.openDisputes },
             { label: 'Demandes de retrait', route: '/admin/withdrawals', count: stats?.pendingWithdrawals },
@@ -124,13 +131,14 @@ export default function AdminDashboard() {
   );
 }
 
-function KPI({ icon, value, label }: { icon: React.ReactNode; value: string; label: string }) {
+function KPI({ icon, value, label, onPress }: { icon: React.ReactNode; value: string; label: string; onPress?: () => void }) {
+  const Container = onPress ? Pressable : View;
   return (
-    <View style={[styles.kpi, shadow.card]}>
+    <Container style={[styles.kpi, shadow.card]} onPress={onPress}>
       <View style={styles.kpiIcon}>{icon}</View>
       <Text style={[text.data, { color: colors.encre, fontSize: 22, marginTop: spacing.sm }]}>{value}</Text>
       <Text style={[text.label, { color: colors.textMuted, marginTop: 2 }]}>{label.toUpperCase()}</Text>
-    </View>
+    </Container>
   );
 }
 

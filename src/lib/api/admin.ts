@@ -2,7 +2,7 @@
 // withdrawal requests, disputes, and the activity feed. Split out of the
 // former monolithic api.ts (Phase 1); every function body is unchanged.
 import { supabase } from '../supabase';
-import { AdminStats, VerificationRequest, WithdrawalRequest, Dispute, AdminActivityItem } from '../types';
+import { AdminStats, VerificationRequest, WithdrawalRequest, Dispute, AdminActivityItem, AdminOpenRequest } from '../types';
 import { hasSupabase, currentUser } from './shared';
 
 export async function fetchAdminStats(): Promise<AdminStats> {
@@ -129,6 +129,40 @@ export async function reportDispute(jobId: string, reason: string): Promise<void
     reporter_role: me?.role ?? null,
     status: 'ouvert',
   });
+  if (error) throw error;
+}
+
+// ---- ADMIN: open requests (follow up by phone so they don't sit forever) ----
+
+// Oldest first — the ones that have been sitting open longest are the most
+// urgent to call about, so they surface at the top.
+export async function fetchOpenRequestsAdmin(): Promise<AdminOpenRequest[]> {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('requests')
+    .select('*, offers(count), client:profiles(full_name, phone)')
+    .eq('status', 'ouverte')
+    .order('created_at', { ascending: true });
+  if (error) return [];
+  return (data ?? []).map((r: any) => ({
+    id: r.id,
+    clientName: r.client?.full_name ?? 'Client',
+    clientPhone: r.client?.phone ?? null,
+    description: r.description,
+    category: r.category,
+    urgent: r.urgent,
+    locationLabel: r.location_label ?? '',
+    createdAt: r.created_at,
+    offersCount: r.offers?.[0]?.count ?? 0,
+  }));
+}
+
+// Admin resolves a stale request by phone (client found someone elsewhere,
+// no longer needs it, etc.) — closes it out so it stops counting against
+// "demandes ouvertes".
+export async function adminCloseRequest(id: string, status: 'annulee' | 'terminee'): Promise<void> {
+  if (!hasSupabase) return;
+  const { error } = await supabase.from('requests').update({ status }).eq('id', id);
   if (error) throw error;
 }
 

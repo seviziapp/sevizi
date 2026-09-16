@@ -318,6 +318,9 @@ create policy "own provider"         on providers for all   using (auth.uid() = 
 -- Requests
 create policy "own requests"         on requests  for all   using (auth.uid() = client_id);
 create policy "requests readable"    on requests  for select using (true);
+-- Admin can close/cancel a stale request after following up by phone
+-- (see migration_admin_requests.sql).
+create policy "admin manages requests" on requests for update using (is_admin());
 -- Offers
 create policy "offers readable"      on offers    for select using (true);
 create policy "provider sends offer" on offers    for insert with check (
