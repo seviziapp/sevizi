@@ -52,7 +52,7 @@ export default function ProviderRequests() {
       </View>
 
       {/* Category filter chips */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chips}>
         <Pressable style={[styles.chip, !filter && styles.chipActive]} onPress={() => setFilter(null)}>
           <Text style={[text.small, { color: !filter ? colors.white : colors.encre }]}>Toutes</Text>
         </Pressable>
@@ -144,6 +144,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md },
   filterBtn: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  chipsScroll: { flexGrow: 0, flexShrink: 0 },
   chips: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md, gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, height: 36, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
   chipActive: { backgroundColor: colors.encre, borderColor: colors.encre },
