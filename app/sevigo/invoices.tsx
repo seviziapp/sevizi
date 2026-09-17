@@ -8,6 +8,7 @@ import { fetchSevigoInvoices } from '../../src/lib/sevigo/api';
 import type { SevigoInvoice, SevigoInvoiceStatus } from '../../src/lib/sevigo/types';
 
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
+  pending_fee: { label: 'Verrouillée', color: colors.terre },
   draft: { label: 'Brouillon', color: colors.textMuted },
   sent: { label: 'Envoyée', color: colors.soleil },
   paid: { label: 'Payée', color: colors.vert },

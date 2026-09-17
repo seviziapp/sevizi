@@ -1,18 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Linking, KeyboardAvoidingView,
+  View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Linking, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
-import { ArrowLeft, Plus, Trash2, Check } from 'lucide-react-native';
+import { ArrowLeft, Plus, Trash2, Check, Camera } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { fetchSevigoBusinessProfile, createSevigoInvoicePayment, createSevigoInvoice } from '../../src/lib/sevigo/api';
+import {
+  fetchSevigoBusinessProfile, saveSevigoBusinessProfile,
+  createSevigoInvoicePayment, createSevigoInvoice, createSevigoGenerationFeePayment,
+} from '../../src/lib/sevigo/api';
+import { uploadDocument } from '../../src/lib/api';
+import { pickFile } from '../../src/lib/pickFile';
 import { computeInvoiceTotals } from '../../src/lib/sevigo/types';
 import type { SevigoInvoiceTemplate, SevigoLineItem } from '../../src/lib/sevigo/types';
 
 type DraftLine = { id: string; description: string; quantity: string; unitPrice: string };
+
+const BRAND_COLORS = ['#0FA76A', '#06291F', '#CE5A37', '#FCC419', '#2D7FF9', '#7C4DFF'];
 
 const TEMPLATES: { key: SevigoInvoiceTemplate; label: string }[] = [
   { key: 'classic', label: 'Classique' },
@@ -25,11 +32,11 @@ function newLine(): DraftLine {
 }
 
 function buildRedirectUrl(status: 'return' | 'cancel', invoiceId: string): string {
-  const query = `payment=${status}&invoiceId=${invoiceId}`;
+  const query = `feepayment=${status}`;
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/sevigo/invoice/${invoiceId}?${query}`;
   }
-  return ExpoLinking.createURL(`/sevigo/invoice/${invoiceId}`, { queryParams: { payment: status } });
+  return ExpoLinking.createURL(`/sevigo/invoice/${invoiceId}`, { queryParams: { feepayment: status } });
 }
 
 export default function NewInvoice() {
@@ -42,11 +49,20 @@ export default function NewInvoice() {
   const [discountFlat, setDiscountFlat] = useState('');
   const [template, setTemplate] = useState<SevigoInvoiceTemplate>('classic');
   const [businessName, setBusinessName] = useState('');
-  const [saving, setSaving] = useState<'draft' | 'send' | 'link' | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [brandColor, setBrandColor] = useState(colors.vert);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchSevigoBusinessProfile().then(p => { if (p?.businessName) setBusinessName(p.businessName); }).catch(() => {});
+    fetchSevigoBusinessProfile().then(p => {
+      if (p) {
+        setBusinessName(p.businessName);
+        setLogoUrl(p.logoUrl ?? null);
+        if (p.brandColor) setBrandColor(p.brandColor);
+      }
+    }).catch(() => {});
   }, []);
 
   const items: SevigoLineItem[] = useMemo(() => lines
@@ -67,17 +83,40 @@ export default function NewInvoice() {
     setLines(ls => ls.length > 1 ? ls.filter(l => l.id !== id) : ls);
   }
 
+  // Logo/color are saved to the business profile immediately (single brand
+  // identity reused across every future invoice), so picking them here is
+  // just editing that profile inline instead of a separate screen.
+  async function pickLogo() {
+    const file = await pickFile();
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const url = await uploadDocument(file.blob, 'sevigo-logos', file.name);
+      setLogoUrl(url);
+      await saveSevigoBusinessProfile({ businessName: businessName || 'Mon entreprise', logoUrl: url, brandColor });
+    } catch (e: any) {
+      setError(e.message ?? "Échec du téléversement du logo.");
+    } finally {
+      setUploadingLogo(false);
+    }
+  }
+
+  async function pickColor(c: string) {
+    setBrandColor(c);
+    saveSevigoBusinessProfile({ businessName: businessName || 'Mon entreprise', logoUrl, brandColor: c }).catch(() => {});
+  }
+
   function validate(): string {
     if (!clientName.trim()) return 'Indiquez le nom du client.';
     if (items.length === 0) return 'Ajoutez au moins un article.';
     return '';
   }
 
-  async function save(action: 'draft' | 'send' | 'link') {
+  async function createInvoice() {
     const v = validate();
     if (v) { setError(v); return; }
     setError('');
-    setSaving(action);
+    setCreating(true);
     try {
       const invoice = await createSevigoInvoice({
         clientName: clientName.trim(),
@@ -89,17 +128,11 @@ export default function NewInvoice() {
         template,
       });
 
-      if (action === 'send' && clientEmail.trim()) {
-        const subject = encodeURIComponent(`Facture ${invoice.number} — ${businessName || 'Sèvi Go'}`);
-        const bodyLines = items.map(it => `- ${it.description} × ${it.quantity} — ${(it.quantity * it.unitPrice).toLocaleString('fr-FR')} F`);
-        const body = encodeURIComponent(
-          `Bonjour ${clientName},\n\nVoici votre facture ${invoice.number} :\n\n${bodyLines.join('\n')}\n\nTotal : ${invoice.total.toLocaleString('fr-FR')} F\n\nMerci,\n${businessName}`,
-        );
-        await Linking.openURL(`mailto:${clientEmail.trim()}?subject=${subject}&body=${body}`).catch(() => {});
-      }
-
-      if (action === 'link') {
-        const { invoiceUrl } = await createSevigoInvoicePayment(
+      if (invoice.status === 'pending_fee') {
+        // A generation fee applies (pay-as-you-go, or plan quota exceeded) —
+        // the invoice stays locked until this is paid, so nothing exists yet
+        // to print/email/screenshot.
+        const { invoiceUrl } = await createSevigoGenerationFeePayment(
           invoice.id, buildRedirectUrl('return', invoice.id), buildRedirectUrl('cancel', invoice.id),
         );
         if (Platform.OS === 'web') {
@@ -107,13 +140,15 @@ export default function NewInvoice() {
           return;
         }
         await Linking.openURL(invoiceUrl);
+        router.replace({ pathname: '/sevigo/invoice/[id]', params: { id: invoice.id } });
+        return;
       }
 
       router.replace({ pathname: '/sevigo/invoice/[id]', params: { id: invoice.id } });
     } catch (e: any) {
       setError(e.message ?? "Échec de la création de la facture.");
     } finally {
-      setSaving(null);
+      setCreating(false);
     }
   }
 
@@ -137,7 +172,7 @@ export default function NewInvoice() {
 
           <Field label="Articles">
             <View style={{ gap: spacing.sm }}>
-              {lines.map((l, i) => (
+              {lines.map(l => (
                 <View key={l.id} style={[styles.lineCard, shadow.sm]}>
                   <TextInput
                     style={styles.lineDesc}
@@ -184,12 +219,33 @@ export default function NewInvoice() {
             </View>
           </Field>
 
+          <Field label="Personnaliser">
+            <View style={styles.customizeRow}>
+              <Pressable style={styles.logoPicker} onPress={pickLogo} disabled={uploadingLogo}>
+                {logoUrl
+                  ? <Image source={{ uri: logoUrl }} style={styles.logoImg} resizeMode="contain" />
+                  : <Camera size={20} color={colors.textMuted} />}
+              </Pressable>
+              <View style={styles.colorSwatches}>
+                {BRAND_COLORS.map(c => (
+                  <Pressable
+                    key={c}
+                    style={[styles.swatch, { backgroundColor: c }, brandColor === c && styles.swatchActive]}
+                    onPress={() => pickColor(c)}
+                  >
+                    {brandColor === c && <Check size={14} color={colors.white} />}
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          </Field>
+
           <Field label="Modèle">
             <View style={styles.templateRow}>
               {TEMPLATES.map(t => (
-                <Pressable key={t.key} style={[styles.templateChip, template === t.key && styles.templateChipActive]} onPress={() => setTemplate(t.key)}>
-                  {template === t.key && <Check size={13} color={colors.white} />}
-                  <Text style={[text.small, { color: template === t.key ? colors.white : colors.encre }]}>{t.label}</Text>
+                <Pressable key={t.key} style={styles.templatePreviewWrap} onPress={() => setTemplate(t.key)}>
+                  <TemplatePreview kind={t.key} color={brandColor} logoUrl={logoUrl} selected={template === t.key} />
+                  <Text style={[text.small, { color: template === t.key ? colors.encre : colors.textMuted, marginTop: 6, textAlign: 'center' }]}>{t.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -211,14 +267,61 @@ export default function NewInvoice() {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
-        <Button label="Enregistrer en brouillon" variant="ghost" onPress={() => save('draft')} loading={saving === 'draft'} disabled={!!saving} />
-        <View style={{ flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm }}>
-          <Button label="Envoyer par e-mail" variant="ghost" full={false} style={{ flex: 1 }} onPress={() => save('send')} loading={saving === 'send'} disabled={!!saving || !clientEmail.trim()} />
-          <Button label="Lien de paiement" full={false} style={{ flex: 1 }} onPress={() => save('link')} loading={saving === 'link'} disabled={!!saving} />
-        </View>
+        <Button label={creating ? 'Création…' : 'Créer la facture'} onPress={createInvoice} loading={creating} />
       </View>
     </SafeAreaView>
   );
+}
+
+function TemplatePreview({ kind, color, logoUrl, selected }: {
+  kind: SevigoInvoiceTemplate; color: string; logoUrl: string | null; selected: boolean;
+}) {
+  return (
+    <View style={[styles.preview, selected && { borderColor: color, borderWidth: 2 }]}>
+      {kind === 'classic' && (
+        <>
+          <View style={[styles.previewHeaderBar, { backgroundColor: colors.encre }]}>
+            <PreviewLogo logoUrl={logoUrl} tint={colors.creme} />
+          </View>
+          <View style={styles.previewLines}>
+            <View style={[styles.previewLine, { width: '70%' }]} />
+            <View style={[styles.previewLine, { width: '50%' }]} />
+            <View style={[styles.previewLine, { width: '60%', backgroundColor: color }]} />
+          </View>
+        </>
+      )}
+      {kind === 'modern' && (
+        <>
+          <View style={[styles.previewHeaderBar, { backgroundColor: color, borderRadius: 8 }]}>
+            <PreviewLogo logoUrl={logoUrl} tint={colors.white} />
+          </View>
+          <View style={styles.previewLines}>
+            <View style={[styles.previewLine, { width: '80%' }]} />
+            <View style={[styles.previewLine, { width: '55%' }]} />
+            <View style={[styles.previewLine, { width: '40%', backgroundColor: color }]} />
+          </View>
+        </>
+      )}
+      {kind === 'minimal' && (
+        <>
+          <View style={styles.previewMinimalHead}>
+            <PreviewLogo logoUrl={logoUrl} tint={color} small />
+            <View style={[styles.previewMinimalLine, { backgroundColor: color }]} />
+          </View>
+          <View style={styles.previewLines}>
+            <View style={[styles.previewLine, { width: '90%', backgroundColor: '#EEE' }]} />
+            <View style={[styles.previewLine, { width: '65%', backgroundColor: '#EEE' }]} />
+          </View>
+        </>
+      )}
+    </View>
+  );
+}
+
+function PreviewLogo({ logoUrl, tint, small }: { logoUrl: string | null; tint: string; small?: boolean }) {
+  const size = small ? 14 : 18;
+  if (logoUrl) return <Image source={{ uri: logoUrl }} style={{ width: size, height: size, borderRadius: 3 }} resizeMode="cover" />;
+  return <View style={{ width: size, height: size, borderRadius: 3, backgroundColor: tint, opacity: 0.85 }} />;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -243,9 +346,20 @@ const styles = StyleSheet.create({
   linePrice: { flex: 1, height: 36, backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: spacing.md, color: colors.encre, ...text.small },
   addLine: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, justifyContent: 'center', height: 40, marginTop: spacing.sm },
   discountRow: { flexDirection: 'row', gap: spacing.md },
-  templateRow: { flexDirection: 'row', gap: spacing.sm },
-  templateChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, height: 38, borderRadius: radii.pill, backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
-  templateChipActive: { backgroundColor: colors.encre, borderColor: colors.encre },
+  customizeRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  logoPicker: { width: 52, height: 52, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1.5, borderStyle: 'dashed', borderColor: colors.border, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  logoImg: { width: '100%', height: '100%' },
+  colorSwatches: { flexDirection: 'row', gap: spacing.sm, flex: 1, flexWrap: 'wrap' },
+  swatch: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: 'transparent' },
+  swatchActive: { borderColor: colors.encre },
+  templateRow: { flexDirection: 'row', gap: spacing.md },
+  templatePreviewWrap: { flex: 1 },
+  preview: { height: 100, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(6,41,31,0.08)', padding: spacing.sm, gap: spacing.sm, overflow: 'hidden' },
+  previewHeaderBar: { height: 22, borderRadius: 4, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 6 },
+  previewLines: { gap: 5, paddingTop: 2 },
+  previewLine: { height: 5, borderRadius: 2, backgroundColor: '#E7E2D6' },
+  previewMinimalHead: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  previewMinimalLine: { flex: 1, height: 2, borderRadius: 1 },
   totalsCard: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, gap: spacing.sm },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   error: { color: colors.terre, fontSize: 14, textAlign: 'center' },

@@ -36,6 +36,7 @@ export default function SevigoLayout() {
       <Tabs.Screen name="new-invoice"      options={{ href: null }} />
       <Tabs.Screen name="invoice/[id]"     options={{ href: null }} />
       <Tabs.Screen name="business-profile" options={{ href: null }} />
+      <Tabs.Screen name="wallet" options={{ href: null }} />
     </Tabs>
   );
 }

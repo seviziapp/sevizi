@@ -7,7 +7,7 @@ import { supabase } from '../supabase';
 import { hasSupabase, currentUser } from '../api/shared';
 import {
   SevigoInvoice, SevigoLineItem, SevigoBusinessProfile, SevigoUsage,
-  SevigoPlanId, SevigoInvoiceTemplate, computeInvoiceTotals, planById,
+  SevigoPlanId, SevigoInvoiceTemplate, computeInvoiceTotals, planById, invoiceFeeForUsage,
 } from './types';
 
 const TABLE_MISSING = '42P01';
@@ -40,6 +40,9 @@ const demoInvoices: SevigoInvoice[] = [
 const demoUsage: SevigoUsage = { planId: 'payg', cycleStart: new Date().toISOString(), invoicesThisCycle: demoInvoices.length };
 
 function mapInvoiceRow(row: any, items: any[]): SevigoInvoice {
+  const fees = (row.sevigo_invoice_generation_fees ?? [])
+    .filter((f: any) => f.status === 'pending')
+    .sort((a: any, b: any) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
   return {
     id: row.id,
     number: row.number,
@@ -52,6 +55,7 @@ function mapInvoiceRow(row: any, items: any[]): SevigoInvoice {
     subtotal: row.subtotal,
     total: row.total,
     status: row.status,
+    generationFee: row.status === 'pending_fee' ? (fees[0]?.amount ?? undefined) : undefined,
     template: row.template,
     createdAt: row.created_at,
     dueDate: row.due_date,
@@ -84,7 +88,11 @@ export async function fetchSevigoUsage(): Promise<SevigoUsage> {
   return { planId: data.plan_id, cycleStart: data.cycle_start, invoicesThisCycle: data.invoices_this_cycle };
 }
 
-export async function setSevigoPlan(planId: SevigoPlanId): Promise<void> {
+// Switches to Pay As You Go — free, so it applies instantly. Switching to a
+// paid plan (Starter/Growth/Unlimited) must go through
+// createSevigoPlanPayment instead: it only takes effect once PayDunya
+// confirms the monthly fee via sevigo-plan-payment-webhook.
+export async function setSevigoPlan(planId: 'payg'): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
@@ -92,6 +100,17 @@ export async function setSevigoPlan(planId: SevigoPlanId): Promise<void> {
     .from('sevigo_subscriptions')
     .upsert({ user_id: user.id, plan_id: planId }, { onConflict: 'user_id' });
   if (error) throw error;
+}
+
+// Requests a PayDunya payment link for a paid plan's monthly fee. The plan
+// doesn't change until the webhook confirms payment — the caller should
+// redirect to invoiceUrl and poll fetchSevigoUsage() on return.
+export async function createSevigoPlanPayment(planId: Exclude<SevigoPlanId, 'payg'>, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number }> {
+  const { data, error } = await supabase.functions.invoke('sevigo-create-plan-payment', {
+    body: { planId, returnUrl, cancelUrl },
+  });
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchSevigoBusinessProfile(): Promise<SevigoBusinessProfile | null> {
@@ -137,7 +156,7 @@ export async function fetchSevigoInvoices(): Promise<SevigoInvoice[]> {
   if (!user) return demoInvoices;
   const { data, error } = await supabase
     .from('sevigo_invoices')
-    .select('*, sevigo_invoice_items(*)')
+    .select('*, sevigo_invoice_items(*), sevigo_invoice_generation_fees(amount, status, created_at)')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
   if (error) {
@@ -151,7 +170,7 @@ export async function fetchSevigoInvoice(id: string): Promise<SevigoInvoice | nu
   if (!hasSupabase || id.startsWith('demo-')) return demoInvoices.find(i => i.id === id) ?? null;
   const { data, error } = await supabase
     .from('sevigo_invoices')
-    .select('*, sevigo_invoice_items(*)')
+    .select('*, sevigo_invoice_items(*), sevigo_invoice_generation_fees(amount, status, created_at)')
     .eq('id', id)
     .maybeSingle();
   if (error) {
@@ -200,13 +219,24 @@ export async function createSevigoInvoice(input: CreateSevigoInvoiceInput): Prom
     .eq('user_id', user.id);
   const number = `INV-${String((count ?? 0) + 1).padStart(4, '0')}`;
 
+  // A fee applies (pay-as-you-go, or Starter/Growth past the included
+  // count) locks the invoice as 'pending_fee' on creation — no content is
+  // shown/shared until the fee is paid (see migration_sevigo_generation_fee.sql
+  // and the two sevigo-*-generation-fee-* edge functions). This is computed
+  // from usage BEFORE this invoice, i.e. the current count === "used so far".
+  const { data: sub } = await supabase
+    .from('sevigo_subscriptions').select('plan_id, invoices_this_cycle').eq('user_id', user.id).maybeSingle();
+  const plan = planById(sub?.plan_id ?? 'payg');
+  const fee = invoiceFeeForUsage(plan, sub?.invoices_this_cycle ?? 0);
+  const initialStatus = fee > 0 ? 'pending_fee' : 'draft';
+
   const { data: invRow, error: invErr } = await supabase
     .from('sevigo_invoices')
     .insert({
       user_id: user.id, number,
       client_name: input.clientName, client_contact: input.clientContact ?? null, client_email: input.clientEmail ?? null,
       discount_pct: input.discountPct ?? null, discount_flat: input.discountFlat ?? null,
-      subtotal, total, status: 'draft', template: input.template,
+      subtotal, total, status: initialStatus, template: input.template,
       due_date: input.dueDate ?? null, notes: input.notes ?? null,
     })
     .select()
@@ -222,7 +252,9 @@ export async function createSevigoInvoice(input: CreateSevigoInvoiceInput): Prom
     .select();
   if (itemErr) throw itemErr;
 
-  return mapInvoiceRow(invRow, itemRows ?? []);
+  const invoice = mapInvoiceRow(invRow, itemRows ?? []);
+  if (fee > 0) invoice.generationFee = fee;
+  return invoice;
 }
 
 export async function updateSevigoInvoiceStatus(id: string, status: SevigoInvoice['status']): Promise<void> {
@@ -239,4 +271,48 @@ export async function createSevigoInvoicePayment(invoiceId: string, returnUrl: s
   });
   if (error) throw error;
   return data;
+}
+
+// Requests a PayDunya payment link for the invoice's generation fee (the
+// business owner pays this, not the invoice's client) — the invoice stays
+// locked in 'pending_fee' until sevigo-generation-fee-webhook confirms it.
+export async function createSevigoGenerationFeePayment(invoiceId: string, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number }> {
+  const { data, error } = await supabase.functions.invoke('sevigo-create-generation-fee-payment', {
+    body: { invoiceId, returnUrl, cancelUrl },
+  });
+  if (error) throw error;
+  return data;
+}
+
+// ---- Wallet: money from clients paying a Sèvi Go invoice (minus Sèvi Go's
+// commission) lands here — the same wallet used for marketplace job
+// earnings if the user is also a provider, or a Sèvi Go-only ledger
+// otherwise. Both are withdrawable through the same withdrawal_requests
+// flow admin already handles.
+
+export async function fetchSevigoWalletBalance(): Promise<{ balance: number; providerId: string | null }> {
+  if (!hasSupabase) return { balance: 0, providerId: null };
+  const user = await currentUser();
+  if (!user) return { balance: 0, providerId: null };
+  const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
+  const providerId = providerRows?.[0]?.id ?? null;
+  const { data, error } = await supabase.rpc(
+    providerId ? 'provider_wallet_balance' : 'sevigo_wallet_balance',
+    providerId ? { p_provider_id: providerId } : { p_user_id: user.id },
+  );
+  if (error) return { balance: 0, providerId };
+  return { balance: data ?? 0, providerId };
+}
+
+export async function requestSevigoWithdrawal(input: { amount: number; method: 'flooz' | 'mixx'; phone: string }): Promise<void> {
+  if (!hasSupabase) return;
+  const user = await currentUser();
+  if (!user) throw new Error('Non connecté');
+  const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
+  const providerId = providerRows?.[0]?.id ?? null;
+  const { error } = await supabase.from('withdrawal_requests').insert({
+    provider_id: providerId, user_id: user.id,
+    amount: input.amount, method: input.method, phone: input.phone,
+  });
+  if (error) throw error;
 }

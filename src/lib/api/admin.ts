@@ -79,7 +79,7 @@ export async function fetchWithdrawalRequests(): Promise<WithdrawalRequest[]> {
     .order('requested_at', { ascending: false });
   if (error) return [];
   return (data ?? []).map((w: any) => ({
-    id: w.id, providerName: w.provider?.name ?? 'Prestataire', amount: w.amount,
+    id: w.id, providerName: w.provider?.name ?? 'Client Sèvi Go', amount: w.amount,
     method: w.method, phone: w.phone, status: w.status,
     requestedAt: w.requested_at, resolvedAt: w.resolved_at ?? undefined,
   }));

@@ -1,29 +1,76 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
+import * as ExpoLinking from 'expo-linking';
 import { Check, FileText, BarChart3, Store } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { alert } from '../../src/lib/alert';
-import { fetchSevigoUsage, setSevigoPlan } from '../../src/lib/sevigo/api';
+import { fetchSevigoUsage, setSevigoPlan, createSevigoPlanPayment } from '../../src/lib/sevigo/api';
 import { SEVIGO_PLANS } from '../../src/lib/sevigo/types';
 import type { SevigoPlanId } from '../../src/lib/sevigo/types';
 
+function buildRedirectUrl(status: 'return' | 'cancel'): string {
+  const query = `payment=${status}`;
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    return `${window.location.origin}/sevigo/plan?${query}`;
+  }
+  return ExpoLinking.createURL('/sevigo/plan', { queryParams: { payment: status } });
+}
+
 export default function SevigoPlanScreen() {
+  const { payment: paymentParam } = useLocalSearchParams<{ payment?: string }>();
   const [currentPlan, setCurrentPlan] = useState<SevigoPlanId>('payg');
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<SevigoPlanId | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  function load() {
     fetchSevigoUsage().then(u => setCurrentPlan(u.planId)).catch(() => {}).finally(() => setLoading(false));
-  }, []);
+  }
+  useEffect(load, []);
+
+  // Coming back from PayDunya's checkout after paying a plan's monthly fee —
+  // poll for the webhook to confirm and actually switch the plan.
+  useEffect(() => {
+    if (paymentParam !== 'return') return;
+    setVerifying(true);
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts += 1;
+      const u = await fetchSevigoUsage().catch(() => null);
+      if (u && u.planId !== 'payg') {
+        setCurrentPlan(u.planId);
+        setVerifying(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      } else if (attempts >= 10) {
+        setVerifying(false);
+        if (pollRef.current) clearInterval(pollRef.current);
+      }
+    }, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [paymentParam]);
 
   async function choose(planId: SevigoPlanId) {
     if (planId === currentPlan) return;
     setSwitching(planId);
     try {
-      await setSevigoPlan(planId);
-      setCurrentPlan(planId);
+      if (planId === 'payg') {
+        // Free — applies instantly, no payment needed.
+        await setSevigoPlan('payg');
+        setCurrentPlan('payg');
+        return;
+      }
+      // Paid plan — must pay the monthly fee first; the plan only actually
+      // changes once sevigo-plan-payment-webhook confirms it.
+      const { invoiceUrl } = await createSevigoPlanPayment(planId, buildRedirectUrl('return'), buildRedirectUrl('cancel'));
+      if (Platform.OS === 'web') {
+        window.location.href = invoiceUrl;
+        return;
+      }
+      await Linking.openURL(invoiceUrl);
     } catch (e: any) {
       alert('Erreur', e.message ?? "Échec du changement de formule.");
     } finally {
@@ -36,8 +83,15 @@ export default function SevigoPlanScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[text.h2, { color: colors.encre }]}>Choisissez votre formule</Text>
         <Text style={[text.body, { color: colors.textMuted }]}>
-          Changez à tout moment. La commission PayDunya s'applique à chaque paiement encaissé via facture.
+          Passez à une formule payante à tout moment — l'abonnement est réglé par PayDunya et prend effet dès confirmation du paiement.
         </Text>
+
+        {verifying && (
+          <View style={styles.verifyingBanner}>
+            <ActivityIndicator size="small" color={colors.vert} />
+            <Text style={[text.small, { color: colors.vertDark }]}>Vérification du paiement…</Text>
+          </View>
+        )}
 
         {loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.xl }} />
@@ -73,14 +127,14 @@ export default function SevigoPlanScreen() {
                     />
                     <Feature
                       icon={<BarChart3 size={14} color={colors.textMuted} />}
-                      text={`Commission PayDunya : ${Math.round(plan.paydunyaFeePct * 100)}%`}
+                      text={`Commission : ${Math.round(plan.paydunyaFeePct * 100)}%`}
                     />
                     {plan.hasReports && <Feature icon={<BarChart3 size={14} color={colors.textMuted} />} text="Rapports & analyses" />}
                     {plan.hasPos && <Feature icon={<Store size={14} color={colors.textMuted} />} text="POS & inventaire complet" />}
                   </View>
 
                   <Button
-                    label={active ? 'Formule actuelle' : switching === plan.id ? 'Changement…' : 'Choisir cette formule'}
+                    label={active ? 'Formule actuelle' : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
                     variant={active ? 'ghost' : 'primary'}
                     onPress={() => choose(plan.id)}
                     disabled={active || !!switching}
@@ -109,6 +163,7 @@ function Feature({ icon, text: label }: { icon: React.ReactNode; text: string })
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.sm },
+  verifyingBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.md },
   card: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   cardActive: { borderColor: colors.vert, borderWidth: 1.5 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

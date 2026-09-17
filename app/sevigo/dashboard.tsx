@@ -3,14 +3,15 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, FileText, ChevronRight, Settings, TrendingUp } from 'lucide-react-native';
+import { Plus, FileText, ChevronRight, Settings, TrendingUp, Wallet } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { SevigoLogoFull } from '../../src/components/SevigoLogo';
-import { fetchSevigoInvoices, fetchSevigoUsage } from '../../src/lib/sevigo/api';
+import { fetchSevigoInvoices, fetchSevigoUsage, fetchSevigoWalletBalance } from '../../src/lib/sevigo/api';
 import { planById } from '../../src/lib/sevigo/types';
 import type { SevigoInvoice, SevigoUsage } from '../../src/lib/sevigo/types';
 
 const STATUS_LABEL: Record<SevigoInvoice['status'], { label: string; color: string }> = {
+  pending_fee: { label: 'Verrouillée', color: colors.terre },
   draft: { label: 'Brouillon', color: colors.textMuted },
   sent: { label: 'Envoyée', color: colors.soleil },
   paid: { label: 'Payée', color: colors.vert },
@@ -22,11 +23,12 @@ export default function SevigoDashboard() {
   const router = useRouter();
   const [invoices, setInvoices] = useState<SevigoInvoice[]>([]);
   const [usage, setUsage] = useState<SevigoUsage | null>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
-    Promise.all([fetchSevigoInvoices(), fetchSevigoUsage()])
-      .then(([inv, u]) => { setInvoices(inv); setUsage(u); })
+    Promise.all([fetchSevigoInvoices(), fetchSevigoUsage(), fetchSevigoWalletBalance()])
+      .then(([inv, u, w]) => { setInvoices(inv); setUsage(u); setWalletBalance(w.balance); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -68,6 +70,13 @@ export default function SevigoDashboard() {
 
         {/* Quick stats */}
         <View style={styles.statsRow}>
+          <Pressable style={[styles.statCard, shadow.card]} onPress={() => router.push('/sevigo/wallet')}>
+            <Wallet size={16} color={colors.vert} />
+            <Text style={[text.data, { color: colors.encre, fontSize: 18, marginTop: spacing.sm }]}>
+              {walletBalance.toLocaleString('fr-FR')} F
+            </Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>PORTEFEUILLE</Text>
+          </Pressable>
           <View style={[styles.statCard, shadow.card]}>
             <TrendingUp size={16} color={colors.vert} />
             <Text style={[text.data, { color: colors.encre, fontSize: 18, marginTop: spacing.sm }]}>

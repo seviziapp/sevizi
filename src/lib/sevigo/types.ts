@@ -24,7 +24,10 @@ export const SEVIGO_PLANS: SevigoPlan[] = [
   { id: 'unlimited', label: 'Unlimited / Pro', priceLabel: '10 000 F / mois', monthlyFee: 10000, includedInvoices: null, extraInvoiceFee: 0,  paydunyaFeePct: 0.05, hasReports: true,  hasPos: true  },
 ];
 
-export type SevigoInvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
+// 'pending_fee' = created but locked: a Sèvi Go generation fee applies (see
+// invoiceFeeForUsage) and hasn't been paid yet. No content should be shown,
+// shared, emailed, or printed while an invoice is in this state.
+export type SevigoInvoiceStatus = 'pending_fee' | 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
 export type SevigoInvoiceTemplate = 'classic' | 'modern' | 'minimal';
 
 export interface SevigoLineItem {
@@ -47,6 +50,7 @@ export interface SevigoInvoice {
   subtotal: number;
   total: number;
   status: SevigoInvoiceStatus;
+  generationFee?: number; // present when status is 'pending_fee' — amount owed to unlock
   template: SevigoInvoiceTemplate;
   createdAt: string;
   dueDate?: string | null;

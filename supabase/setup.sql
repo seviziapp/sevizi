@@ -828,4 +828,199 @@ create policy "admin reads all pro payments" on pro_payments for select using (i
 drop policy if exists "admin manages requests" on requests;
 create policy "admin manages requests" on requests for update using (is_admin());
 
+-- ============================================================
+-- 23) Sèvi Go — POS / invoicing module (core)
+-- ============================================================
+create table if not exists sevigo_subscriptions (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  plan_id text not null default 'payg' check (plan_id in ('payg','starter','growth','unlimited')),
+  cycle_start timestamptz not null default date_trunc('month', now()),
+  invoices_this_cycle int not null default 0,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now()
+);
+
+create table if not exists sevigo_business_profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  business_name text not null,
+  logo_url text,
+  brand_color text,
+  contact_email text,
+  contact_phone text,
+  address text,
+  updated_at timestamptz default now()
+);
+
+create table if not exists sevigo_invoices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  number text not null,
+  client_name text not null,
+  client_contact text,
+  client_email text,
+  discount_pct numeric,
+  discount_flat int,
+  subtotal int not null default 0,
+  total int not null default 0,
+  status text not null default 'draft' check (status in ('pending_fee','draft','sent','paid','overdue','cancelled')),
+  template text not null default 'classic' check (template in ('classic','modern','minimal')),
+  due_date timestamptz,
+  notes text,
+  payment_url text,
+  paydunya_token text unique,
+  created_at timestamptz default now(),
+  paid_at timestamptz
+);
+create index if not exists sevigo_invoices_user_idx on sevigo_invoices(user_id, created_at desc);
+create unique index if not exists sevigo_invoices_user_number_idx on sevigo_invoices(user_id, number);
+
+create table if not exists sevigo_invoice_items (
+  id uuid primary key default gen_random_uuid(),
+  invoice_id uuid not null references sevigo_invoices(id) on delete cascade,
+  description text not null,
+  quantity numeric not null default 1 check (quantity > 0),
+  unit_price int not null check (unit_price >= 0),
+  discount_pct numeric
+);
+create index if not exists sevigo_invoice_items_invoice_idx on sevigo_invoice_items(invoice_id);
+
+create table if not exists sevigo_invoice_payments (
+  id uuid primary key default gen_random_uuid(),
+  invoice_id uuid not null references sevigo_invoices(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount int not null,
+  sevigo_fee int not null default 0,
+  net_amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+create index if not exists sevigo_invoice_payments_invoice_idx on sevigo_invoice_payments(invoice_id);
+
+alter table sevigo_subscriptions      enable row level security;
+alter table sevigo_business_profiles  enable row level security;
+alter table sevigo_invoices           enable row level security;
+alter table sevigo_invoice_items      enable row level security;
+alter table sevigo_invoice_payments   enable row level security;
+
+drop policy if exists "own subscription" on sevigo_subscriptions;
+create policy "own subscription"      on sevigo_subscriptions     for all using (auth.uid() = user_id);
+drop policy if exists "own business profile" on sevigo_business_profiles;
+create policy "own business profile"  on sevigo_business_profiles for all using (auth.uid() = user_id);
+drop policy if exists "own invoices" on sevigo_invoices;
+create policy "own invoices"          on sevigo_invoices          for all using (auth.uid() = user_id);
+drop policy if exists "own invoice items" on sevigo_invoice_items;
+create policy "own invoice items"     on sevigo_invoice_items     for all using (
+  exists (select 1 from sevigo_invoices i where i.id = sevigo_invoice_items.invoice_id and i.user_id = auth.uid())
+);
+drop policy if exists "own invoice payments" on sevigo_invoice_payments;
+create policy "own invoice payments"  on sevigo_invoice_payments  for select using (auth.uid() = user_id);
+
+create or replace function protect_sevigo_invoice_payment_fields() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() = 'authenticated' then
+    new.payment_url := old.payment_url;
+    new.paydunya_token := old.paydunya_token;
+    new.paid_at := old.paid_at;
+  end if;
+  return new;
+end; $$;
+drop trigger if exists trg_protect_sevigo_invoice_payment_fields on sevigo_invoices;
+create trigger trg_protect_sevigo_invoice_payment_fields before update on sevigo_invoices
+  for each row execute function protect_sevigo_invoice_payment_fields();
+
+create or replace function bump_sevigo_invoice_usage() returns trigger
+language plpgsql security definer as $$
+begin
+  insert into sevigo_subscriptions (user_id, invoices_this_cycle)
+  values (new.user_id, 1)
+  on conflict (user_id) do update
+    set invoices_this_cycle = sevigo_subscriptions.invoices_this_cycle + 1,
+        updated_at = now();
+  return new;
+end; $$;
+drop trigger if exists trg_bump_sevigo_invoice_usage on sevigo_invoices;
+create trigger trg_bump_sevigo_invoice_usage after insert on sevigo_invoices
+  for each row execute function bump_sevigo_invoice_usage();
+
+-- ============================================================
+-- 24) Sèvi Go — invoice generation-fee gate
+-- ============================================================
+create table if not exists sevigo_invoice_generation_fees (
+  id uuid primary key default gen_random_uuid(),
+  invoice_id uuid not null references sevigo_invoices(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+create index if not exists sevigo_invoice_generation_fees_invoice_idx on sevigo_invoice_generation_fees(invoice_id);
+alter table sevigo_invoice_generation_fees enable row level security;
+drop policy if exists "own generation fees" on sevigo_invoice_generation_fees;
+create policy "own generation fees" on sevigo_invoice_generation_fees for select using (auth.uid() = user_id);
+
+-- ============================================================
+-- 25) Sèvi Go — paid-plan payments + wallet integration
+-- ============================================================
+create table if not exists sevigo_plan_payments (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  plan_id text not null check (plan_id in ('starter','growth','unlimited')),
+  amount int not null,
+  status text not null default 'pending' check (status in ('pending','completed','failed','cancelled')),
+  paydunya_token text unique,
+  created_at timestamptz default now(),
+  confirmed_at timestamptz
+);
+alter table sevigo_plan_payments enable row level security;
+drop policy if exists "own plan payments" on sevigo_plan_payments;
+create policy "own plan payments" on sevigo_plan_payments for select using (auth.uid() = user_id);
+
+create or replace function provider_wallet_balance(p_provider_id uuid) returns int
+language sql stable as $$
+  select coalesce((
+    select sum(net_amount) from job_payments
+    where provider_id = p_provider_id and status = 'completed'
+  ), 0)
+  + coalesce((
+    select sum(sip.net_amount) from sevigo_invoice_payments sip
+    where sip.status = 'completed'
+      and sip.user_id = (select user_id from providers where id = p_provider_id)
+  ), 0)
+  - coalesce((
+    select sum(amount) from withdrawal_requests
+    where provider_id = p_provider_id and status in ('pending','sent')
+  ), 0);
+$$;
+
+create or replace function sevigo_wallet_balance(p_user_id uuid) returns int
+language sql stable as $$
+  select coalesce((
+    select sum(net_amount) from sevigo_invoice_payments
+    where user_id = p_user_id and status = 'completed'
+  ), 0) - coalesce((
+    select sum(amount) from withdrawal_requests
+    where user_id = p_user_id and provider_id is null and status in ('pending','sent')
+  ), 0);
+$$;
+
+create or replace function validate_withdrawal_request() returns trigger
+language plpgsql as $$
+declare v_balance int;
+begin
+  if new.provider_id is not null then
+    v_balance := provider_wallet_balance(new.provider_id);
+  else
+    v_balance := sevigo_wallet_balance(new.user_id);
+  end if;
+  if new.amount > v_balance then
+    raise exception 'Solde insuffisant pour ce retrait (solde disponible : % F).', v_balance;
+  end if;
+  return new;
+end; $$;
+
 -- Done ✅
