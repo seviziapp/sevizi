@@ -8,7 +8,8 @@ type Dest =
   | '/onboarding/role'
   | '/onboarding/auth'
   | '/onboarding/client-details'
-  | '/onboarding/provider-details';
+  | '/onboarding/provider-details'
+  | '/admin/dashboard';
 
 export default function Index() {
   const [dest, setDest] = useState<Dest | null>(null);
@@ -22,10 +23,13 @@ export default function Index() {
       // Look at real data, not just a flag, so a registered user is never sent
       // back to the welcome/role screen. Base columns only so it can't fail.
       const [{ data: profile }, { data: provs }] = await Promise.all([
-        supabase.from('profiles').select('role, full_name').eq('id', uid).maybeSingle(),
+        supabase.from('profiles').select('role, full_name, is_admin').eq('id', uid).maybeSingle(),
         supabase.from('providers').select('id').eq('user_id', uid).limit(1),
       ]);
 
+      // Admin accounts are exclusive — never a client/provider home, always
+      // the back-office (which itself gates on is_admin again).
+      if (profile?.is_admin) { setDest('/admin/dashboard'); return; }
       // Registered provider (has a business row) → straight to dashboard.
       if (provs && provs.length > 0) { setDest('/provider/dashboard'); return; }
       // Chose provider but hasn't created the business row yet → finish that.

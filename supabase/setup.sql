@@ -1024,4 +1024,66 @@ begin
   return new;
 end; $$;
 
+-- ============================================================
+-- 26) Admin hierarchy — super admins + exclusive admin accounts
+-- ============================================================
+-- See migration_admin_hierarchy.sql for full commentary. An account is
+-- either a normal user (client/prestataire) OR an admin, never both.
+
+alter table profiles add column if not exists is_super_admin boolean not null default false;
+alter table profiles add column if not exists force_password_change boolean not null default false;
+
+update profiles set is_super_admin = true where is_admin = true and not is_super_admin;
+
+create or replace function is_super_admin() returns boolean
+language sql security definer stable as $$
+  select coalesce((select is_super_admin from profiles where id = auth.uid()), false);
+$$;
+
+create or replace function lock_admin_flags() returns trigger
+language plpgsql as $$
+begin
+  if auth.role() is distinct from 'service_role' then
+    new.is_admin := old.is_admin;
+    new.is_super_admin := old.is_super_admin;
+    if new.force_password_change and not old.force_password_change then
+      new.force_password_change := old.force_password_change;
+    end if;
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_lock_admin_flags on profiles;
+create trigger trg_lock_admin_flags before update on profiles
+  for each row execute function lock_admin_flags();
+
+create or replace function block_admin_as_provider() returns trigger
+language plpgsql as $$
+begin
+  if exists (select 1 from profiles where id = new.user_id and is_admin) then
+    raise exception 'Un compte administrateur ne peut pas être prestataire.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_block_admin_as_provider on providers;
+create trigger trg_block_admin_as_provider before insert or update of user_id on providers
+  for each row execute function block_admin_as_provider();
+
+create or replace function block_admin_as_client() returns trigger
+language plpgsql as $$
+begin
+  if new.client_id is not null and exists (select 1 from profiles where id = new.client_id and is_admin) then
+    raise exception 'Un compte administrateur ne peut pas publier de demandes.';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_block_admin_as_client on requests;
+create trigger trg_block_admin_as_client before insert on requests
+  for each row execute function block_admin_as_client();
+
 -- Done ✅

@@ -6,11 +6,16 @@ import { colors } from '../../src/theme/tokens';
 import { fetchMyProfile } from '../../src/lib/api';
 
 export default function AdminLayout() {
-  // Gate the whole back-office behind the is_admin flag (set in Supabase).
-  const [state, setState] = useState<'checking' | 'ok' | 'denied'>('checking');
+  // Gate the whole back-office behind the is_admin flag (set in Supabase),
+  // and behind a mandatory password change for a freshly created admin
+  // account still on the temporary password a super admin set for them.
+  const [state, setState] = useState<'checking' | 'ok' | 'denied' | 'must-change-password'>('checking');
   useEffect(() => {
     fetchMyProfile()
-      .then(p => setState(p?.isAdmin ? 'ok' : 'denied'))
+      .then(p => {
+        if (!p?.isAdmin) return setState('denied');
+        setState(p.forcePasswordChange ? 'must-change-password' : 'ok');
+      })
       .catch(() => setState('denied'));
   }, []);
 
@@ -22,6 +27,7 @@ export default function AdminLayout() {
     );
   }
   if (state === 'denied') return <Redirect href="/" />;
+  if (state === 'must-change-password') return <Redirect href={'/admin-change-password' as any} />;
 
   return (
     <Tabs
@@ -80,6 +86,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="discounts" options={{ href: null }} />
       <Tabs.Screen name="activity" options={{ href: null }} />
       <Tabs.Screen name="requests" options={{ href: null }} />
+      <Tabs.Screen name="team" options={{ href: null }} />
     </Tabs>
   );
 }

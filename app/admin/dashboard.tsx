@@ -8,18 +8,21 @@ import {
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
-import { fetchAdminStats } from '../../src/lib/api';
+import { fetchAdminStats, fetchMyProfile } from '../../src/lib/api';
+import { supabase } from '../../src/lib/supabase';
 import type { AdminStats } from '../../src/lib/types';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
 
   // Re-fetch every time this screen regains focus (e.g. coming back from
   // "Retraits" after marking one sent) — a plain useEffect-on-mount left the
   // pending-withdrawal alert stuck showing a stale count.
   useFocusEffect(useCallback(() => {
     fetchAdminStats().then(setStats).catch(() => {});
+    fetchMyProfile().then(p => setIsSuperAdmin(!!p?.isSuperAdmin)).catch(() => {});
   }, []));
 
   return (
@@ -34,8 +37,8 @@ export default function AdminDashboard() {
               <Text style={[text.bodyMd, { color: colors.encre }]}>Sèvizi Admin</Text>
             </View>
           </View>
-          <Pressable style={styles.exitBtn} onPress={() => router.replace('/client/home')}>
-            <Text style={[text.small, { color: colors.textMuted }]}>Quitter</Text>
+          <Pressable style={styles.exitBtn} onPress={async () => { await supabase.auth.signOut(); router.replace('/onboarding/auth'); }}>
+            <Text style={[text.small, { color: colors.textMuted }]}>Déconnexion</Text>
           </Pressable>
         </View>
 
@@ -114,6 +117,7 @@ export default function AdminDashboard() {
             { label: 'Gestion utilisateurs', route: '/admin/users', count: null },
             { label: 'Codes de réduction', route: '/admin/discounts', count: null },
             { label: 'Activité (services & ventes)', route: '/admin/activity', count: null },
+            ...(isSuperAdmin ? [{ label: 'Équipe admin', route: '/admin/team', count: null }] : []),
           ].map(l => (
             <Pressable key={l.label} style={styles.quickLink} onPress={() => router.push(l.route as any)}>
               <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{l.label}</Text>

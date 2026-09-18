@@ -22,6 +22,8 @@ export type MyProfile = {
   locationLabel: string;
   location: GeoPoint | null;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
+  forcePasswordChange: boolean;
 };
 
 export async function fetchMyProfile(): Promise<MyProfile | null> {
@@ -44,6 +46,8 @@ export async function fetchMyProfile(): Promise<MyProfile | null> {
     location: Number.isFinite(data.location_lat) && Number.isFinite(data.location_lng)
       ? { lat: data.location_lat, lng: data.location_lng } : null,
     isAdmin: !!data.is_admin,
+    isSuperAdmin: !!data.is_super_admin,
+    forcePasswordChange: !!data.force_password_change,
   };
 }
 

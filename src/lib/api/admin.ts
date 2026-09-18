@@ -5,6 +5,71 @@ import { supabase } from '../supabase';
 import { AdminStats, VerificationRequest, WithdrawalRequest, Dispute, AdminActivityItem, AdminOpenRequest } from '../types';
 import { hasSupabase, currentUser } from './shared';
 
+// ---- ADMIN: team (super admin only) ----
+
+export type AdminTeamMember = {
+  id: string;
+  fullName: string;
+  email: string;
+  isSuperAdmin: boolean;
+  forcePasswordChange: boolean;
+  createdAt: string;
+};
+
+export async function fetchAdminTeam(): Promise<AdminTeamMember[]> {
+  if (!hasSupabase) return [];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, full_name, email, is_super_admin, force_password_change, created_at')
+    .eq('is_admin', true)
+    .order('created_at', { ascending: true });
+  if (error) return [];
+  return (data ?? []).map((a: any) => ({
+    id: a.id,
+    fullName: a.full_name ?? 'Sans nom',
+    email: a.email ?? '',
+    isSuperAdmin: !!a.is_super_admin,
+    forcePasswordChange: !!a.force_password_change,
+    createdAt: a.created_at,
+  }));
+}
+
+async function invokeAdminFn(name: string, body: Record<string, unknown>): Promise<void> {
+  const { data, error } = await supabase.functions.invoke(name, { body });
+  if (error) {
+    const context = (error as any)?.context;
+    let bodyMessage: string | undefined;
+    if (context && typeof context.json === 'function') {
+      try { bodyMessage = (await context.json())?.error; } catch { /* fall through */ }
+    }
+    throw new Error(bodyMessage ?? error.message);
+  }
+  if (data?.error) throw new Error(data.error);
+}
+
+// Creates a brand-new admin login (own auth account, never a client/
+// prestataire account promoted in place) with a temporary password the
+// super admin shares with them out-of-band. Super-admin only — enforced
+// server-side in admin-create-admin.
+export async function createAdmin(input: { email: string; fullName: string; temporaryPassword: string }): Promise<void> {
+  await invokeAdminFn('admin-create-admin', {
+    email: input.email, fullName: input.fullName, temporaryPassword: input.temporaryPassword,
+  });
+}
+
+export async function promoteToSuperAdmin(targetId: string): Promise<void> {
+  await invokeAdminFn('admin-set-role', { targetId, action: 'promote' });
+}
+
+export async function demoteFromSuperAdmin(targetId: string): Promise<void> {
+  await invokeAdminFn('admin-set-role', { targetId, action: 'demote' });
+}
+
+// Deletes the admin's login outright — an admin account has no other use.
+export async function revokeAdmin(targetId: string): Promise<void> {
+  await invokeAdminFn('admin-set-role', { targetId, action: 'revoke' });
+}
+
 export async function fetchAdminStats(): Promise<AdminStats> {
   if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0, pendingWithdrawals: 0 };
   const [users, providers, requests, jobs, verifications, disputes, withdrawals] = await Promise.all([
