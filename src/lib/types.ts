@@ -29,7 +29,8 @@ export type ServiceCategory =
   | 'cordonnier'
   | 'onglerie'
   | 'impression'
-  | 'esthetique';
+  | 'esthetique'
+  | 'froid';
 
 // Icons live in src/lib/categoryIcons.ts (Lucide, keyed by `key`) — not here,
 // so this stays a plain data list with no RN/icon imports.
@@ -61,6 +62,7 @@ export const CATEGORIES: { key: ServiceCategory; label: string }[] = [
   { key: 'onglerie',     label: 'Onglerie' },
   { key: 'impression',   label: 'Impression' },
   { key: 'esthetique',   label: 'Beauté & Bien-être' },
+  { key: 'froid',        label: 'Froid & Climatisation' },
 ];
 
 export type GeoPoint = { lat: number; lng: number };

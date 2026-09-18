@@ -595,6 +595,7 @@ alter type service_category add value if not exists 'cordonnier';
 alter type service_category add value if not exists 'onglerie';
 alter type service_category add value if not exists 'impression';
 alter type service_category add value if not exists 'esthetique';
+alter type service_category add value if not exists 'froid';
 
 -- ============================================================
 -- 17) Appointment booking (Beauty & Wellness)

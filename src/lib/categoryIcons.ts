@@ -5,6 +5,7 @@ import {
   Wrench, Zap, PaintRoller, Hammer, Scissors, Cog, Shirt, SprayCan, ChefHat,
   Car, Drill, GraduationCap, Sprout, Truck, Shield, Camera, Recycle, BrickWall,
   Flame, AppWindow, Palette, Bike, Sofa, Footprints, Hand, Printer, Sparkles,
+  Snowflake,
 } from 'lucide-react-native';
 import type { ServiceCategory } from './types';
 
@@ -38,6 +39,7 @@ export const CATEGORY_ICONS: Record<ServiceCategory, IconComponent> = {
   onglerie: Hand,
   impression: Printer,
   esthetique: Sparkles,
+  froid: Snowflake,
 };
 
 export function categoryIcon(key?: ServiceCategory | string | null): IconComponent {
