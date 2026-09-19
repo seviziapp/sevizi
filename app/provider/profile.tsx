@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
   ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
+  ArrowLeftRight,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { SevigoMark } from '../../src/components/SevigoLogo';
@@ -222,6 +223,11 @@ export default function ProviderProfile() {
             <Bell size={20} color={colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Notifications</Text>
             <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
+          </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/client/home')}>
+            <ArrowLeftRight size={20} color={colors.encre} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Utiliser Sèvizi comme client</Text>
+            <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/upgrade')}>
             <Crown size={20} color={provider?.tier === 'pro' ? colors.soleil : colors.encre} />

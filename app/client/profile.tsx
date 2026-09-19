@@ -8,14 +8,19 @@ import {
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
-import { fetchMyProfile } from '../../src/lib/api';
+import { fetchMyProfile, fetchMyProviderProfile } from '../../src/lib/api';
 
 export default function Profile() {
   const router = useRouter();
   const [profile, setProfile] = useState<{ fullName: string; firstName: string; phone: string; role: string; verified: boolean; isAdmin: boolean } | null>(null);
+  // Whether this account also has a provider listing — decides if "Devenir
+  // prestataire" (signup flow) or "Espace professionnel" (switch straight
+  // into the existing provider dashboard) shows in Paramètres.
+  const [hasProvider, setHasProvider] = useState(false);
 
   useEffect(() => {
     fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(() => {});
+    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(() => {});
   }, []);
 
   const displayName = profile?.firstName || profile?.fullName?.split(' ')[0] || 'Utilisateur';
@@ -49,7 +54,9 @@ export default function Profile() {
       title: 'Paramètres',
       items: [
         { icon: <ShieldCheck size={20} color={colors.encre} />, label: 'Sécurité & confiance', onPress: () => router.push('/client/security') },
-        { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/provider/dashboard') },
+        hasProvider
+          ? { icon: <Briefcase size={20} color={colors.vert} />, label: 'Espace professionnel', onPress: () => router.push('/provider/dashboard') }
+          : { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/onboarding/provider-details') },
         { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => router.push('/client/help') },
       ],
     },

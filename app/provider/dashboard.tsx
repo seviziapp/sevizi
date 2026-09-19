@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight, Crown } from 'lucide-react-native';
+import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight, Crown, ArrowLeftRight } from 'lucide-react-native';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
@@ -64,14 +64,20 @@ export default function ProviderDashboard() {
               <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName || 'Mon tableau de bord'}</Text>
             </View>
           </View>
-          <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
-            <Bell size={20} color={colors.encre} />
-            {unread > 0 && (
-              <View style={styles.badge}>
-                <Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text>
-              </View>
-            )}
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Pressable style={styles.switchPill} onPress={() => router.push('/client/home' as any)}>
+              <ArrowLeftRight size={14} color={colors.vert} />
+              <Text style={[text.label, { color: colors.vert }]}>Mode client</Text>
+            </Pressable>
+            <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
+              <Bell size={20} color={colors.encre} />
+              {unread > 0 && (
+                <View style={styles.badge}>
+                  <Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text>
+                </View>
+              )}
+            </Pressable>
+          </View>
         </View>
 
         {/* Online toggle */}
@@ -206,6 +212,11 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   logoRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   bell: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  switchPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 44, borderRadius: radii.pill, backgroundColor: colors.white,
+    borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md,
+  },
   badge: { position: 'absolute', top: 6, right: 6, minWidth: 16, height: 16, paddingHorizontal: 3, borderRadius: 8, backgroundColor: colors.terre, alignItems: 'center', justifyContent: 'center' },
   toggleCard: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: spacing.lg, borderRadius: radii.lg, borderWidth: 1 },
   toggleOnline: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },

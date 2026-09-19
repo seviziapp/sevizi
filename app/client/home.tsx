@@ -3,13 +3,13 @@ import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Search, Bell, MapPin, ChevronDown, Plus, ChevronRight, MoreHorizontal } from 'lucide-react-native';
+import { Search, Bell, MapPin, ChevronDown, Plus, ChevronRight, MoreHorizontal, ArrowLeftRight } from 'lucide-react-native';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES } from '../../src/lib/types';
-import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchNotifications, fetchMyRequestsWithOffers, resolveMyLocation } from '../../src/lib/api';
+import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchMyProviderProfile, fetchNotifications, fetchMyRequestsWithOffers, resolveMyLocation } from '../../src/lib/api';
 import type { Provider, Job, ServiceRequest } from '../../src/lib/types';
 
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
@@ -23,6 +23,9 @@ export default function Home() {
   const [address, setAddress] = useState('');
   const [unread, setUnread] = useState(0);
   const [openRequests, setOpenRequests] = useState<OpenReq[]>([]);
+  // Only providers-also-browsing-as-clients get the quick switch back —
+  // a plain client has no provider dashboard to switch to.
+  const [hasProvider, setHasProvider] = useState(false);
 
   const refreshLive = useCallback(() => {
     fetchCurrentJob().then(setActiveJob).catch(() => {});
@@ -35,6 +38,7 @@ export default function Home() {
     // address -> Lomé) instead of a fixed point.
     resolveMyLocation().then(pt => fetchNearbyProviders(undefined, pt)).then(setProviders).catch(() => {});
     fetchMyProfile().then(p => { if (p) { setUserName(p.firstName || p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
+    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(() => {});
     refreshLive();
     // poll so new offers / notifications surface without a manual refresh
     const t = setInterval(refreshLive, 20000);
@@ -62,10 +66,18 @@ export default function Home() {
               </Pressable>
             </View>
           </View>
-          <Pressable style={[styles.bell, shadow.sm]} onPress={() => router.push('/client/notifications')}>
-            <Bell size={20} color={colors.encre} />
-            {unread > 0 && <View style={styles.bellBadge}><Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text></View>}
-          </Pressable>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            {hasProvider && (
+              <Pressable style={[styles.switchPill, shadow.sm]} onPress={() => router.push('/provider/dashboard')}>
+                <ArrowLeftRight size={14} color={colors.vert} />
+                <Text style={[text.label, { color: colors.vert }]}>Espace pro</Text>
+              </Pressable>
+            )}
+            <Pressable style={[styles.bell, shadow.sm]} onPress={() => router.push('/client/notifications')}>
+              <Bell size={20} color={colors.encre} />
+              {unread > 0 && <View style={styles.bellBadge}><Text style={[text.label, { color: colors.white, fontSize: 9 }]}>{unread}</Text></View>}
+            </Pressable>
+          </View>
         </View>
 
         {/* Search */}
@@ -200,6 +212,11 @@ const styles = StyleSheet.create({
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   location: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   bell: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  switchPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    height: 44, borderRadius: radii.pill, backgroundColor: colors.white,
+    paddingHorizontal: spacing.md,
+  },
   bellBadge: { position: 'absolute', top: 8, right: 8, width: 16, height: 16, borderRadius: 8, backgroundColor: colors.terre, alignItems: 'center', justifyContent: 'center' },
   search: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.white, borderRadius: radii.xl, paddingHorizontal: spacing.lg, height: 52 },
   jobBannerWrap: { borderRadius: radii.lg, overflow: 'hidden' },
