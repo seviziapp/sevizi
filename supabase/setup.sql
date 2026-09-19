@@ -1086,4 +1086,36 @@ drop trigger if exists trg_block_admin_as_client on requests;
 create trigger trg_block_admin_as_client before insert on requests
   for each row execute function block_admin_as_client();
 
+-- ============================================================
+-- 27) Admin broadcast notifications
+-- ============================================================
+-- See migration_admin_broadcast.sql for full commentary.
+
+create or replace function admin_broadcast_notification(
+  p_audience text, p_title text, p_body text, p_action_route text default null
+) returns int
+language plpgsql security definer as $$
+declare v_count int;
+begin
+  if not is_admin() then
+    raise exception 'Réservé aux administrateurs.';
+  end if;
+  if p_audience not in ('client', 'prestataire', 'all') then
+    raise exception 'Audience invalide.';
+  end if;
+  if coalesce(trim(p_title), '') = '' or coalesce(trim(p_body), '') = '' then
+    raise exception 'Titre et message requis.';
+  end if;
+
+  insert into notifications (user_id, type, title, body, action_route)
+  select id, 'system', p_title, p_body, p_action_route
+  from profiles
+  where not is_admin
+    and (p_audience = 'all' or role = p_audience::user_role);
+
+  get diagnostics v_count = row_count;
+  return v_count;
+end;
+$$;
+
 -- Done ✅

@@ -70,6 +70,26 @@ export async function revokeAdmin(targetId: string): Promise<void> {
   await invokeAdminFn('admin-set-role', { targetId, action: 'revoke' });
 }
 
+// ---- ADMIN: broadcast notifications ----
+
+export type BroadcastAudience = 'client' | 'prestataire' | 'all';
+
+// Pushes one notification to every client, every provider, or everyone —
+// delivered through the normal notifications screen. Returns how many
+// accounts received it. Admin accounts never receive their own broadcasts
+// (enforced server-side in admin_broadcast_notification).
+export async function broadcastNotification(input: {
+  audience: BroadcastAudience; title: string; body: string; actionRoute?: string;
+}): Promise<number> {
+  if (!hasSupabase) return 0;
+  const { data, error } = await supabase.rpc('admin_broadcast_notification', {
+    p_audience: input.audience, p_title: input.title, p_body: input.body,
+    p_action_route: input.actionRoute ?? null,
+  });
+  if (error) throw error;
+  return data as number;
+}
+
 export async function fetchAdminStats(): Promise<AdminStats> {
   if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0, pendingWithdrawals: 0 };
   const [users, providers, requests, jobs, verifications, disputes, withdrawals] = await Promise.all([

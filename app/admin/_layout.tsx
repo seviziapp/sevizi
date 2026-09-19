@@ -87,6 +87,7 @@ export default function AdminLayout() {
       <Tabs.Screen name="activity" options={{ href: null }} />
       <Tabs.Screen name="requests" options={{ href: null }} />
       <Tabs.Screen name="team" options={{ href: null }} />
+      <Tabs.Screen name="broadcast" options={{ href: null }} />
     </Tabs>
   );
 }
