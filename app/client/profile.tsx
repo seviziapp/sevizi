@@ -9,6 +9,7 @@ import {
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { fetchMyProfile, fetchMyProviderProfile } from '../../src/lib/api';
+import { SevigoMark } from '../../src/components/SevigoLogo';
 
 export default function Profile() {
   const router = useRouter();
@@ -57,6 +58,7 @@ export default function Profile() {
         hasProvider
           ? { icon: <Briefcase size={20} color={colors.vert} />, label: 'Espace professionnel', onPress: () => router.push('/provider/dashboard') }
           : { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/onboarding/provider-details') },
+        { icon: <SevigoMark size={20} />, label: 'Sèvi Go — Factures & paiements', onPress: () => router.push('/sevigo/dashboard') },
         { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => router.push('/client/help') },
       ],
     },
