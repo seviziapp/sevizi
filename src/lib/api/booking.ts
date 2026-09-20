@@ -218,6 +218,13 @@ export async function fetchMyAppointments(): Promise<Appointment[]> {
 }
 
 // Provider's own appointments for their agenda view.
+//
+// appointments.client_id references auth.users, not profiles — PostgREST
+// can't resolve a `client:profiles(...)` embed across that gap, so this
+// used to 400 on every call and the caught error silently returned [],
+// leaving a provider's agenda looking permanently empty. Fetching profiles
+// separately and merging in JS sidesteps the embed entirely (same fix as
+// fetchOpenRequestsAdmin in src/lib/api/admin.ts).
 export async function fetchProviderAppointments(): Promise<Appointment[]> {
   if (!hasSupabase) return [];
   const user = await currentUser();
@@ -226,10 +233,18 @@ export async function fetchProviderAppointments(): Promise<Appointment[]> {
   const providerId = providerRows?.[0]?.id;
   if (!providerId) return [];
   const { data, error } = await supabase
-    .from('appointments').select('*, client:profiles(full_name)')
+    .from('appointments').select('*')
     .eq('provider_id', providerId).neq('status', 'cancelled').order('starts_at', { ascending: true });
   if (error) return [];
-  return (data ?? []).map((a: any) => ({ ...mapAppointment(a), clientName: a.client?.full_name ?? 'Client' }));
+  const rows = data ?? [];
+
+  const clientIds = [...new Set(rows.map((a: any) => a.client_id).filter(Boolean))];
+  const { data: clients } = clientIds.length
+    ? await supabase.from('profiles').select('id, full_name').in('id', clientIds)
+    : { data: [] as any[] };
+  const clientById = new Map((clients ?? []).map((c: any) => [c.id, c]));
+
+  return rows.map((a: any) => ({ ...mapAppointment(a), clientName: clientById.get(a.client_id)?.full_name ?? 'Client' }));
 }
 
 export async function cancelAppointment(id: string): Promise<void> {

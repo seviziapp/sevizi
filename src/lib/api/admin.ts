@@ -113,11 +113,14 @@ export async function fetchAdminStats(): Promise<AdminStats> {
   };
 }
 
+// Pending only — once approved/rejected, a request drops off this queue
+// (the admin already acted on it; nothing to keep watching).
 export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('verification_requests')
     .select('*, provider:providers(name, category)')
+    .eq('status', 'pending')
     .order('created_at', { ascending: false });
   if (error) return [];
   return (data ?? []).map((v: any) => ({
@@ -221,25 +224,43 @@ export async function reportDispute(jobId: string, reason: string): Promise<void
 
 // Oldest first — the ones that have been sitting open longest are the most
 // urgent to call about, so they surface at the top.
+//
+// client_id references auth.users, not profiles — PostgREST can't resolve a
+// `client:profiles(...)` embed across that gap (no direct FK for it to find),
+// so it used to 400 on every call here and the caught error silently
+// returned [] — the list looked empty while the dashboard's plain count
+// (no embed) correctly showed the real number. Fetching profiles separately
+// and merging in JS sidesteps the embed entirely.
 export async function fetchOpenRequestsAdmin(): Promise<AdminOpenRequest[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('requests')
-    .select('*, offers(count), client:profiles(full_name, phone)')
+    .select('*, offers(count)')
     .eq('status', 'ouverte')
     .order('created_at', { ascending: true });
   if (error) return [];
-  return (data ?? []).map((r: any) => ({
-    id: r.id,
-    clientName: r.client?.full_name ?? 'Client',
-    clientPhone: r.client?.phone ?? null,
-    description: r.description,
-    category: r.category,
-    urgent: r.urgent,
-    locationLabel: r.location_label ?? '',
-    createdAt: r.created_at,
-    offersCount: r.offers?.[0]?.count ?? 0,
-  }));
+  const rows = data ?? [];
+
+  const clientIds = [...new Set(rows.map((r: any) => r.client_id).filter(Boolean))];
+  const { data: clients } = clientIds.length
+    ? await supabase.from('profiles').select('id, full_name, phone').in('id', clientIds)
+    : { data: [] as any[] };
+  const clientById = new Map((clients ?? []).map((c: any) => [c.id, c]));
+
+  return rows.map((r: any) => {
+    const client = clientById.get(r.client_id);
+    return {
+      id: r.id,
+      clientName: client?.full_name ?? 'Client',
+      clientPhone: client?.phone ?? null,
+      description: r.description,
+      category: r.category,
+      urgent: r.urgent,
+      locationLabel: r.location_label ?? '',
+      createdAt: r.created_at,
+      offersCount: r.offers?.[0]?.count ?? 0,
+    };
+  });
 }
 
 // Admin resolves a stale request by phone (client found someone elsewhere,

@@ -20,18 +20,20 @@ export default function Verification() {
     fetchVerificationQueue().then(setItems).catch(() => {});
   }, []);
 
+  // Approving/rejecting removes the item from the queue immediately — the
+  // list only ever holds pending requests (fetchVerificationQueue already
+  // filters server-side; this just keeps the UI in sync without a refetch).
   async function approve(id: string) {
     await approveVerification(id);
-    setItems(i => i.map(x => x.id === id ? { ...x, status: 'approved' } : x));
+    setItems(i => i.filter(x => x.id !== id));
   }
 
   async function reject(id: string) {
     await rejectVerification(id);
-    setItems(i => i.map(x => x.id === id ? { ...x, status: 'rejected' } : x));
+    setItems(i => i.filter(x => x.id !== id));
   }
 
-  const pending = items.filter(i => i.status === 'pending');
-  const done = items.filter(i => i.status !== 'pending');
+  const pending = items;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -58,15 +60,6 @@ export default function Verification() {
             <Text style={[text.label, { color: colors.textMuted }]}>EN ATTENTE ({pending.length})</Text>
             {pending.map(item => (
               <VerifCard key={item.id} item={item} onApprove={() => approve(item.id)} onReject={() => reject(item.id)} />
-            ))}
-          </>
-        )}
-
-        {done.length > 0 && (
-          <>
-            <Text style={[text.label, { color: colors.textMuted }]}>TRAITÉS</Text>
-            {done.map(item => (
-              <VerifCard key={item.id} item={item} readonly />
             ))}
           </>
         )}
