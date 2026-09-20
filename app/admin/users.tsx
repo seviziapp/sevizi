@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Users, ShieldCheck, User } from 'lucide-react-native';
+import { Search, Users, ShieldCheck, User, Trash2 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
+import { adminDeleteUser } from '../../src/lib/api';
+import { alert } from '../../src/lib/alert';
 
 type UserRow = {
   id: string;
@@ -16,14 +18,23 @@ type UserRow = {
 export default function AdminUsers() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'client' | 'prestataire'>('all');
 
-  useEffect(() => {
-    supabase.from('profiles').select('*').order('created_at', { ascending: false })
-      .then(({ data }) => { setUsers((data ?? []) as UserRow[]); setLoading(false); })
-      .catch(() => setLoading(false));
+  const load = useCallback(async () => {
+    try {
+      // Admin accounts are exclusive (see migration_admin_hierarchy.sql) —
+      // they're not real marketplace users, so they're excluded here rather
+      // than showing up mislabeled as a "client".
+      const { data } = await supabase.from('profiles').select('*').eq('is_admin', false).order('created_at', { ascending: false });
+      setUsers((data ?? []) as UserRow[]);
+    } finally {
+      setLoading(false);
+    }
   }, []);
+
+  useEffect(() => { load(); }, [load]);
 
   const filtered = users.filter(u => {
     const name = u.full_name ?? '';
@@ -32,6 +43,29 @@ export default function AdminUsers() {
     const matchRole = filter === 'all' || u.role === filter;
     return matchSearch && matchRole;
   });
+
+  function confirmDelete(u: UserRow) {
+    alert(
+      'Supprimer ce compte',
+      `${u.full_name || 'Cet utilisateur'} perdra définitivement l'accès à son compte, son profil et ses documents. Cette action est irréversible.`,
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Supprimer', style: 'destructive', onPress: () => doDelete(u.id) },
+      ],
+    );
+  }
+
+  async function doDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await adminDeleteUser(id);
+      setUsers(list => list.filter(u => u.id !== id));
+    } catch (e: any) {
+      alert('Erreur', e.message ?? 'Échec de la suppression.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -90,6 +124,15 @@ export default function AdminUsers() {
                   {u.role === 'client' ? 'CLIENT' : 'PREST.'}
                 </Text>
               </View>
+              <Pressable
+                style={styles.deleteBtn}
+                disabled={deletingId === u.id}
+                onPress={() => confirmDelete(u)}
+              >
+                {deletingId === u.id
+                  ? <ActivityIndicator size="small" color={colors.terre} />
+                  : <Trash2 size={18} color={colors.terre} />}
+              </Pressable>
             </View>
           ))}
         </ScrollView>
@@ -112,4 +155,5 @@ const styles = StyleSheet.create({
   avatar: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.textMuted, alignItems: 'center', justifyContent: 'center' },
   avatarProvider: { backgroundColor: colors.vert },
   roleBadge: { paddingHorizontal: spacing.sm, paddingVertical: 4, borderRadius: radii.sm, backgroundColor: colors.surface },
+  deleteBtn: { width: 36, height: 36, borderRadius: radii.sm, alignItems: 'center', justifyContent: 'center' },
 });

@@ -70,6 +70,14 @@ export async function revokeAdmin(targetId: string): Promise<void> {
   await invokeAdminFn('admin-set-role', { targetId, action: 'revoke' });
 }
 
+// Deletes a marketplace user's account (client or prestataire) outright —
+// same cascade/null-out behavior as self-service deletion, just
+// admin-initiated. Refuses to touch an admin account server-side (use the
+// Équipe screen for that).
+export async function adminDeleteUser(targetId: string): Promise<void> {
+  await invokeAdminFn('admin-delete-user', { targetId });
+}
+
 // ---- ADMIN: broadcast notifications ----
 
 export type BroadcastAudience = 'client' | 'prestataire' | 'all';
