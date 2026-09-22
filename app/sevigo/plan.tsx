@@ -83,7 +83,7 @@ export default function SevigoPlanScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <Text style={[text.h2, { color: colors.encre }]}>Choisissez votre formule</Text>
         <Text style={[text.body, { color: colors.textMuted }]}>
-          Passez à une formule payante à tout moment — l'abonnement est réglé par PayDunya et prend effet dès confirmation du paiement.
+          Passez à une formule payante à tout moment — l'abonnement est réglé et prend effet dès confirmation du paiement.
         </Text>
 
         {verifying && (
