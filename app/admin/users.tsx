@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Search, Users, ShieldCheck, User, Trash2 } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { Search, Users, ShieldCheck, User, Trash2, ChevronRight } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { adminDeleteUser } from '../../src/lib/api';
@@ -16,6 +17,7 @@ type UserRow = {
 };
 
 export default function AdminUsers() {
+  const router = useRouter();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -106,7 +108,11 @@ export default function AdminUsers() {
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: 40 }]}>Aucun utilisateur trouvé.</Text>
           )}
           {filtered.map(u => (
-            <View key={u.id} style={[styles.card, shadow.card]}>
+            <Pressable
+              key={u.id}
+              style={[styles.card, shadow.card]}
+              onPress={() => router.push({ pathname: '/admin/user-detail', params: { id: u.id } } as any)}
+            >
               <View style={[styles.avatar, u.role === 'prestataire' && styles.avatarProvider]}>
                 {u.role === 'prestataire'
                   ? <ShieldCheck size={20} color={colors.white} />
@@ -127,13 +133,14 @@ export default function AdminUsers() {
               <Pressable
                 style={styles.deleteBtn}
                 disabled={deletingId === u.id}
-                onPress={() => confirmDelete(u)}
+                onPress={(e) => { e.stopPropagation(); confirmDelete(u); }}
               >
                 {deletingId === u.id
                   ? <ActivityIndicator size="small" color={colors.terre} />
                   : <Trash2 size={18} color={colors.terre} />}
               </Pressable>
-            </View>
+              <ChevronRight size={18} color={colors.textMuted} />
+            </Pressable>
           ))}
         </ScrollView>
       )}

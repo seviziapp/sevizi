@@ -70,6 +70,59 @@ export async function revokeAdmin(targetId: string): Promise<void> {
   await invokeAdminFn('admin-set-role', { targetId, action: 'revoke' });
 }
 
+// ---- ADMIN: single user detail ----
+
+export type AdminUserDetail = {
+  id: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  role: string;
+  verified: boolean;
+  locationLabel: string;
+  createdAt: string;
+  provider: {
+    id: string; name: string; category: string; categories: string[];
+    rating: number; reviews: number; tier: string; verified: boolean; online: boolean;
+    bio?: string; missions: number; yearsActive: number; responseRate: number; username?: string;
+  } | null;
+  verificationStatus: 'none' | 'pending' | 'approved' | 'rejected';
+  recentRequests: { id: string; description: string; category: string; status: string; createdAt: string }[];
+};
+
+export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail | null> {
+  if (!hasSupabase) return null;
+  const [{ data: profile }, { data: providerRows }, { data: verifRows }, { data: reqRows }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
+    supabase.from('providers').select('*').eq('user_id', id).limit(1),
+    supabase.from('verification_requests').select('status').eq('user_id', id).order('created_at', { ascending: false }).limit(1),
+    supabase.from('requests').select('id, description, category, status, created_at').eq('client_id', id).order('created_at', { ascending: false }).limit(10),
+  ]);
+  if (!profile) return null;
+  const provider = providerRows?.[0];
+  return {
+    id: profile.id,
+    fullName: profile.full_name ?? 'Sans nom',
+    email: profile.email ?? '',
+    phone: profile.phone ?? '',
+    role: profile.role,
+    verified: !!profile.verified,
+    locationLabel: profile.location_label ?? '',
+    createdAt: profile.created_at,
+    provider: provider ? {
+      id: provider.id, name: provider.name, category: provider.category, categories: provider.categories ?? [],
+      rating: provider.rating ?? 0, reviews: provider.reviews ?? 0, tier: provider.tier ?? 'free',
+      verified: !!provider.verified, online: !!provider.online, bio: provider.bio ?? undefined,
+      missions: provider.missions ?? 0, yearsActive: provider.years_active ?? 0, responseRate: provider.response_rate ?? 0,
+      username: provider.username ?? undefined,
+    } : null,
+    verificationStatus: (verifRows?.[0]?.status as any) ?? 'none',
+    recentRequests: (reqRows ?? []).map((r: any) => ({
+      id: r.id, description: r.description, category: r.category, status: r.status, createdAt: r.created_at,
+    })),
+  };
+}
+
 // Deletes a marketplace user's account (client or prestataire) outright —
 // same cascade/null-out behavior as self-service deletion, just
 // admin-initiated. Refuses to touch an admin account server-side (use the
