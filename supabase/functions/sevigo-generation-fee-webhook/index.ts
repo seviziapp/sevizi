@@ -34,6 +34,12 @@ Deno.serve(async (req: Request) => {
         .update({ status: 'draft' })
         .eq('id', fee.invoice_id)
         .eq('status', 'pending_fee'); // no-op if somehow already unlocked
+      if (fee.referral_credit_applied > 0) {
+        await admin.from('referral_credits').insert({
+          user_id: fee.user_id, amount: -fee.referral_credit_applied,
+          kind: 'spend_sevigo_fee', note: 'Frais de génération de facture',
+        });
+      }
     } else {
       await admin.from('sevigo_invoice_generation_fees')
         .update({ status: confirm.status === 'cancelled' ? 'cancelled' : 'failed' })

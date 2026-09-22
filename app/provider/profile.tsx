@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
   ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
-  ArrowLeftRight,
+  ArrowLeftRight, Gift,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { SevigoMark } from '../../src/components/SevigoLogo';
@@ -241,6 +241,11 @@ export default function ProviderProfile() {
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/sevigo/dashboard')}>
             <SevigoMark size={20} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Sèvi Go — Factures & paiements</Text>
+            <ChevronRight size={18} color={colors.textMuted} />
+          </Pressable>
+          <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/referral' as any)}>
+            <Gift size={20} color={colors.encre} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Programme de parrainage</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} disabled={savingBookable} onPress={() => onToggleBookable(!bookable)}>

@@ -64,25 +64,41 @@ Deno.serve(async (req: Request) => {
       totalAmount = Math.max(0, PRO_MONTHLY_FEE - discountAmount);
     }
 
-    // A 100%-off code needs no PayDunya round-trip — PayDunya doesn't accept
-    // a 0-amount invoice anyway. Grant Pro immediately and record the
-    // redemption right here (this IS the confirmation; there's no payment to
-    // wait on).
-    if (discountCodeId && totalAmount <= 0) {
+    // Referral credit applies next, after any discount code — capped at
+    // both the caller's balance and what's still owed. Not deducted from
+    // the ledger yet; only recorded on the payment row. It's only actually
+    // spent once a payment is genuinely confirmed (either right below, for
+    // a fully-covered checkout, or in paydunya-webhook) — an abandoned
+    // checkout never burns credit.
+    const { data: creditBalance } = await admin.rpc('referral_credit_balance', { p_user_id: user.id });
+    const creditApplied = Math.min(creditBalance ?? 0, totalAmount);
+    totalAmount = Math.max(0, totalAmount - creditApplied);
+
+    // Fully covered (100%-off code, referral credit, or both) needs no
+    // PayDunya round-trip — PayDunya doesn't accept a 0-amount invoice
+    // anyway. Grant Pro immediately; this IS the confirmation.
+    if (totalAmount <= 0) {
       await admin.from('pro_payments').insert({
         provider_id: provider.id, user_id: user.id, amount: 0, status: 'completed',
         discount_code_id: discountCodeId, discount_amount: discountAmount,
-        confirmed_at: new Date().toISOString(),
+        referral_credit_applied: creditApplied, confirmed_at: new Date().toISOString(),
       });
       await admin.from('providers')
         .update({ tier: 'pro', pro_since: new Date().toISOString(), verified: true })
         .eq('id', provider.id);
-      await admin.from('discount_redemptions').insert({
-        code_id: discountCodeId, provider_id: provider.id, user_id: user.id,
-        purpose: 'membership', amount_saved: discountAmount,
-      });
-      const { data: codeRow } = await admin.from('discount_codes').select('redemption_count').eq('id', discountCodeId).single();
-      await admin.from('discount_codes').update({ redemption_count: (codeRow?.redemption_count ?? 0) + 1 }).eq('id', discountCodeId);
+      if (discountCodeId) {
+        await admin.from('discount_redemptions').insert({
+          code_id: discountCodeId, provider_id: provider.id, user_id: user.id,
+          purpose: 'membership', amount_saved: discountAmount,
+        });
+        const { data: codeRow } = await admin.from('discount_codes').select('redemption_count').eq('id', discountCodeId).single();
+        await admin.from('discount_codes').update({ redemption_count: (codeRow?.redemption_count ?? 0) + 1 }).eq('id', discountCodeId);
+      }
+      if (creditApplied > 0) {
+        await admin.from('referral_credits').insert({
+          user_id: user.id, amount: -creditApplied, kind: 'spend_pro', note: 'Abonnement Sèvizi Pro',
+        });
+      }
       return new Response(JSON.stringify({ confirmed: true }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -106,6 +122,7 @@ Deno.serve(async (req: Request) => {
       invoice_url: invoiceUrl,
       discount_code_id: discountCodeId,
       discount_amount: discountAmount,
+      referral_credit_applied: creditApplied,
     });
 
     return new Response(JSON.stringify({ invoiceUrl }), {

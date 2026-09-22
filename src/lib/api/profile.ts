@@ -6,6 +6,7 @@ import { supabase } from '../supabase';
 import { GeoPoint, ServiceCategory, Provider } from '../types';
 import { getCurrentPosition } from '../geolocation';
 import { LOME, hasSupabase, currentUser } from './shared';
+import { redeemReferralCode } from './referral';
 
 // ---- PROFILE ----
 
@@ -94,8 +95,8 @@ export async function uploadDocument(blob: Blob, folder: string, filename: strin
   return data.publicUrl;
 }
 
-// Client finishes signup: first/last name, phone, email.
-export async function saveClientDetails(input: { firstName: string; lastName: string; phone: string; email: string }): Promise<void> {
+// Client finishes signup: first/last name, phone, email, optional referral code.
+export async function saveClientDetails(input: { firstName: string; lastName: string; phone: string; email: string; referralCode?: string }): Promise<void> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const fullName = `${input.firstName} ${input.lastName}`.trim();
@@ -112,6 +113,7 @@ export async function saveClientDetails(input: { firstName: string; lastName: st
     });
     if (e2) throw e2;
   }
+  if (input.referralCode) await redeemReferralCode(input.referralCode);
 }
 
 // Provider finishes signup: company name, owner first/last name, category, phone.
@@ -122,6 +124,7 @@ export async function saveProviderDetails(input: {
   // the row itself is always created as 'free' here. Only the PayDunya webhook
   // (createProSubscriptionInvoice / paydunya-webhook) can actually grant Pro —
   // enforced DB-side by trg_protect_provider_tier, not just by this function.
+  referralCode?: string;
 }): Promise<void> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
@@ -157,6 +160,7 @@ export async function saveProviderDetails(input: {
       id: user.id, role: 'prestataire', full_name: fullName, phone: input.phone,
     });
   }
+  if (input.referralCode) await redeemReferralCode(input.referralCode);
 }
 
 // Client submits ID for verification.

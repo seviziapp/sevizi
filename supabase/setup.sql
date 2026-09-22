@@ -1157,4 +1157,86 @@ drop trigger if exists trg_enforce_request_rate_limit on requests;
 create trigger trg_enforce_request_rate_limit before insert on requests
   for each row execute function enforce_request_rate_limit();
 
+-- ============================================================
+-- 29) Affiliate/referral program
+-- ============================================================
+-- See migration_referral_program.sql for full commentary.
+
+create table if not exists referral_codes (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null unique references auth.users(id) on delete cascade,
+  code text not null unique,
+  created_at timestamptz default now()
+);
+alter table referral_codes enable row level security;
+drop policy if exists "referral codes readable" on referral_codes;
+create policy "referral codes readable" on referral_codes for select using (true);
+drop policy if exists "own referral code insert" on referral_codes;
+create policy "own referral code insert" on referral_codes for insert with check (auth.uid() = user_id);
+
+create table if not exists referral_credits (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  amount int not null,
+  kind text not null check (kind in ('bonus_referrer', 'bonus_referee', 'spend_pro', 'spend_sevigo_plan', 'spend_sevigo_fee')),
+  related_user_id uuid references auth.users(id) on delete set null,
+  note text,
+  created_at timestamptz default now()
+);
+alter table referral_credits enable row level security;
+drop policy if exists "own referral credits" on referral_credits;
+create policy "own referral credits" on referral_credits for select using (auth.uid() = user_id);
+
+create table if not exists referral_signups (
+  id uuid primary key default gen_random_uuid(),
+  referee_id uuid not null unique references auth.users(id) on delete cascade,
+  referrer_id uuid not null references auth.users(id) on delete cascade,
+  code text not null,
+  created_at timestamptz default now()
+);
+alter table referral_signups enable row level security;
+drop policy if exists "own referral signup" on referral_signups;
+create policy "own referral signup" on referral_signups for select using (auth.uid() = referee_id or auth.uid() = referrer_id);
+
+create or replace function referral_credit_balance(p_user_id uuid) returns int
+language sql security definer stable as $$
+  select coalesce(sum(amount), 0) from referral_credits where user_id = p_user_id;
+$$;
+
+create or replace function redeem_referral_code(p_code text) returns json
+language plpgsql security definer as $$
+declare
+  v_referrer_id uuid;
+  v_referee_id uuid := auth.uid();
+begin
+  if v_referee_id is null then
+    raise exception 'Non connecté';
+  end if;
+  if exists (select 1 from referral_signups where referee_id = v_referee_id) then
+    raise exception 'Vous avez déjà utilisé un code de parrainage.';
+  end if;
+
+  select user_id into v_referrer_id from referral_codes where code = upper(trim(p_code));
+  if v_referrer_id is null then
+    raise exception 'Code de parrainage introuvable.';
+  end if;
+  if v_referrer_id = v_referee_id then
+    raise exception 'Vous ne pouvez pas utiliser votre propre code.';
+  end if;
+
+  insert into referral_signups (referee_id, referrer_id, code) values (v_referee_id, v_referrer_id, upper(trim(p_code)));
+
+  insert into referral_credits (user_id, amount, kind, related_user_id, note)
+  values (v_referrer_id, 300, 'bonus_referrer', v_referee_id, 'Filleul inscrit');
+  insert into referral_credits (user_id, amount, kind, related_user_id, note)
+  values (v_referee_id, 300, 'bonus_referee', v_referrer_id, 'Bonus de bienvenue (parrainage)');
+
+  return json_build_object('ok', true);
+end;
+$$;
+
+alter table pro_payments add column if not exists referral_credit_applied int not null default 0;
+alter table sevigo_plan_payments add column if not exists referral_credit_applied int not null default 0;
+alter table sevigo_invoice_generation_fees add column if not exists referral_credit_applied int not null default 0;
+
 -- Done ✅

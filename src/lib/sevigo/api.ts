@@ -105,7 +105,9 @@ export async function setSevigoPlan(planId: 'payg'): Promise<void> {
 // Requests a PayDunya payment link for a paid plan's monthly fee. The plan
 // doesn't change until the webhook confirms payment — the caller should
 // redirect to invoiceUrl and poll fetchSevigoUsage() on return.
-export async function createSevigoPlanPayment(planId: Exclude<SevigoPlanId, 'payg'>, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number }> {
+// A payment fully covered by referral credit skips PayDunya entirely and
+// returns { confirmed: true } instead — see sevigo-create-plan-payment.
+export async function createSevigoPlanPayment(planId: Exclude<SevigoPlanId, 'payg'>, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number } | { confirmed: true }> {
   const { data, error } = await supabase.functions.invoke('sevigo-create-plan-payment', {
     body: { planId, returnUrl, cancelUrl },
   });
@@ -276,7 +278,9 @@ export async function createSevigoInvoicePayment(invoiceId: string, returnUrl: s
 // Requests a PayDunya payment link for the invoice's generation fee (the
 // business owner pays this, not the invoice's client) — the invoice stays
 // locked in 'pending_fee' until sevigo-generation-fee-webhook confirms it.
-export async function createSevigoGenerationFeePayment(invoiceId: string, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number }> {
+// A fee fully covered by referral credit skips PayDunya entirely and
+// returns { confirmed: true } instead — see sevigo-create-generation-fee-payment.
+export async function createSevigoGenerationFeePayment(invoiceId: string, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number } | { confirmed: true }> {
   const { data, error } = await supabase.functions.invoke('sevigo-create-generation-fee-payment', {
     body: { invoiceId, returnUrl, cancelUrl },
   });

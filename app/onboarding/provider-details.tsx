@@ -5,7 +5,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
-import { Building2, User, Phone, Mail, ArrowRight, Check, Crown } from 'lucide-react-native';
+import { Building2, User, Phone, Mail, ArrowRight, Check, Crown, Gift } from 'lucide-react-native';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
@@ -33,6 +33,7 @@ export default function ProviderDetails() {
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [bio, setBio] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [tier, setTier] = useState<ProviderTier>('free');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -55,6 +56,7 @@ export default function ProviderDetails() {
       await saveProviderDetails({
         companyName: companyName.trim(), firstName: firstName.trim(), lastName: lastName.trim(),
         category, phone: phone.trim(), email: email.trim(), bio: bio.trim() || undefined, tier,
+        referralCode: referralCode.trim() || undefined,
       });
 
       if (tier === 'pro') {
@@ -127,6 +129,15 @@ export default function ProviderDetails() {
               textAlignVertical="top"
             />
           </View>
+
+          <View style={{ height: spacing.md }} />
+          <Field
+            icon={<Gift size={18} color={colors.textMuted} />}
+            placeholder="Code de parrainage (facultatif)"
+            value={referralCode}
+            onChangeText={t => setReferralCode(t.toUpperCase())}
+            autoCapitalize="characters"
+          />
 
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm }]}>CHOISISSEZ VOTRE FORMULE</Text>
           <View style={styles.tierRow}>

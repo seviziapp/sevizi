@@ -31,10 +31,32 @@ Deno.serve(async (req: Request) => {
     if (!fee) throw new Error('Formule invalide.');
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Referral credit — capped at balance and what's owed. Not deducted from
+    // the ledger yet; only actually spent once genuinely confirmed (right
+    // below for a fully-covered checkout, or in sevigo-plan-payment-webhook).
+    const { data: creditBalance } = await admin.rpc('referral_credit_balance', { p_user_id: user.id });
+    const creditApplied = Math.min(creditBalance ?? 0, fee);
+    const totalAmount = Math.max(0, fee - creditApplied);
+
+    if (totalAmount <= 0) {
+      await admin.from('sevigo_plan_payments').insert({
+        user_id: user.id, plan_id: planId, amount: 0, status: 'completed',
+        referral_credit_applied: creditApplied, confirmed_at: new Date().toISOString(),
+      });
+      await admin.from('sevigo_subscriptions').upsert({ user_id: user.id, plan_id: planId }, { onConflict: 'user_id' });
+      await admin.from('referral_credits').insert({
+        user_id: user.id, amount: -creditApplied, kind: 'spend_sevigo_plan', note: `Formule Sèvi Go ${PLAN_LABELS[planId]}`,
+      });
+      return new Response(JSON.stringify({ confirmed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const callbackUrl = `${SUPABASE_URL}/functions/v1/sevigo-plan-payment-webhook`;
 
     const { token, invoiceUrl } = await createInvoice({
-      totalAmount: fee,
+      totalAmount,
       description: `Abonnement Sèvi Go ${PLAN_LABELS[planId]} — 1 mois`,
       callbackUrl, returnUrl, cancelUrl,
       customData: { user_id: user.id, plan_id: planId, kind: 'plan_payment' },
@@ -42,10 +64,11 @@ Deno.serve(async (req: Request) => {
     });
 
     await admin.from('sevigo_plan_payments').insert({
-      user_id: user.id, plan_id: planId, amount: fee, status: 'pending', paydunya_token: token,
+      user_id: user.id, plan_id: planId, amount: totalAmount, status: 'pending', paydunya_token: token,
+      referral_credit_applied: creditApplied,
     });
 
-    return new Response(JSON.stringify({ invoiceUrl, fee }), {
+    return new Response(JSON.stringify({ invoiceUrl, fee: totalAmount }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {

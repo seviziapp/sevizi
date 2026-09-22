@@ -54,10 +54,31 @@ Deno.serve(async (req: Request) => {
     const fee = rule.included === null ? 0 : (usedBefore >= rule.included ? rule.extraFee : 0);
     if (fee <= 0) throw new Error('Aucun frais ne s\'applique à cette facture.');
 
+    // Referral credit — capped at balance and what's owed. Not deducted from
+    // the ledger yet; only actually spent once genuinely confirmed (right
+    // below for a fully-covered checkout, or in sevigo-generation-fee-webhook).
+    const { data: creditBalance } = await admin.rpc('referral_credit_balance', { p_user_id: user.id });
+    const creditApplied = Math.min(creditBalance ?? 0, fee);
+    const totalAmount = Math.max(0, fee - creditApplied);
+
+    if (totalAmount <= 0) {
+      await admin.from('sevigo_invoice_generation_fees').insert({
+        invoice_id: invoice.id, user_id: user.id, amount: 0, status: 'completed',
+        referral_credit_applied: creditApplied, confirmed_at: new Date().toISOString(),
+      });
+      await admin.from('sevigo_invoices').update({ status: 'draft' }).eq('id', invoice.id).eq('status', 'pending_fee');
+      await admin.from('referral_credits').insert({
+        user_id: user.id, amount: -creditApplied, kind: 'spend_sevigo_fee', note: `Frais de génération — Facture ${invoice.number}`,
+      });
+      return new Response(JSON.stringify({ confirmed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const callbackUrl = `${SUPABASE_URL}/functions/v1/sevigo-generation-fee-webhook`;
 
     const { token, invoiceUrl } = await createInvoice({
-      totalAmount: fee,
+      totalAmount,
       description: `Frais de génération — Facture ${invoice.number}`,
       callbackUrl, returnUrl, cancelUrl,
       customData: { sevigo_invoice_id: invoice.id, user_id: user.id, kind: 'generation_fee' },
@@ -67,12 +88,13 @@ Deno.serve(async (req: Request) => {
     await admin.from('sevigo_invoice_generation_fees').insert({
       invoice_id: invoice.id,
       user_id: user.id,
-      amount: fee,
+      amount: totalAmount,
       status: 'pending',
       paydunya_token: token,
+      referral_credit_applied: creditApplied,
     });
 
-    return new Response(JSON.stringify({ invoiceUrl, fee }), {
+    return new Response(JSON.stringify({ invoiceUrl, fee: totalAmount }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {

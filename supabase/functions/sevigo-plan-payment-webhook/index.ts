@@ -29,6 +29,12 @@ Deno.serve(async (req: Request) => {
         .eq('id', payment.id);
       await admin.from('sevigo_subscriptions')
         .upsert({ user_id: payment.user_id, plan_id: payment.plan_id }, { onConflict: 'user_id' });
+      if (payment.referral_credit_applied > 0) {
+        await admin.from('referral_credits').insert({
+          user_id: payment.user_id, amount: -payment.referral_credit_applied,
+          kind: 'spend_sevigo_plan', note: `Formule Sèvi Go ${payment.plan_id}`,
+        });
+      }
     } else {
       await admin.from('sevigo_plan_payments')
         .update({ status: confirm.status === 'cancelled' ? 'cancelled' : 'failed' })

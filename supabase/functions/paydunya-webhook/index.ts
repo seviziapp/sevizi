@@ -51,6 +51,15 @@ Deno.serve(async (req: Request) => {
           await admin.from('discount_codes').update({ redemption_count: codeRow.redemption_count + 1 }).eq('id', payment.discount_code_id);
         }
       }
+      // Same logic as the discount code above: referral credit is only
+      // actually spent from the ledger once the payment is genuinely
+      // confirmed here — never on an abandoned checkout.
+      if (payment.referral_credit_applied > 0) {
+        await admin.from('referral_credits').insert({
+          user_id: payment.user_id, amount: -payment.referral_credit_applied,
+          kind: 'spend_pro', note: 'Abonnement Sèvizi Pro',
+        });
+      }
     } else {
       await admin.from('pro_payments')
         .update({ status: confirm.status === 'cancelled' ? 'cancelled' : 'failed' })

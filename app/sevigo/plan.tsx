@@ -65,12 +65,18 @@ export default function SevigoPlanScreen() {
       }
       // Paid plan — must pay the monthly fee first; the plan only actually
       // changes once sevigo-plan-payment-webhook confirms it.
-      const { invoiceUrl } = await createSevigoPlanPayment(planId, buildRedirectUrl('return'), buildRedirectUrl('cancel'));
-      if (Platform.OS === 'web') {
-        window.location.href = invoiceUrl;
+      const result = await createSevigoPlanPayment(planId, buildRedirectUrl('return'), buildRedirectUrl('cancel'));
+      // Referral credit fully covered the fee — no PayDunya round-trip
+      // needed, the plan already switched server-side.
+      if ('confirmed' in result) {
+        setCurrentPlan(planId);
         return;
       }
-      await Linking.openURL(invoiceUrl);
+      if (Platform.OS === 'web') {
+        window.location.href = result.invoiceUrl;
+        return;
+      }
+      await Linking.openURL(result.invoiceUrl);
     } catch (e: any) {
       alert('Erreur', e.message ?? "Échec du changement de formule.");
     } finally {

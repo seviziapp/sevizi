@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { User, Phone, Mail, ArrowRight } from 'lucide-react-native';
+import { User, Phone, Mail, ArrowRight, Gift } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
@@ -17,6 +17,7 @@ export default function ClientDetails() {
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -38,7 +39,10 @@ export default function ClientDetails() {
     setError('');
     setLoading(true);
     try {
-      await saveClientDetails({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), email: email.trim() });
+      await saveClientDetails({
+        firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), email: email.trim(),
+        referralCode: referralCode.trim() || undefined,
+      });
       router.replace('/client/home');
     } catch (e: any) {
       setError(e.message ?? 'Une erreur est survenue.');
@@ -61,6 +65,13 @@ export default function ClientDetails() {
           <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Nom" value={lastName} onChangeText={setLastName} />
           <Field icon={<Phone size={18} color={colors.textMuted} />} placeholder="Numéro de téléphone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
           <Field icon={<Mail size={18} color={colors.textMuted} />} placeholder="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <Field
+            icon={<Gift size={18} color={colors.textMuted} />}
+            placeholder="Code de parrainage (facultatif)"
+            value={referralCode}
+            onChangeText={t => setReferralCode(t.toUpperCase())}
+            autoCapitalize="characters"
+          />
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 

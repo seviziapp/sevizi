@@ -167,11 +167,17 @@ export default function InvoiceDetail() {
     if (!invoice) return;
     setUnlocking(true);
     try {
-      const { invoiceUrl } = await createSevigoGenerationFeePayment(
+      const result = await createSevigoGenerationFeePayment(
         invoice.id, buildRedirectUrl('feepayment', 'return', invoice.id), buildRedirectUrl('feepayment', 'cancel', invoice.id),
       );
-      if (Platform.OS === 'web') { window.location.href = invoiceUrl; return; }
-      await Linking.openURL(invoiceUrl);
+      // Referral credit fully covered the fee — reload to show the now-unlocked invoice.
+      if ('confirmed' in result) {
+        const fresh = await fetchSevigoInvoice(invoice.id);
+        if (fresh) setInvoice(fresh);
+        return;
+      }
+      if (Platform.OS === 'web') { window.location.href = result.invoiceUrl; return; }
+      await Linking.openURL(result.invoiceUrl);
     } catch {
       // button just resets — user can retry
     } finally {

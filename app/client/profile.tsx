@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   MapPin, Bell, ShieldCheck, HelpCircle, LogOut, ChevronRight,
-  Heart, Briefcase, Star, Settings, ClipboardList, CalendarDays,
+  Heart, Briefcase, Star, Settings, ClipboardList, CalendarDays, Gift,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
@@ -59,6 +59,7 @@ export default function Profile() {
           ? { icon: <Briefcase size={20} color={colors.vert} />, label: 'Espace professionnel', onPress: () => router.push('/provider/dashboard') }
           : { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/onboarding/provider-details') },
         { icon: <SevigoMark size={20} />, label: 'Sèvi Go — Factures & paiements', onPress: () => router.push('/sevigo/dashboard') },
+        { icon: <Gift size={20} color={colors.encre} />, label: 'Programme de parrainage', onPress: () => router.push('/referral' as any) },
         { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => router.push('/client/help') },
       ],
     },

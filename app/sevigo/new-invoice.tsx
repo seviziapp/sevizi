@@ -132,14 +132,19 @@ export default function NewInvoice() {
         // A generation fee applies (pay-as-you-go, or plan quota exceeded) —
         // the invoice stays locked until this is paid, so nothing exists yet
         // to print/email/screenshot.
-        const { invoiceUrl } = await createSevigoGenerationFeePayment(
+        const result = await createSevigoGenerationFeePayment(
           invoice.id, buildRedirectUrl('return', invoice.id), buildRedirectUrl('cancel', invoice.id),
         );
-        if (Platform.OS === 'web') {
-          window.location.href = invoiceUrl;
+        // Referral credit fully covered the fee — already unlocked server-side.
+        if ('confirmed' in result) {
+          router.replace({ pathname: '/sevigo/invoice/[id]', params: { id: invoice.id } });
           return;
         }
-        await Linking.openURL(invoiceUrl);
+        if (Platform.OS === 'web') {
+          window.location.href = result.invoiceUrl;
+          return;
+        }
+        await Linking.openURL(result.invoiceUrl);
         router.replace({ pathname: '/sevigo/invoice/[id]', params: { id: invoice.id } });
         return;
       }
