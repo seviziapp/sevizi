@@ -1118,4 +1118,43 @@ begin
 end;
 $$;
 
+-- ============================================================
+-- 28) Request creation rate limit (spam/bot protection)
+-- ============================================================
+-- See migration_request_rate_limit.sql for full commentary.
+
+create or replace function enforce_request_rate_limit() returns trigger
+language plpgsql as $$
+declare
+  v_recent_count int;
+  v_daily_count int;
+begin
+  if new.client_id is null then
+    return new;
+  end if;
+
+  select count(*) into v_recent_count
+  from requests
+  where client_id = new.client_id
+    and created_at > now() - interval '10 minutes';
+  if v_recent_count >= 3 then
+    raise exception 'Trop de demandes créées en peu de temps. Patientez quelques minutes avant de réessayer.';
+  end if;
+
+  select count(*) into v_daily_count
+  from requests
+  where client_id = new.client_id
+    and created_at > now() - interval '24 hours';
+  if v_daily_count >= 8 then
+    raise exception 'Limite quotidienne de demandes atteinte. Réessayez demain.';
+  end if;
+
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_enforce_request_rate_limit on requests;
+create trigger trg_enforce_request_rate_limit before insert on requests
+  for each row execute function enforce_request_rate_limit();
+
 -- Done ✅
