@@ -259,6 +259,8 @@ export interface VerificationRequest {
   idDocUrl?: string;
   tradeDocUrl?: string;
   companyInfo?: string;
+  holderName?: string; // registered account name — what the uploaded documents must match
+  holderPhone?: string;
 }
 
 export interface Dispute {

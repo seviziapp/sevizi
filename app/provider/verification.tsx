@@ -45,7 +45,7 @@ export default function ProviderVerification() {
   }
 
   async function submit() {
-    if (!companyInfo.trim() && !tradeDoc) { setError('Ajoutez vos informations d\'entreprise ou un document.'); return; }
+    if (!tradeDoc && !idDoc) { setError('Téléversez votre pièce d\'identité ou votre carte CFE : l\'équipe doit vérifier qu\'elle correspond à votre nom.'); return; }
     setError('');
     setSubmitting(true);
     try {
@@ -112,10 +112,14 @@ export default function ProviderVerification() {
                 textAlignVertical="top"
               />
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>LICENCE / DOCUMENT DE MÉTIER</Text>
-              <UploadRow label={tradeDoc?.name ?? 'Téléverser la licence du propriétaire'} done={!!tradeDoc} busy={uploading === 'trade'} onPress={() => upload('trade')} />
+              <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.lg }]}>
+                Téléversez au moins un des deux documents ci-dessous. Le nom qui y figure doit correspondre à celui de votre compte.
+              </Text>
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>PIÈCE D'IDENTITÉ (FACULTATIF)</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.md }]}>CARTE CFE / LICENCE</Text>
+              <UploadRow label={tradeDoc?.name ?? 'Téléverser la carte CFE ou la licence'} done={!!tradeDoc} busy={uploading === 'trade'} onPress={() => upload('trade')} />
+
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>PIÈCE D'IDENTITÉ</Text>
               <UploadRow label={idDoc?.name ?? 'Téléverser une pièce d\'identité'} done={!!idDoc} busy={uploading === 'id'} onPress={() => upload('id')} />
 
               {!!error && <Text style={styles.error}>{error}</Text>}

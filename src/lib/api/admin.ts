@@ -184,9 +184,20 @@ export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
   if (error) return [];
-  return (data ?? []).map((v: any) => ({
+  const rows = data ?? [];
+  // verification_requests.user_id references auth.users, not profiles, so a
+  // profiles embed can't resolve (same PGRST200 issue as requests) — fetch
+  // the account holders' registered names separately and merge.
+  const userIds = [...new Set(rows.map((v: any) => v.user_id).filter(Boolean))];
+  const { data: holders } = userIds.length
+    ? await supabase.from('profiles').select('id, full_name, phone').in('id', userIds)
+    : { data: [] as any[] };
+  const holderById = new Map((holders ?? []).map((h: any) => [h.id, h]));
+  return rows.map((v: any) => ({
     id: v.id,
     type: v.type ?? 'provider',
+    holderName: holderById.get(v.user_id)?.full_name ?? undefined,
+    holderPhone: holderById.get(v.user_id)?.phone ?? undefined,
     displayName: v.display_name ?? v.provider?.name ?? 'Sans nom',
     category: v.provider?.category,
     submittedAt: v.created_at,

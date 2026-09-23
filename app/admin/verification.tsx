@@ -106,6 +106,13 @@ function VerifCard({ item, onApprove, onReject, readonly }: {
         </View>
       </View>
 
+      {/* Registered account name — the uploaded ID / CFE card must match this */}
+      <View style={styles.holderBox}>
+        <Text style={[text.label, { color: colors.textMuted }]}>NOM DU COMPTE À VÉRIFIER</Text>
+        <Text style={[text.bodyMd, { color: colors.encre }]}>{item.holderName || 'Non renseigné'}</Text>
+        {!!item.holderPhone && <Text style={[text.small, { color: colors.textMuted }]}>{item.holderPhone}</Text>}
+      </View>
+
       {/* Company info text (provider) */}
       {!!item.companyInfo && (
         <View style={styles.infoBox}>
@@ -124,7 +131,7 @@ function VerifCard({ item, onApprove, onReject, readonly }: {
         {item.tradeDocUrl && (
           <Pressable style={styles.docChip} onPress={() => openDoc(item.tradeDocUrl)}>
             <FileText size={14} color={colors.vert} />
-            <Text style={[text.label, { color: colors.vert }]}>Licence / métier</Text>
+            <Text style={[text.label, { color: colors.vert }]}>Carte CFE / licence</Text>
           </Pressable>
         )}
         {!item.idDocUrl && !item.tradeDocUrl && (
@@ -161,6 +168,7 @@ const styles = StyleSheet.create({
   typeBadge: { backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 2 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   statusBadge: { borderWidth: 1, borderRadius: radii.sm, paddingHorizontal: spacing.sm, paddingVertical: 4 },
+  holderBox: { backgroundColor: '#FFF8E6', borderRadius: radii.sm, padding: spacing.md, gap: 2 },
   infoBox: { backgroundColor: colors.surface, borderRadius: radii.sm, padding: spacing.md },
   docRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   docChip: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#F2FBF6', borderWidth: 1, borderColor: colors.vert, borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: 6 },
