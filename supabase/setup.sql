@@ -26,10 +26,7 @@ alter table verification_requests add column if not exists company_info text;
 drop policy if exists "submit own verification" on verification_requests;
 create policy "submit own verification" on verification_requests
   for insert with check (auth.uid() = user_id);
-drop policy if exists "read verifications" on verification_requests;
-create policy "read verifications" on verification_requests for select using (true);
-drop policy if exists "update verifications" on verification_requests;
-create policy "update verifications" on verification_requests for update using (true);
+-- (read/update policies for verification_requests are defined in section 30)
 
 insert into storage.buckets (id, name, public)
 values ('documents', 'documents', true)
