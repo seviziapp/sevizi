@@ -2,12 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { MapPin, Clock, ChevronRight, SlidersHorizontal, Crown } from 'lucide-react-native';
+import { MapPin, Clock, ChevronRight, Crown } from 'lucide-react-native';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, resolveMyLocation, fetchMyProviderProfile, LOME } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
 import { timeAgo } from '../../src/lib/format';
+import { reportError } from '../../src/lib/reportError';
 
 export default function ProviderRequests() {
   const router = useRouter();
@@ -18,7 +19,7 @@ export default function ProviderRequests() {
   const readyRef = useRef(false);
 
   useEffect(() => {
-    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
+    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(reportError);
   }, []);
 
   // Resolve the provider's real location once (GPS -> saved address -> Lomé).
@@ -26,15 +27,15 @@ export default function ProviderRequests() {
     resolveMyLocation().then(pt => {
       centerRef.current = pt;
       readyRef.current = true;
-      fetchNearbyRequests(filter ?? undefined, pt).then(setRequests).catch(() => {});
-    }).catch(() => {});
+      fetchNearbyRequests(filter ?? undefined, pt).then(setRequests).catch(reportError);
+    }).catch(reportError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Refetch on filter change (skip the initial mount — handled above).
   useEffect(() => {
     if (!readyRef.current) return;
-    fetchNearbyRequests(filter ?? undefined, centerRef.current).then(setRequests).catch(() => {});
+    fetchNearbyRequests(filter ?? undefined, centerRef.current).then(setRequests).catch(reportError);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
@@ -46,9 +47,6 @@ export default function ProviderRequests() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={[text.h2, { color: colors.encre }]}>Demandes proches</Text>
-        <Pressable style={styles.filterBtn}>
-          <SlidersHorizontal size={20} color={colors.encre} />
-        </Pressable>
       </View>
 
       {/* Category filter chips */}
@@ -143,7 +141,6 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: spacing.xl, paddingTop: spacing.xl, paddingBottom: spacing.md },
-  filterBtn: { width: 44, height: 44, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   chipsScroll: { flexGrow: 0, flexShrink: 0 },
   chips: { paddingHorizontal: spacing.xl, paddingBottom: spacing.md, gap: spacing.sm },
   chip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.md, height: 36, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },

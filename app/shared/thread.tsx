@@ -8,6 +8,7 @@ import { ArrowLeft, Wrench, MapPin, Navigation, Send, ShieldAlert } from 'lucide
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LOME, fetchMessages, sendMessage, resolveActiveThread } from '../../src/lib/api';
 import { containsContactInfo } from '../../src/lib/contentSafety';
+import { reportError } from '../../src/lib/reportError';
 
 type Bubble = { id: string; me: boolean; text?: string; map?: boolean; time: string };
 
@@ -54,7 +55,7 @@ export default function Thread() {
   // poll for new incoming messages
   useEffect(() => {
     if (!requestId) return;
-    const t = setInterval(() => { fetchMessages(requestId).then(d => setMsgs(toBubbles(d))).catch(() => {}); }, 8000);
+    const t = setInterval(() => { fetchMessages(requestId).then(d => setMsgs(toBubbles(d))).catch(reportError); }, 8000);
     return () => clearInterval(t);
   }, [requestId]);
 

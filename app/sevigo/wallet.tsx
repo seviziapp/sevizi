@@ -8,6 +8,7 @@ import { Button } from '../../src/components/Button';
 import { fetchSevigoWalletBalance, requestSevigoWithdrawal } from '../../src/lib/sevigo/api';
 import { fetchMyWithdrawalRequests } from '../../src/lib/api';
 import type { WithdrawalRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function SevigoWallet() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function SevigoWallet() {
   useEffect(() => {
     Promise.all([fetchSevigoWalletBalance(), fetchMyWithdrawalRequests()])
       .then(([{ balance: bal }, reqs]) => { setBalance(bal); setAmount(bal > 0 ? String(bal) : ''); setRequests(reqs); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -39,7 +40,7 @@ export default function SevigoWallet() {
       await requestSevigoWithdrawal({ amount: amountNum, method, phone: phone.trim() });
       setSuccess(true);
       setBalance(b => b - amountNum);
-      fetchMyWithdrawalRequests().then(setRequests).catch(() => {});
+      fetchMyWithdrawalRequests().then(setRequests).catch(reportError);
     } catch (e: any) {
       setError(e.message ?? 'Échec de la demande de retrait.');
     } finally {

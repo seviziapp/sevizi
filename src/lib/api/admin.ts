@@ -4,6 +4,7 @@
 import { supabase } from '../supabase';
 import { AdminStats, VerificationRequest, WithdrawalRequest, Dispute, AdminActivityItem, AdminOpenRequest } from '../types';
 import { hasSupabase, currentUser } from './shared';
+import { reportError } from '../reportError';
 
 // ---- ADMIN: team (super admin only) ----
 
@@ -23,7 +24,7 @@ export async function fetchAdminTeam(): Promise<AdminTeamMember[]> {
     .select('id, full_name, email, is_super_admin, force_password_change, created_at')
     .eq('is_admin', true)
     .order('created_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((a: any) => ({
     id: a.id,
     fullName: a.full_name ?? 'Sans nom',
@@ -183,7 +184,7 @@ export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
     .select('*, provider:providers(name, category)')
     .eq('status', 'pending')
     .order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   const rows = data ?? [];
   // verification_requests.user_id references auth.users, not profiles, so a
   // profiles embed can't resolve (same PGRST200 issue as requests) — fetch
@@ -247,7 +248,7 @@ export async function fetchWithdrawalRequests(): Promise<WithdrawalRequest[]> {
   const { data, error } = await supabase
     .from('withdrawal_requests').select('*, provider:providers(name)')
     .order('requested_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((w: any) => ({
     id: w.id, providerName: w.provider?.name ?? 'Client Sèvi Go', amount: w.amount,
     method: w.method, phone: w.phone, status: w.status,
@@ -270,7 +271,7 @@ export async function fetchDisputes(): Promise<Dispute[]> {
     .from('disputes')
     .select('*, job:jobs(client_name, provider:providers(name))')
     .order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((d: any) => ({
     id: d.id, reason: d.reason, status: d.status, createdAt: d.created_at,
     clientName: d.job?.client_name ?? 'Client',
@@ -320,7 +321,7 @@ export async function fetchOpenRequestsAdmin(): Promise<AdminOpenRequest[]> {
     .select('*, offers(count)')
     .eq('status', 'ouverte')
     .order('created_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   const rows = data ?? [];
 
   const clientIds = [...new Set(rows.map((r: any) => r.client_id).filter(Boolean))];

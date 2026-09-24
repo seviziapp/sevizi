@@ -14,6 +14,7 @@ import {
 } from '../../../src/lib/sevigo/api';
 import { computeLineTotal } from '../../../src/lib/sevigo/types';
 import type { SevigoInvoice, SevigoInvoiceStatus, SevigoBusinessProfile } from '../../../src/lib/sevigo/types';
+import { reportError } from '../../../src/lib/reportError';
 
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
   pending_fee: { label: 'Verrouillée', color: colors.terre },
@@ -134,7 +135,7 @@ export default function InvoiceDetail() {
     if (!id) return;
     Promise.all([fetchSevigoInvoice(id), fetchSevigoBusinessProfile()])
       .then(([inv, b]) => { setInvoice(inv); setBiz(b); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }
   useEffect(load, [id]);
@@ -203,7 +204,7 @@ export default function InvoiceDetail() {
 
   async function markPaidManually() {
     if (!invoice) return;
-    await updateSevigoInvoiceStatus(invoice.id, 'paid').catch(() => {});
+    await updateSevigoInvoiceStatus(invoice.id, 'paid').catch(reportError);
     load();
   }
 
@@ -214,8 +215,8 @@ export default function InvoiceDetail() {
     const body = encodeURIComponent(
       `Bonjour ${invoice.clientName},\n\nVoici votre facture ${invoice.number} :\n\n${lines.join('\n')}\n\nTotal : ${invoice.total.toLocaleString('fr-FR')} F\n\nMerci,\n${biz?.businessName || ''}`,
     );
-    await Linking.openURL(`mailto:${invoice.clientEmail}?subject=${subject}&body=${body}`).catch(() => {});
-    if (invoice.status === 'draft') { await updateSevigoInvoiceStatus(invoice.id, 'sent').catch(() => {}); load(); }
+    await Linking.openURL(`mailto:${invoice.clientEmail}?subject=${subject}&body=${body}`).catch(reportError);
+    if (invoice.status === 'draft') { await updateSevigoInvoiceStatus(invoice.id, 'sent').catch(reportError); load(); }
   }
 
   function printFormat(format: 'a4' | 'receipt') {
@@ -233,7 +234,7 @@ export default function InvoiceDetail() {
     const lines = invoice.items.map(it => `${it.description} × ${it.quantity} — ${computeLineTotal(it).toLocaleString('fr-FR')} F`);
     await Share.share({
       message: `Facture ${invoice.number} — ${invoice.clientName}\n\n${lines.join('\n')}\n\nTotal : ${invoice.total.toLocaleString('fr-FR')} F`,
-    }).catch(() => {});
+    }).catch(reportError);
   }
 
   if (loading) {

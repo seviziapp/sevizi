@@ -5,6 +5,7 @@ import { Wallet, CheckCircle, Clock, Phone } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchWithdrawalRequests, markWithdrawalSent } from '../../src/lib/api';
 import type { WithdrawalRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -18,7 +19,7 @@ export default function Withdrawals() {
   const [sending, setSending] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchWithdrawalRequests().then(setRequests).catch(() => {});
+    fetchWithdrawalRequests().then(setRequests).catch(reportError);
   }, []);
 
   async function send(id: string) {

@@ -10,6 +10,7 @@ import { alert } from '../../src/lib/alert';
 import { fetchSevigoUsage, setSevigoPlan, createSevigoPlanPayment } from '../../src/lib/sevigo/api';
 import { SEVIGO_PLANS } from '../../src/lib/sevigo/types';
 import type { SevigoPlanId } from '../../src/lib/sevigo/types';
+import { reportError } from '../../src/lib/reportError';
 
 function buildRedirectUrl(status: 'return' | 'cancel'): string {
   const query = `payment=${status}`;
@@ -28,7 +29,7 @@ export default function SevigoPlanScreen() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function load() {
-    fetchSevigoUsage().then(u => setCurrentPlan(u.planId)).catch(() => {}).finally(() => setLoading(false));
+    fetchSevigoUsage().then(u => setCurrentPlan(u.planId)).catch(reportError).finally(() => setLoading(false));
   }
   useEffect(load, []);
 

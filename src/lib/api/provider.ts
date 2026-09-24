@@ -5,6 +5,7 @@
 import { supabase } from '../supabase';
 import { ServiceCategory, GeoPoint, ServiceRequest, WithdrawalRequest, ProviderStats } from '../types';
 import { LOME, hasSupabase, currentUser } from './shared';
+import { reportError } from '../reportError';
 
 // Starts a real PayDunya checkout for the Sèvizi Pro monthly subscription.
 // Returns the hosted checkout page URL to open (mobile money / card) — the
@@ -167,7 +168,7 @@ export async function fetchMyWithdrawalRequests(): Promise<WithdrawalRequest[]> 
   const { data, error } = await supabase
     .from('withdrawal_requests').select('*').eq('user_id', user.id)
     .order('requested_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((w: any) => ({
     id: w.id, providerName: '', amount: w.amount, method: w.method, phone: w.phone,
     status: w.status, requestedAt: w.requested_at, resolvedAt: w.resolved_at ?? undefined,

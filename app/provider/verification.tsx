@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { pickFile } from '../../src/lib/pickFile';
 import { uploadDocument, submitProviderVerification, fetchMyVerificationStatus, fetchMyProviderProfile } from '../../src/lib/api';
+import { reportError } from '../../src/lib/reportError';
 
 export default function ProviderVerification() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function ProviderVerification() {
   useEffect(() => {
     Promise.all([fetchMyVerificationStatus(), fetchMyProviderProfile()])
       .then(([s, p]) => { setStatus(s); setAlreadyVerified(!!p?.verified); setIsPro(p?.tier === 'pro'); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

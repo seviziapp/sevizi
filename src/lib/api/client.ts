@@ -9,6 +9,7 @@ import {
   LOME, hasSupabase, currentUser, byTierThenDistance,
   mockProviders, mockRequests, mockOffers,
 } from './shared';
+import { reportError } from '../reportError';
 
 // `center` should be the caller's real location (see resolveMyLocation) so
 // distanceKm and the "nearby" set actually reflect where the user is, instead
@@ -75,7 +76,7 @@ export async function fetchProviderCompletedCount(providerId: string): Promise<n
 export async function fetchProviderReviews(providerId: string): Promise<Review[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase.from('reviews').select('*').eq('provider_id', providerId).order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((r: any) => ({
     id: r.id,
     authorName: r.author_name ?? 'Client',
@@ -127,6 +128,7 @@ export async function createRequest(
       urgent: input.urgent,
       geo: `POINT(${input.location.lng} ${input.location.lat})`,
       location_label: input.locationLabel,
+      photo_url: input.photoUrl ?? null,
     })
     .select().single();
   if (error) throw error;
@@ -176,7 +178,7 @@ export async function fetchRequest(requestId: string): Promise<ServiceRequest | 
   return {
     id: data.id, clientId: data.client_id, description: data.description, category: data.category,
     urgent: data.urgent, locationLabel: data.location_label, createdAt: data.created_at,
-    status: data.status, location: LOME,
+    status: data.status, location: LOME, photoUrl: data.photo_url ?? undefined,
   };
 }
 
@@ -190,7 +192,7 @@ export async function fetchMyRequestsWithOffers(): Promise<(ServiceRequest & { o
     .select('*, offers(count)')
     .eq('client_id', user.id)
     .order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((r: any) => ({
     id: r.id, clientId: r.client_id, description: r.description, category: r.category,
     urgent: r.urgent, locationLabel: r.location_label, createdAt: r.created_at,
@@ -282,7 +284,7 @@ export async function fetchNotifications(): Promise<Notification[]> {
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((n: any) => ({
     id: n.id, type: n.type, title: n.title, body: n.body,
     read: n.read, createdAt: n.created_at, actionRoute: n.action_route,
@@ -368,7 +370,7 @@ export async function fetchFavorites(): Promise<Provider[]> {
     .from('favorites')
     .select('provider:providers(*)')
     .eq('user_id', user.id);
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((f: any) => ({
     ...f.provider,
     distanceKm: 0, location: LOME,
@@ -444,7 +446,7 @@ export async function fetchMessages(requestId: string): Promise<{ id: string; fr
     .select('*')
     .eq('request_id', requestId)
     .order('created_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((m: any) => ({
     id: m.id,
     fromMe: m.sender_id === user?.id,

@@ -5,6 +5,7 @@
 import { supabase } from '../supabase';
 import { ProviderService, ProviderAvailability, Appointment } from '../types';
 import { hasSupabase, currentUser } from './shared';
+import { reportError } from '../reportError';
 
 // Any provider can flip this on to switch their profile from "Demander un
 // devis" to "Prendre rendez-vous" — no payment gating, just a UI mode switch.
@@ -21,7 +22,7 @@ export async function fetchProviderServices(providerId: string): Promise<Provide
   const { data, error } = await supabase
     .from('provider_services').select('*').eq('provider_id', providerId).eq('active', true)
     .order('created_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((s: any) => ({
     id: s.id, providerId: s.provider_id, name: s.name,
     durationMinutes: s.duration_minutes, price: s.price,
@@ -42,7 +43,7 @@ export async function fetchMyServices(): Promise<ProviderService[]> {
   const { data, error } = await supabase
     .from('provider_services').select('*').eq('provider_id', providerId)
     .order('created_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((s: any) => ({
     id: s.id, providerId: s.provider_id, name: s.name,
     durationMinutes: s.duration_minutes, price: s.price,
@@ -87,7 +88,7 @@ export async function fetchProviderAvailability(providerId: string): Promise<Pro
   if (!hasSupabase) return [];
   const { data, error } = await supabase
     .from('provider_availability').select('*').eq('provider_id', providerId).order('day_of_week');
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((a: any) => ({
     id: a.id, providerId: a.provider_id, dayOfWeek: a.day_of_week,
     startTime: a.start_time?.slice(0, 5) ?? '09:00', endTime: a.end_time?.slice(0, 5) ?? '18:00',
@@ -213,7 +214,7 @@ export async function fetchMyAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments').select('*, provider:providers(name)')
     .eq('client_id', user.id).order('starts_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map(mapAppointment);
 }
 
@@ -235,7 +236,7 @@ export async function fetchProviderAppointments(): Promise<Appointment[]> {
   const { data, error } = await supabase
     .from('appointments').select('*')
     .eq('provider_id', providerId).neq('status', 'cancelled').order('starts_at', { ascending: true });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   const rows = data ?? [];
 
   const clientIds = [...new Set(rows.map((a: any) => a.client_id).filter(Boolean))];

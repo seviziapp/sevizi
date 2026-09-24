@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TextInput, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { X, Camera, ArrowRight, User } from 'lucide-react-native';
+import { X, Camera, ArrowRight, User, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { CATEGORIES, ServiceCategory } from '../../src/lib/types';
-import { createRequest, fetchMyProfile, LOME } from '../../src/lib/api';
+import { createRequest, fetchMyProfile, uploadDocument, LOME } from '../../src/lib/api';
+import { pickFile } from '../../src/lib/pickFile';
 import { MapPicker } from '../../src/components/MapPicker';
 import type { GeoPoint } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function NewRequest() {
   const router = useRouter();
@@ -35,11 +37,29 @@ export default function NewRequest() {
   const [error, setError] = useState('');
   const [location, setLocation] = useState<GeoPoint>(LOME);
   const [locationLabel, setLocationLabel] = useState('');
+  const [photo, setPhoto] = useState<{ name: string; url: string } | null>(null);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // default the request location to the user's saved address
   useEffect(() => {
-    fetchMyProfile().then(p => { if (p?.locationLabel) setLocationLabel(p.locationLabel); }).catch(() => {});
+    fetchMyProfile().then(p => { if (p?.locationLabel) setLocationLabel(p.locationLabel); }).catch(reportError);
   }, []);
+
+  async function attachPhoto() {
+    if (photo) { setPhoto(null); return; } // tap again to remove
+    setError('');
+    const file = await pickFile();
+    if (!file) return;
+    setUploadingPhoto(true);
+    try {
+      const url = await uploadDocument(file.blob, 'requests', file.name);
+      setPhoto({ name: file.name, url });
+    } catch (e: any) {
+      setError(e?.message ?? "Impossible d'ajouter la photo.");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  }
 
   async function publish() {
     if (!desc.trim()) return;
@@ -52,6 +72,7 @@ export default function NewRequest() {
         urgent,
         location,
         locationLabel,
+        photoUrl: photo?.url,
       });
       router.replace({ pathname: '/client/offers', params: { requestId: req.id } });
     } catch (e: any) {
@@ -127,9 +148,11 @@ export default function NewRequest() {
         </Field>
 
         <View style={styles.attachRow}>
-          <Pressable style={styles.attach}>
-            <Camera size={18} color={colors.textMuted} />
-            <Text style={[text.small, { color: colors.textMuted }]}>Photo</Text>
+          <Pressable style={[styles.attach, !!photo && styles.attachDone]} onPress={attachPhoto} disabled={uploadingPhoto}>
+            {uploadingPhoto ? <ActivityIndicator size="small" color={colors.vert} />
+              : photo ? <Check size={18} color={colors.vert} />
+              : <Camera size={18} color={colors.textMuted} />}
+            <Text style={[text.small, { color: photo ? colors.vert : colors.textMuted }]}>{photo ? 'Photo ajoutée' : 'Photo'}</Text>
           </Pressable>
           <Pressable
             style={[styles.attach, urgent && styles.urgentActive]}
@@ -195,6 +218,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg, height: 44, borderRadius: radii.lg,
     borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', backgroundColor: colors.white,
   },
+  attachDone: { borderColor: colors.vert, backgroundColor: '#F2FBF6' },
   urgentActive: { borderColor: colors.terre, backgroundColor: '#F8E2DA' },
   footer: { padding: spacing.xl, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.creme, gap: spacing.sm },
   error: { color: colors.terre, fontSize: 14, textAlign: 'center' },

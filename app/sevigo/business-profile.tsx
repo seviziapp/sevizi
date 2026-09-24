@@ -8,6 +8,7 @@ import { Button } from '../../src/components/Button';
 import { fetchSevigoBusinessProfile, saveSevigoBusinessProfile } from '../../src/lib/sevigo/api';
 import { uploadDocument } from '../../src/lib/api';
 import { pickFile } from '../../src/lib/pickFile';
+import { reportError } from '../../src/lib/reportError';
 
 export default function SevigoBusinessProfile() {
   const router = useRouter();
@@ -32,7 +33,7 @@ export default function SevigoBusinessProfile() {
           setAddress(p.address ?? '');
         }
       })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

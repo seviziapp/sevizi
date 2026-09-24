@@ -6,6 +6,7 @@ import { FileText, Plus } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchSevigoInvoices } from '../../src/lib/sevigo/api';
 import type { SevigoInvoice, SevigoInvoiceStatus } from '../../src/lib/sevigo/types';
+import { reportError } from '../../src/lib/reportError';
 
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
   pending_fee: { label: 'Verrouillée', color: colors.terre },
@@ -31,7 +32,7 @@ export default function SevigoInvoices() {
   const [filter, setFilter] = useState<'all' | SevigoInvoiceStatus>('all');
 
   const load = useCallback(() => {
-    fetchSevigoInvoices().then(setInvoices).catch(() => {}).finally(() => setLoading(false));
+    fetchSevigoInvoices().then(setInvoices).catch(reportError).finally(() => setLoading(false));
   }, []);
   useEffect(load, [load]);
   useFocusEffect(useCallback(() => { load(); }, [load]));

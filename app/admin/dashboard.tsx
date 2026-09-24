@@ -11,6 +11,7 @@ import { Logo } from '../../src/components/Logo';
 import { fetchAdminStats, fetchMyProfile } from '../../src/lib/api';
 import { supabase } from '../../src/lib/supabase';
 import type { AdminStats } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -21,8 +22,8 @@ export default function AdminDashboard() {
   // "Retraits" after marking one sent) — a plain useEffect-on-mount left the
   // pending-withdrawal alert stuck showing a stale count.
   useFocusEffect(useCallback(() => {
-    fetchAdminStats().then(setStats).catch(() => {});
-    fetchMyProfile().then(p => setIsSuperAdmin(!!p?.isSuperAdmin)).catch(() => {});
+    fetchAdminStats().then(setStats).catch(reportError);
+    fetchMyProfile().then(p => setIsSuperAdmin(!!p?.isSuperAdmin)).catch(reportError);
   }, []));
 
   return (

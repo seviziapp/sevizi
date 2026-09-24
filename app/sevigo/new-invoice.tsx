@@ -16,6 +16,7 @@ import { uploadDocument } from '../../src/lib/api';
 import { pickFile } from '../../src/lib/pickFile';
 import { computeInvoiceTotals } from '../../src/lib/sevigo/types';
 import type { SevigoInvoiceTemplate, SevigoLineItem } from '../../src/lib/sevigo/types';
+import { reportError } from '../../src/lib/reportError';
 
 type DraftLine = { id: string; description: string; quantity: string; unitPrice: string };
 
@@ -62,7 +63,7 @@ export default function NewInvoice() {
         setLogoUrl(p.logoUrl ?? null);
         if (p.brandColor) setBrandColor(p.brandColor);
       }
-    }).catch(() => {});
+    }).catch(reportError);
   }, []);
 
   const items: SevigoLineItem[] = useMemo(() => lines
@@ -103,7 +104,7 @@ export default function NewInvoice() {
 
   async function pickColor(c: string) {
     setBrandColor(c);
-    saveSevigoBusinessProfile({ businessName: businessName || 'Mon entreprise', logoUrl, brandColor: c }).catch(() => {});
+    saveSevigoBusinessProfile({ businessName: businessName || 'Mon entreprise', logoUrl, brandColor: c }).catch(reportError);
   }
 
   function validate(): string {

@@ -9,6 +9,7 @@ import { alert } from '../../src/lib/alert';
 import { computeCommission, formatCommissionPct, type CommissionDiscount } from '../../src/lib/pricing';
 import { fetchWalletBalance, redeemCommissionDiscountCode } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 type Transaction = {
   id: string;
@@ -49,7 +50,7 @@ export default function Earnings() {
   }
 
   useEffect(() => {
-    fetchWalletBalance().then(setWalletBalance).catch(() => {});
+    fetchWalletBalance().then(setWalletBalance).catch(reportError);
     loadEarnings();
   }, []);
 

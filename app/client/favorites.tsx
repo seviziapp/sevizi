@@ -7,13 +7,14 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchFavorites } from '../../src/lib/api';
 import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES, type Provider } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function Favorites() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<Provider[]>([]);
 
   useEffect(() => {
-    fetchFavorites().then(setFavorites).catch(() => {});
+    fetchFavorites().then(setFavorites).catch(reportError);
   }, []);
 
   return (

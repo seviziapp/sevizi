@@ -6,6 +6,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchVerificationQueue, approveVerification, rejectVerification, getVerificationDocUrl } from '../../src/lib/api';
 import { alert } from '../../src/lib/alert';
 import { CATEGORIES, type VerificationRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 function timeAgo(iso: string) {
   const diff = Date.now() - new Date(iso).getTime();
@@ -18,7 +19,7 @@ export default function Verification() {
   const [items, setItems] = useState<VerificationRequest[]>([]);
 
   useEffect(() => {
-    fetchVerificationQueue().then(setItems).catch(() => {});
+    fetchVerificationQueue().then(setItems).catch(reportError);
   }, []);
 
   // Approving/rejecting removes the item from the queue immediately — the

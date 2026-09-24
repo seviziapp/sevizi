@@ -11,6 +11,7 @@ import type { ProviderStats, ServiceRequest, GeoPoint } from '../../src/lib/type
 import { CATEGORIES } from '../../src/lib/types';
 import { COMMISSION_RATE, COMMISSION_RATE_PRO, isCommissionFreePeriod } from '../../src/lib/pricing';
 import { timeAgo } from '../../src/lib/format';
+import { reportError } from '../../src/lib/reportError';
 
 export default function ProviderDashboard() {
   const router = useRouter();
@@ -26,15 +27,15 @@ export default function ProviderDashboard() {
   const centerRef = useRef<GeoPoint>(LOME);
 
   const refreshLive = useCallback(() => {
-    fetchNearbyRequests(undefined, centerRef.current).then(r => setRequests(r.slice(0, 3))).catch(() => {});
-    fetchCurrentJob().then(setActiveJob).catch(() => {});
-    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
+    fetchNearbyRequests(undefined, centerRef.current).then(r => setRequests(r.slice(0, 3))).catch(reportError);
+    fetchCurrentJob().then(setActiveJob).catch(reportError);
+    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(reportError);
   }, []);
 
   useEffect(() => {
-    fetchProviderStats().then(setStats).catch(() => {});
-    fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); setIsPro(p.tier === 'pro'); } }).catch(() => {});
-    resolveMyLocation().then(pt => { centerRef.current = pt; }).catch(() => {}).finally(refreshLive);
+    fetchProviderStats().then(setStats).catch(reportError);
+    fetchMyProviderProfile().then(p => { if (p) { setProviderName(p.name); setOnline(p.online); setIsPro(p.tier === 'pro'); } }).catch(reportError);
+    resolveMyLocation().then(pt => { centerRef.current = pt; }).catch(reportError).finally(refreshLive);
     const t = setInterval(refreshLive, 20000);
     return () => clearInterval(t);
   }, [refreshLive]);
@@ -49,7 +50,7 @@ export default function ProviderDashboard() {
 
   async function handleToggle(v: boolean) {
     setOnline(v);
-    await toggleOnline(v).catch(() => {});
+    await toggleOnline(v).catch(reportError);
   }
 
   return (

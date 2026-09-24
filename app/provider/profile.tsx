@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
   Star, ShieldCheck, Briefcase, Clock, TrendingUp,
-  ChevronRight, Bell, LogOut, Settings, Camera, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
+  ChevronRight, Bell, LogOut, Settings, Check, LayoutDashboard, Crown, Trash2, CalendarDays, ListChecks, CalendarClock, UserCircle,
   ArrowLeftRight, Gift,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
@@ -14,6 +14,7 @@ import { supabase } from '../../src/lib/supabase';
 import { alert } from '../../src/lib/alert';
 import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function ProviderProfile() {
   const router = useRouter();
@@ -32,12 +33,12 @@ export default function ProviderProfile() {
         if (p) {
           setProvider(p);
           setBookable(!!p.bookable);
-          fetchProviderReviews(p.id).then(setReviews).catch(() => {});
+          fetchProviderReviews(p.id).then(setReviews).catch(reportError);
         }
       })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
-    fetchMyProfile().then(p => { if (p) setIsAdmin(p.isAdmin); }).catch(() => {});
+    fetchMyProfile().then(p => { if (p) setIsAdmin(p.isAdmin); }).catch(reportError);
   }, []);
 
   async function logout() {
@@ -124,9 +125,6 @@ export default function ProviderProfile() {
             <View style={styles.avatar}>
               <Text style={[text.display, { color: colors.creme }]}>{initial}</Text>
             </View>
-            <Pressable style={styles.cameraBtn}>
-              <Camera size={14} color={colors.white} />
-            </Pressable>
           </View>
           <View style={styles.nameRow}>
             <Text style={[text.h2, { color: colors.encre }]}>{provider?.name ?? '—'}</Text>
@@ -330,7 +328,6 @@ const styles = StyleSheet.create({
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   avatarWrap: { position: 'relative' },
   avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
-  cameraBtn: { position: 'absolute', bottom: 0, right: 0, width: 28, height: 28, borderRadius: 14, backgroundColor: colors.encre, alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: colors.white },
   badgeRow: { flexDirection: 'row', gap: spacing.sm },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: colors.surface, paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },
   proBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FCEFC7', paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill },

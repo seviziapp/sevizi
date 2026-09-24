@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
 import type { Offer, ServiceRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function Offers() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function Offers() {
   useEffect(() => {
     load().catch(() => setLoading(false));
     // poll while waiting so new offers appear without leaving the screen
-    const t = setInterval(() => { fetchOffers(rid).then(setOffers).catch(() => {}); }, 12000);
+    const t = setInterval(() => { fetchOffers(rid).then(setOffers).catch(reportError); }, 12000);
     return () => clearInterval(t);
   }, [rid]);
 

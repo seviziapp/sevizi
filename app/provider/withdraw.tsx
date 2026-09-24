@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchWalletBalance, requestWithdrawal, fetchMyWithdrawalRequests } from '../../src/lib/api';
 import type { WithdrawalRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function Withdraw() {
   const router = useRouter();
@@ -24,7 +25,7 @@ export default function Withdraw() {
   useEffect(() => {
     Promise.all([fetchWalletBalance(), fetchMyWithdrawalRequests()])
       .then(([bal, reqs]) => { setBalance(bal); setAmount(bal > 0 ? String(bal) : ''); setRequests(reqs); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -39,7 +40,7 @@ export default function Withdraw() {
       await requestWithdrawal({ amount: amountNum, method, phone: phone.trim() });
       setSuccess(true);
       setBalance(b => b - amountNum);
-      fetchMyWithdrawalRequests().then(setRequests).catch(() => {});
+      fetchMyWithdrawalRequests().then(setRequests).catch(reportError);
     } catch (e: any) {
       setError(e.message ?? 'Échec de la demande de retrait.');
     } finally {

@@ -90,18 +90,24 @@ export async function resolveMyLocation(): Promise<GeoPoint> {
 // photos, invoice logos) is meant to be shown to other users, so it goes to
 // the public 'documents' bucket and returns its public URL.
 const PRIVATE_FOLDERS = ['id-docs', 'trade-docs'];
+// Set explicitly: on native the body is an ArrayBuffer (no .type), and an
+// object stored without a content type is served as text/plain.
+const MIME_BY_EXT: Record<string, string> = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', heic: 'image/heic', pdf: 'application/pdf',
+};
 
 export async function uploadDocument(blob: Blob, folder: string, filename: string): Promise<string> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
   const path = `${folder}/${user.id}-${Date.now()}.${ext}`;
+  const contentType = MIME_BY_EXT[ext] ?? (blob as Blob).type ?? 'application/octet-stream';
   if (PRIVATE_FOLDERS.includes(folder)) {
-    const { error } = await supabase.storage.from('verification-docs').upload(path, blob, { upsert: true });
+    const { error } = await supabase.storage.from('verification-docs').upload(path, blob, { upsert: true, contentType });
     if (error) throw error;
     return path;
   }
-  const { error } = await supabase.storage.from('documents').upload(path, blob, { upsert: true });
+  const { error } = await supabase.storage.from('documents').upload(path, blob, { upsert: true, contentType });
   if (error) throw error;
   const { data } = supabase.storage.from('documents').getPublicUrl(path);
   return data.publicUrl;

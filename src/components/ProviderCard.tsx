@@ -4,6 +4,7 @@ import { Wrench, Star, MapPin, ShieldCheck, Heart } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../theme/tokens';
 import { Provider } from '../lib/types';
 import { isFavorite, addFavorite, removeFavorite } from '../lib/api';
+import { reportError } from '../lib/reportError';
 
 export function ProviderCard({
   provider, price, subtitle, onPress, highlighted, showFavorite = true, onFavoriteChange,
@@ -19,7 +20,7 @@ export function ProviderCard({
   const [faved, setFaved] = useState(false);
 
   useEffect(() => {
-    if (showFavorite) isFavorite(provider.id).then(setFaved).catch(() => {});
+    if (showFavorite) isFavorite(provider.id).then(setFaved).catch(reportError);
   }, [provider.id, showFavorite]);
 
   async function toggleFav(e?: any) {

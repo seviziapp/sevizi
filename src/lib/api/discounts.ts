@@ -4,6 +4,7 @@
 import { supabase } from '../supabase';
 import { DiscountCode } from '../types';
 import { hasSupabase } from './shared';
+import { reportError } from '../reportError';
 
 function mapDiscountCode(d: any): DiscountCode {
   return {
@@ -18,7 +19,7 @@ function mapDiscountCode(d: any): DiscountCode {
 export async function fetchDiscountCodes(): Promise<DiscountCode[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase.from('discount_codes').select('*').order('created_at', { ascending: false });
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map(mapDiscountCode);
 }
 

@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus, submitReview } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
 import { LOME } from '../../src/lib/api';
+import { reportError } from '../../src/lib/reportError';
 
 type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
 const STEPS: { key: JobStatus; label: string; desc: string; Icon: StepIcon }[] = [
@@ -27,7 +28,7 @@ export default function JobStatus() {
   const [reviewError, setReviewError] = useState('');
 
   useEffect(() => {
-    fetchCurrentJob({ includeCompleted: true }).then(setJob).catch(() => {});
+    fetchCurrentJob({ includeCompleted: true }).then(setJob).catch(reportError);
   }, []);
 
   async function sendReview() {
@@ -71,7 +72,7 @@ export default function JobStatus() {
     const url = Platform.OS === 'web'
       ? `https://www.google.com/maps/search/?api=1&query=${encoded}`
       : Platform.OS === 'ios' ? `maps:?q=${encoded}` : `geo:0,0?q=${encoded}`;
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(url).catch(reportError);
   }
 
   if (showReview) {

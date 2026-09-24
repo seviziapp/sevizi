@@ -13,6 +13,7 @@ import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { fetchProvider, fetchProviderReviews, fetchProviderCompletedCount, addFavorite, removeFavorite, isFavorite } from '../../src/lib/api';
 import { Image } from 'react-native';
 import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 export default function ProviderProfileView() {
   const router = useRouter();
@@ -24,10 +25,10 @@ export default function ProviderProfileView() {
 
   useEffect(() => {
     if (!id) return;
-    fetchProvider(id).then(setProvider).catch(() => {});
-    fetchProviderReviews(id).then(setReviews).catch(() => {});
-    fetchProviderCompletedCount(id).then(setCompleted).catch(() => {});
-    isFavorite(id).then(setFaved).catch(() => {});
+    fetchProvider(id).then(setProvider).catch(reportError);
+    fetchProviderReviews(id).then(setReviews).catch(reportError);
+    fetchProviderCompletedCount(id).then(setCompleted).catch(reportError);
+    isFavorite(id).then(setFaved).catch(reportError);
   }, [id]);
 
   async function toggleFav() {

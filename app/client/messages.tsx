@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { MessageCircle } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchThreads } from '../../src/lib/api';
+import { reportError } from '../../src/lib/reportError';
 
 type Thread = {
   id: string;
@@ -34,7 +35,7 @@ export default function Messages() {
           status: null,
         })));
       })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

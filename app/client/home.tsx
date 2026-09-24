@@ -11,6 +11,7 @@ import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES } from '../../src/lib/types';
 import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchMyProviderProfile, fetchNotifications, fetchMyRequestsWithOffers, resolveMyLocation } from '../../src/lib/api';
 import type { Provider, Job, ServiceRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
 type OpenReq = ServiceRequest & { offersCount: number };
@@ -28,17 +29,17 @@ export default function Home() {
   const [hasProvider, setHasProvider] = useState(false);
 
   const refreshLive = useCallback(() => {
-    fetchCurrentJob().then(setActiveJob).catch(() => {});
-    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(() => {});
-    fetchMyRequestsWithOffers().then(rs => setOpenRequests(rs.filter(r => r.status === 'ouverte'))).catch(() => {});
+    fetchCurrentJob().then(setActiveJob).catch(reportError);
+    fetchNotifications().then(ns => setUnread(ns.filter(n => !n.read).length)).catch(reportError);
+    fetchMyRequestsWithOffers().then(rs => setOpenRequests(rs.filter(r => r.status === 'ouverte'))).catch(reportError);
   }, []);
 
   useEffect(() => {
     // Center "prestataires proches" on the user's real location (GPS -> saved
     // address -> Lomé) instead of a fixed point.
-    resolveMyLocation().then(pt => fetchNearbyProviders(undefined, pt)).then(setProviders).catch(() => {});
-    fetchMyProfile().then(p => { if (p) { setUserName(p.firstName || p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(() => {});
-    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(() => {});
+    resolveMyLocation().then(pt => fetchNearbyProviders(undefined, pt)).then(setProviders).catch(reportError);
+    fetchMyProfile().then(p => { if (p) { setUserName(p.firstName || p.fullName.split(' ')[0]); setAddress(p.locationLabel); } }).catch(reportError);
+    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(reportError);
     refreshLive();
     // poll so new offers / notifications surface without a manual refresh
     const t = setInterval(refreshLive, 20000);

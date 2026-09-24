@@ -6,6 +6,7 @@
 // the relevant create-payment Edge Functions.
 import { supabase } from '../supabase';
 import { hasSupabase, currentUser } from './shared';
+import { reportError } from '../reportError';
 
 export type ReferralOverview = {
   code: string | null;
@@ -68,6 +69,6 @@ export async function fetchReferralCreditHistory(): Promise<ReferralCreditEntry[
   const { data, error } = await supabase
     .from('referral_credits').select('*').eq('user_id', user.id)
     .order('created_at', { ascending: false }).limit(30);
-  if (error) return [];
+  if (error) { reportError(error); return []; }
   return (data ?? []).map((r: any) => ({ id: r.id, amount: r.amount, kind: r.kind, note: r.note, createdAt: r.created_at }));
 }

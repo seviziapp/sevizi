@@ -10,6 +10,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 import { fetchMyProfile, fetchMyProviderProfile } from '../../src/lib/api';
 import { SevigoMark } from '../../src/components/SevigoLogo';
+import { reportError } from '../../src/lib/reportError';
 
 export default function Profile() {
   const router = useRouter();
@@ -20,8 +21,8 @@ export default function Profile() {
   const [hasProvider, setHasProvider] = useState(false);
 
   useEffect(() => {
-    fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(() => {});
-    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(() => {});
+    fetchMyProfile().then(p => { if (p) setProfile(p); }).catch(reportError);
+    fetchMyProviderProfile().then(p => setHasProvider(!!p)).catch(reportError);
   }, []);
 
   const displayName = profile?.firstName || profile?.fullName?.split(' ')[0] || 'Utilisateur';

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform,
+  View, Text, StyleSheet, TextInput, Pressable, ScrollView, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -8,9 +8,10 @@ import { X, Send, Clock, Crown, Lock, MapPin } from 'lucide-react-native';
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { sendOffer, fetchMyProviderProfile, fetchOfferStatsForRequest } from '../../src/lib/api';
+import { sendOffer, fetchMyProviderProfile, fetchOfferStatsForRequest, fetchRequest } from '../../src/lib/api';
 import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
 import { CATEGORIES } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 const ETA_CHIPS = ['Sous 30 min', 'Sous 1h', 'Sous 2h', 'Aujourd\'hui', 'Demain matin'];
 
@@ -28,12 +29,14 @@ export default function SendOffer() {
   const [error, setError] = useState('');
   const [isPro, setIsPro] = useState(false);
   const [bidStats, setBidStats] = useState<{ count: number; min: number; max: number; avg: number } | null>(null);
+  const [photoUrl, setPhotoUrl] = useState<string | undefined>();
 
   const cat = CATEGORIES.find(c => c.key === category);
 
   useEffect(() => {
-    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
-    if (requestId) fetchOfferStatsForRequest(requestId).then(setBidStats).catch(() => {});
+    fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(reportError);
+    if (requestId) fetchOfferStatsForRequest(requestId).then(setBidStats).catch(reportError);
+    if (requestId) fetchRequest(requestId).then(r => setPhotoUrl(r?.photoUrl)).catch(reportError);
   }, [requestId]);
 
   async function submit() {
@@ -79,6 +82,8 @@ export default function SendOffer() {
               </Text>
             </View>
           </View>
+
+          {!!photoUrl && <Image source={{ uri: photoUrl }} style={styles.requestPhoto} resizeMode="cover" />}
 
           {/* Other bids on this request — Pro perk */}
           {isPro ? (
@@ -240,6 +245,7 @@ export default function SendOffer() {
 }
 
 const styles = StyleSheet.create({
+  requestPhoto: { width: '100%', height: 180, borderRadius: radii.lg, backgroundColor: colors.surface },
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   close: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },

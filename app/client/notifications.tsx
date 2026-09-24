@@ -6,6 +6,7 @@ import { ArrowLeft, Bell, CheckCheck, MessageCircle, CircleCheck, MapPin, Flag, 
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNotifications, markAllNotificationsRead } from '../../src/lib/api';
 import type { Notification } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 type NotifIcon = React.ComponentType<{ size?: number; color?: string }>;
 const ICONS: Record<string, NotifIcon> = {
@@ -35,10 +36,10 @@ export default function Notifications() {
     // clears) and locally (so the dots / "non lues" banner clear immediately).
     fetchNotifications().then(ns => {
       setNotifs(ns.map(n => ({ ...n, read: true })));
-      if (ns.some(n => !n.read)) markAllNotificationsRead().catch(() => {});
-    }).catch(() => {});
+      if (ns.some(n => !n.read)) markAllNotificationsRead().catch(reportError);
+    }).catch(reportError);
     const t = setInterval(() => {
-      fetchNotifications().then(d => setNotifs(d.map(n => ({ ...n, read: true })))).catch(() => {});
+      fetchNotifications().then(d => setNotifs(d.map(n => ({ ...n, read: true })))).catch(reportError);
     }, 15000);
     return () => clearInterval(t);
   }, []);

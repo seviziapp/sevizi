@@ -169,6 +169,7 @@ export interface ServiceRequest {
   locationLabel: string;
   createdAt: string;
   status: 'ouverte' | 'en_cours' | 'terminee' | 'annulee';
+  photoUrl?: string; // optional photo the client attached to the request
   offersCount?: number;
   distanceKm?: number;
 }

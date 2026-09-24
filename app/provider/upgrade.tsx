@@ -8,6 +8,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchMyProviderProfile, createProSubscriptionInvoice, fetchLatestProPayment } from '../../src/lib/api';
 import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO, freeTierCommissionLabel, isCommissionFreePeriod } from '../../src/lib/pricing';
+import { reportError } from '../../src/lib/reportError';
 
 function getFreeFeatures(): string[] {
   return [
@@ -40,7 +41,7 @@ export default function UpgradeToPro() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(() => {
-    return fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(() => {});
+    return fetchMyProviderProfile().then(p => setIsPro(p?.tier === 'pro')).catch(reportError);
   }, []);
 
   useEffect(() => {

@@ -9,6 +9,7 @@ import { supabase } from '../../src/lib/supabase';
 import { alert } from '../../src/lib/alert';
 import { pickFile } from '../../src/lib/pickFile';
 import { uploadDocument, submitClientVerification, fetchMyVerificationStatus, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
+import { reportError } from '../../src/lib/reportError';
 
 export default function Security() {
   const router = useRouter();
@@ -26,7 +27,7 @@ export default function Security() {
   useEffect(() => {
     Promise.all([fetchMyProfile(), fetchMyVerificationStatus()])
       .then(([p, s]) => { if (p) { setEmail(p.email); setVerified(p.verified); } setStatus(s); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

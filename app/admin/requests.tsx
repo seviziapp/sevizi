@@ -9,6 +9,7 @@ import { alert } from '../../src/lib/alert';
 import { fetchOpenRequestsAdmin, adminCloseRequest } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
 import type { AdminOpenRequest } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 const HOUR = 3600000;
 
@@ -38,13 +39,13 @@ export default function AdminOpenRequests() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const load = useCallback(() => {
-    fetchOpenRequestsAdmin().then(setRequests).catch(() => {}).finally(() => setLoading(false));
+    fetchOpenRequestsAdmin().then(setRequests).catch(reportError).finally(() => setLoading(false));
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
   function call(phone: string | null) {
     if (!phone) return;
-    Linking.openURL(`tel:${phone}`).catch(() => {});
+    Linking.openURL(`tel:${phone}`).catch(reportError);
   }
 
   function close(r: AdminOpenRequest, status: 'annulee' | 'terminee') {

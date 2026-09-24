@@ -9,6 +9,7 @@ import { SevigoLogoFull } from '../../src/components/SevigoLogo';
 import { fetchSevigoInvoices, fetchSevigoUsage, fetchSevigoWalletBalance } from '../../src/lib/sevigo/api';
 import { planById } from '../../src/lib/sevigo/types';
 import type { SevigoInvoice, SevigoUsage } from '../../src/lib/sevigo/types';
+import { reportError } from '../../src/lib/reportError';
 
 const STATUS_LABEL: Record<SevigoInvoice['status'], { label: string; color: string }> = {
   pending_fee: { label: 'Verrouillée', color: colors.terre },
@@ -29,7 +30,7 @@ export default function SevigoDashboard() {
   const load = useCallback(() => {
     Promise.all([fetchSevigoInvoices(), fetchSevigoUsage(), fetchSevigoWalletBalance()])
       .then(([inv, u, w]) => { setInvoices(inv); setUsage(u); setWalletBalance(w.balance); })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

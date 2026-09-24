@@ -11,6 +11,7 @@ import { fetchMyProviderProfile, updateProviderProfile, uploadDocument, isUserna
 import { CATEGORIES, type ServiceCategory } from '../../src/lib/types';
 import { GALLERY_CAP_FREE } from '../../src/lib/pricing';
 import { slugify } from '../../src/lib/format';
+import { reportError } from '../../src/lib/reportError';
 
 const BOOKING_LINK_ORIGIN = 'https://sevizi.app';
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
@@ -49,7 +50,7 @@ export default function EditProviderProfile() {
           setOriginalUsername(p.username ?? null);
         }
       })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 

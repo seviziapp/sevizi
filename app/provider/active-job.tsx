@@ -6,6 +6,7 @@ import { ArrowLeft, MessageCircle, Navigation, CheckCircle, ChevronRight, Briefc
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
+import { reportError } from '../../src/lib/reportError';
 
 type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
 const STEPS: { key: JobStatus; label: string; action: string; Icon: StepIcon }[] = [
@@ -33,7 +34,7 @@ export default function ActiveJob() {
           setStatusIdx(idx >= 0 ? idx : 0);
         }
       })
-      .catch(() => {})
+      .catch(reportError)
       .finally(() => setLoading(false));
   }, []);
 
@@ -87,7 +88,7 @@ export default function ActiveJob() {
     const url = Platform.OS === 'web'
       ? `https://www.google.com/maps/search/?api=1&query=${encoded}`
       : Platform.OS === 'ios' ? `maps:?q=${encoded}` : `geo:0,0?q=${encoded}`;
-    Linking.openURL(url).catch(() => {});
+    Linking.openURL(url).catch(reportError);
   }
 
   const clientName = (job?.clientName ?? 'Client').split(' ')[0] || 'Client';
