@@ -208,6 +208,16 @@ export async function fetchVerificationQueue(): Promise<VerificationRequest[]> {
   }));
 }
 
+// ID / CFE documents live in a private bucket; only an admin's session can
+// sign a URL for them, and it expires after 5 minutes. A legacy value that is
+// already a full URL is returned unchanged.
+export async function getVerificationDocUrl(pathOrUrl: string): Promise<string> {
+  if (/^https?:\/\//.test(pathOrUrl)) return pathOrUrl;
+  const { data, error } = await supabase.storage.from('verification-docs').createSignedUrl(pathOrUrl, 300);
+  if (error || !data) throw error ?? new Error('Document introuvable');
+  return data.signedUrl;
+}
+
 export async function approveVerification(id: string): Promise<void> {
   if (!hasSupabase) return;
   const { data: vr } = await supabase

@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, ScrollView, Pressable, Platform, Linking } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Check, X, ShieldCheck, Clock, FileText } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchVerificationQueue, approveVerification, rejectVerification } from '../../src/lib/api';
+import { fetchVerificationQueue, approveVerification, rejectVerification, getVerificationDocUrl } from '../../src/lib/api';
+import { alert } from '../../src/lib/alert';
 import { CATEGORIES, type VerificationRequest } from '../../src/lib/types';
 
 function timeAgo(iso: string) {
@@ -68,10 +69,19 @@ export default function Verification() {
   );
 }
 
-function openDoc(url?: string) {
-  if (!url) return;
-  if (Platform.OS === 'web') window.open(url, '_blank');
-  else Linking.openURL(url);
+async function openDoc(pathOrUrl?: string) {
+  if (!pathOrUrl) return;
+  // Open the tab synchronously (before the async signing) so the browser's
+  // popup blocker treats it as part of the click.
+  const win = Platform.OS === 'web' ? window.open('', '_blank') : null;
+  try {
+    const url = await getVerificationDocUrl(pathOrUrl);
+    if (win) win.location.href = url;
+    else Linking.openURL(url);
+  } catch (e: any) {
+    win?.close();
+    alert('Erreur', e?.message ?? "Impossible d'ouvrir le document.");
+  }
 }
 
 function VerifCard({ item, onApprove, onReject, readonly }: {

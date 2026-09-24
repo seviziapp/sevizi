@@ -83,12 +83,24 @@ export async function resolveMyLocation(): Promise<GeoPoint> {
 
 // ---- SIGNUP DETAILS + VERIFICATION ----
 
-// Upload a document blob to Supabase Storage and return its public URL.
+// ID cards and CFE/trade documents are sensitive: they go to the PRIVATE
+// 'verification-docs' bucket and this returns the storage PATH (not a URL) —
+// only admins can turn it into a short-lived signed URL (see
+// getVerificationDocUrl in admin.ts). Everything else (gallery, service
+// photos, invoice logos) is meant to be shown to other users, so it goes to
+// the public 'documents' bucket and returns its public URL.
+const PRIVATE_FOLDERS = ['id-docs', 'trade-docs'];
+
 export async function uploadDocument(blob: Blob, folder: string, filename: string): Promise<string> {
   const user = await currentUser();
   if (!user) throw new Error('Non connecté');
   const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
   const path = `${folder}/${user.id}-${Date.now()}.${ext}`;
+  if (PRIVATE_FOLDERS.includes(folder)) {
+    const { error } = await supabase.storage.from('verification-docs').upload(path, blob, { upsert: true });
+    if (error) throw error;
+    return path;
+  }
   const { error } = await supabase.storage.from('documents').upload(path, blob, { upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from('documents').getPublicUrl(path);
