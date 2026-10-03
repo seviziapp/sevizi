@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, FileText, ChevronRight, Settings, TrendingUp, Wallet } from 'lucide-react-native';
+import { Plus, FileText, ChevronRight, Settings, TrendingUp, Wallet, Store, Package, Receipt, Lock } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow, gradients } from '../../src/theme/tokens';
 import { SevigoLogoFull } from '../../src/components/SevigoLogo';
 import { fetchSevigoInvoices, fetchSevigoUsage, fetchSevigoWalletBalance } from '../../src/lib/sevigo/api';
@@ -100,6 +100,29 @@ export default function SevigoDashboard() {
           <Text style={[text.bodyMd, { color: colors.white }]}>Nouvelle facture</Text>
         </Pressable>
 
+        {/* POS & inventory — Unlimited plan. Separate from invoices. */}
+        <View style={[styles.posCard, shadow.card]}>
+          <View style={styles.posHead}>
+            <Store size={18} color={colors.vert} />
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Caisse & stock</Text>
+            {usage?.planId !== 'unlimited' && (
+              <View style={styles.lockPill}><Lock size={11} color={colors.terre} /><Text style={[text.label, { color: colors.terre, fontSize: 10 }]}>UNLIMITED</Text></View>
+            )}
+          </View>
+          {[
+            { label: 'Vendre (caisse)', icon: <Store size={18} color={colors.encre} />, route: '/sevigo/pos' },
+            { label: 'Produits & stock', icon: <Package size={18} color={colors.encre} />, route: '/sevigo/products' },
+            { label: 'Historique des ventes', icon: <Receipt size={18} color={colors.encre} />, route: '/sevigo/sales' },
+          ].map(r => (
+            <Pressable key={r.route} style={styles.posRow}
+              onPress={() => router.push((usage?.planId === 'unlimited' ? r.route : '/sevigo/plan') as any)}>
+              {r.icon}
+              <Text style={[text.body, { color: colors.encre, flex: 1 }]}>{r.label}</Text>
+              <ChevronRight size={16} color={colors.textMuted} />
+            </Pressable>
+          ))}
+        </View>
+
         {/* Recent invoices */}
         <View style={styles.sectionHead}>
           <Text style={[text.h3, { color: colors.encre }]}>Factures récentes</Text>
@@ -148,6 +171,10 @@ export default function SevigoDashboard() {
 }
 
 const styles = StyleSheet.create({
+  posCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.lg, borderWidth: 1, borderColor: colors.border },
+  posHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.xs },
+  posRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.md, borderTopWidth: 1, borderTopColor: 'rgba(6,41,31,0.05)' },
+  lockPill: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#FBE9E3', borderRadius: radii.pill, paddingHorizontal: spacing.sm, paddingVertical: 3 },
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.lg },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
