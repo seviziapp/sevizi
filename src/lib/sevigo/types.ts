@@ -42,6 +42,7 @@ export interface SevigoInvoice {
   id: string;
   number: string;         // e.g. "INV-0001"
   clientName: string;
+  clientId?: string;      // saved client (Unlimited client file), if one was picked
   clientContact?: string;
   clientEmail?: string;
   items: SevigoLineItem[];

@@ -40,6 +40,8 @@ export default function SevigoLayout() {
       <Tabs.Screen name="pos" options={{ href: null }} />
       <Tabs.Screen name="products" options={{ href: null }} />
       <Tabs.Screen name="sales" options={{ href: null }} />
+      <Tabs.Screen name="clients" options={{ href: null }} />
+      <Tabs.Screen name="reports" options={{ href: null }} />
     </Tabs>
   );
 }

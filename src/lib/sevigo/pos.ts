@@ -24,6 +24,7 @@ export type SevigoSale = {
   paymentMethod: 'cash' | 'mobile';
   status: 'completed' | 'voided';
   createdAt: string;
+  clientName?: string;
   items?: { name: string; unitPrice: number; qty: number; lineTotal: number }[];
 };
 
@@ -75,9 +76,9 @@ export async function archiveProduct(productId: string, active = false): Promise
 }
 
 export async function createSale(
-  items: { productId: string; qty: number }[], paymentMethod: 'cash' | 'mobile',
+  items: { productId: string; qty: number }[], paymentMethod: 'cash' | 'mobile', clientId?: string | null,
 ): Promise<{ id: string; number: string; total: number }> {
-  const { data, error } = await supabase.rpc('sevigo_create_sale', { p_items: items, p_method: paymentMethod });
+  const { data, error } = await supabase.rpc('sevigo_create_sale', { p_items: items, p_method: paymentMethod, p_client_id: clientId ?? null });
   if (error) throw new Error(error.message);
   return data;
 }
@@ -90,12 +91,12 @@ export async function voidSale(saleId: string): Promise<void> {
 export async function fetchSales(limit = 100): Promise<SevigoSale[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
-    .from('sevigo_sales').select('*, sevigo_sale_items(name, unit_price, qty, line_total)')
+    .from('sevigo_sales').select('*, sevigo_clients(name), sevigo_sale_items(name, unit_price, qty, line_total)')
     .order('created_at', { ascending: false }).limit(limit);
   if (error) { reportError(error); return []; }
   return (data ?? []).map((s: any) => ({
     id: s.id, number: s.number, total: s.total, paymentMethod: s.payment_method, status: s.status,
-    createdAt: s.created_at,
+    createdAt: s.created_at, clientName: s.sevigo_clients?.name ?? undefined,
     items: (s.sevigo_sale_items ?? []).map((i: any) => ({ name: i.name, unitPrice: i.unit_price, qty: i.qty, lineTotal: i.line_total })),
   }));
 }

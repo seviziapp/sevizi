@@ -3,13 +3,13 @@ import {
   View, Text, StyleSheet, ScrollView, Pressable, TextInput, Platform, Linking, KeyboardAvoidingView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ExpoLinking from 'expo-linking';
-import { ArrowLeft, Plus, Trash2, Check, Camera } from 'lucide-react-native';
+import { ArrowLeft, Plus, Trash2, Check, Camera, Users } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import {
-  fetchSevigoBusinessProfile, saveSevigoBusinessProfile,
+  fetchSevigoBusinessProfile, saveSevigoBusinessProfile, fetchSevigoUsage,
   createSevigoInvoicePayment, createSevigoInvoice, createSevigoGenerationFeePayment,
 } from '../../src/lib/sevigo/api';
 import { uploadDocument } from '../../src/lib/api';
@@ -17,6 +17,8 @@ import { pickFile } from '../../src/lib/pickFile';
 import { computeInvoiceTotals } from '../../src/lib/sevigo/types';
 import type { SevigoInvoiceTemplate, SevigoLineItem } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
+import { ClientPicker } from '../../src/components/ClientPicker';
+import { fetchClients, SevigoClient } from '../../src/lib/sevigo/clients';
 
 type DraftLine = { id: string; description: string; quantity: string; unitPrice: string };
 
@@ -42,6 +44,10 @@ function buildRedirectUrl(status: 'return' | 'cancel', invoiceId: string): strin
 
 export default function NewInvoice() {
   const router = useRouter();
+  const { clientId: clientIdParam } = useLocalSearchParams<{ clientId?: string }>();
+  const [savedClientId, setSavedClientId] = useState<string | undefined>();
+  const [hasClientFile, setHasClientFile] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
   const [clientContact, setClientContact] = useState('');
@@ -55,6 +61,19 @@ export default function NewInvoice() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchSevigoUsage().then(u => setHasClientFile(u.planId === 'unlimited')).catch(reportError);
+  }, []);
+  useEffect(() => {
+    if (!clientIdParam) return;
+    fetchClients().then(cs => { const c = cs.find(x => x.id === clientIdParam); if (c) applyClient(c); }).catch(reportError);
+  }, [clientIdParam]);
+  function applyClient(c: SevigoClient | null) {
+    setPickerOpen(false);
+    setSavedClientId(c?.id);
+    if (c) { setClientName(c.name); setClientEmail(c.email ?? ''); setClientContact(c.phone ?? ''); }
+  }
 
   useEffect(() => {
     fetchSevigoBusinessProfile().then(p => {
@@ -121,6 +140,7 @@ export default function NewInvoice() {
     try {
       const invoice = await createSevigoInvoice({
         clientName: clientName.trim(),
+        clientId: savedClientId,
         clientEmail: clientEmail.trim() || undefined,
         clientContact: clientContact.trim() || undefined,
         items: items.map(({ id, ...rest }) => rest),
@@ -171,6 +191,12 @@ export default function NewInvoice() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Field label="Client">
+            {hasClientFile && (
+              <Pressable style={styles.savedClientBtn} onPress={() => setPickerOpen(true)}>
+                <Users size={16} color={colors.vert} />
+                <Text style={[text.small, { color: colors.vert }]}>{savedClientId ? 'Changer de client enregistré' : 'Choisir un client enregistré'}</Text>
+              </Pressable>
+            )}
             <TextInput style={styles.input} placeholder="Nom du client / entreprise" placeholderTextColor={colors.textMuted} value={clientName} onChangeText={setClientName} />
             <TextInput style={styles.input} placeholder="Email (facultatif)" placeholderTextColor={colors.textMuted} value={clientEmail} onChangeText={setClientEmail} keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.input} placeholder="Téléphone (facultatif)" placeholderTextColor={colors.textMuted} value={clientContact} onChangeText={setClientContact} keyboardType="phone-pad" />
@@ -275,6 +301,7 @@ export default function NewInvoice() {
       <View style={styles.footer}>
         <Button label={creating ? 'Création…' : 'Créer la facture'} onPress={createInvoice} loading={creating} />
       </View>
+      <ClientPicker visible={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={applyClient} />
     </SafeAreaView>
   );
 }
@@ -340,6 +367,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const styles = StyleSheet.create({
+  savedClientBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: '#F2FBF6', borderWidth: 1, borderColor: colors.vert, borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   back: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },

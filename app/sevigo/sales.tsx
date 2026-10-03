@@ -4,12 +4,13 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { ArrowLeft, Banknote, Smartphone, Receipt, ChevronDown, ChevronUp } from 'lucide-react-native';
+import { ArrowLeft, Banknote, Smartphone, Receipt, ChevronDown, ChevronUp, Printer } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { PosGate } from '../../src/components/PosGate';
 import { alert } from '../../src/lib/alert';
 import { fetchSales, voidSale, SevigoSale } from '../../src/lib/sevigo/pos';
 import { reportError } from '../../src/lib/reportError';
+import { isUsbPrintingSupported, printReceipt } from '../../src/lib/escpos';
 
 const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
@@ -23,6 +24,16 @@ function Sales() {
   const [sales, setSales] = useState<SevigoSale[]>([]);
   const [loading, setLoading] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
+  const canPrint = isUsbPrintingSupported();
+
+  async function reprint(s: SevigoSale) {
+    try {
+      await printReceipt({
+        number: s.number, date: new Date(s.createdAt), total: s.total, method: s.paymentMethod, clientName: s.clientName,
+        lines: (s.items ?? []).map(i => ({ name: i.name, qty: i.qty, total: i.lineTotal })),
+      });
+    } catch (e: any) { alert('Impression', e.message ?? "Échec de l'impression."); }
+  }
 
   const load = useCallback(() => {
     fetchSales().then(setSales).catch(reportError).finally(() => setLoading(false));
@@ -76,7 +87,7 @@ function Sales() {
                 <Pressable style={styles.row} onPress={() => setOpen(isOpen ? null : s.id)}>
                   {s.paymentMethod === 'cash' ? <Banknote size={20} color={colors.vert} /> : <Smartphone size={20} color={colors.vert} />}
                   <View style={{ flex: 1 }}>
-                    <Text style={[text.bodyMd, { color: colors.encre }]}>{s.number}{voided ? ' · ANNULÉE' : ''}</Text>
+                    <Text style={[text.bodyMd, { color: colors.encre }]}>{s.number}{voided ? ' · ANNULÉE' : ''}{s.clientName ? ` · ${s.clientName}` : ''}</Text>
                     <Text style={[text.label, { color: colors.textMuted }]}>
                       {new Date(s.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </Text>
@@ -92,6 +103,13 @@ function Sales() {
                         <Text style={[text.small, { color: colors.encre }]}>{money(i.lineTotal)}</Text>
                       </View>
                     ))}
+                    {canPrint && !voided && (
+                      <Pressable style={styles.voidBtn} onPress={() => reprint(s)}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Printer size={14} color={colors.vert} /><Text style={[text.small, { color: colors.vert }]}>Réimprimer le ticket</Text>
+                        </View>
+                      </Pressable>
+                    )}
                     {!voided && (
                       <Pressable style={styles.voidBtn} onPress={() => confirmVoid(s)}>
                         <Text style={[text.small, { color: colors.terre }]}>Annuler cette vente</Text>

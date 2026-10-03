@@ -47,6 +47,7 @@ function mapInvoiceRow(row: any, items: any[]): SevigoInvoice {
     id: row.id,
     number: row.number,
     clientName: row.client_name,
+    clientId: row.client_id ?? undefined,
     clientContact: row.client_contact ?? undefined,
     clientEmail: row.client_email ?? undefined,
     items: items.map(mapLineItemRow),
@@ -185,6 +186,7 @@ export async function fetchSevigoInvoice(id: string): Promise<SevigoInvoice | nu
 
 export interface CreateSevigoInvoiceInput {
   clientName: string;
+  clientId?: string;
   clientContact?: string;
   clientEmail?: string;
   items: Omit<SevigoLineItem, 'id'>[];
@@ -236,7 +238,8 @@ export async function createSevigoInvoice(input: CreateSevigoInvoiceInput): Prom
     .from('sevigo_invoices')
     .insert({
       user_id: user.id, number,
-      client_name: input.clientName, client_contact: input.clientContact ?? null, client_email: input.clientEmail ?? null,
+      client_name: input.clientName, client_id: input.clientId ?? null,
+      client_contact: input.clientContact ?? null, client_email: input.clientEmail ?? null,
       discount_pct: input.discountPct ?? null, discount_flat: input.discountFlat ?? null,
       subtotal, total, status: initialStatus, template: input.template,
       due_date: input.dueDate ?? null, notes: input.notes ?? null,
