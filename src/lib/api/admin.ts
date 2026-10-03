@@ -152,12 +152,23 @@ export async function broadcastNotification(input: {
   return data as number;
 }
 
+// Accounts flagged is_test (Google's pre-launch tester, etc. — see
+// migration_test_accounts.sql) are excluded from admin counts and queues.
+async function testAccountIds(): Promise<string[]> {
+  const { data } = await supabase.from('profiles').select('id').eq('is_test', true);
+  return (data ?? []).map((r: any) => r.id);
+}
+
 export async function fetchAdminStats(): Promise<AdminStats> {
   if (!hasSupabase) return { totalUsers: 0, totalProviders: 0, openRequests: 0, completedToday: 0, pendingVerifications: 0, openDisputes: 0, responseRate: 0, pendingWithdrawals: 0 };
+  const testIds = await testAccountIds();
   const [users, providers, requests, jobs, verifications, disputes, withdrawals] = await Promise.all([
     supabase.from('profiles').select('id', { count: 'exact', head: true }),
     supabase.from('providers').select('id', { count: 'exact', head: true }),
-    supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte'),
+    (() => {
+      const q = supabase.from('requests').select('id', { count: 'exact', head: true }).eq('status', 'ouverte');
+      return testIds.length ? q.not('client_id', 'in', `(${testIds.join(',')})`) : q;
+    })(),
     supabase.from('jobs').select('id', { count: 'exact', head: true }).eq('status', 'termine'),
     supabase.from('verification_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
     supabase.from('disputes').select('id', { count: 'exact', head: true }).eq('status', 'ouvert'),
@@ -322,7 +333,8 @@ export async function fetchOpenRequestsAdmin(): Promise<AdminOpenRequest[]> {
     .eq('status', 'ouverte')
     .order('created_at', { ascending: true });
   if (error) { reportError(error); return []; }
-  const rows = data ?? [];
+  const testIds = new Set(await testAccountIds());
+  const rows = (data ?? []).filter((r: any) => !testIds.has(r.client_id));
 
   const clientIds = [...new Set(rows.map((r: any) => r.client_id).filter(Boolean))];
   const { data: clients } = clientIds.length
