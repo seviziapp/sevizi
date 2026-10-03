@@ -25,6 +25,8 @@ export type SevigoSale = {
   status: 'completed' | 'voided';
   createdAt: string;
   clientName?: string;
+  clientEmail?: string;
+  clientPhone?: string;
   items?: { name: string; unitPrice: number; qty: number; lineTotal: number }[];
 };
 
@@ -91,12 +93,13 @@ export async function voidSale(saleId: string): Promise<void> {
 export async function fetchSales(limit = 100): Promise<SevigoSale[]> {
   if (!hasSupabase) return [];
   const { data, error } = await supabase
-    .from('sevigo_sales').select('*, sevigo_clients(name), sevigo_sale_items(name, unit_price, qty, line_total)')
+    .from('sevigo_sales').select('*, sevigo_clients(name, email, phone), sevigo_sale_items(name, unit_price, qty, line_total)')
     .order('created_at', { ascending: false }).limit(limit);
   if (error) { reportError(error); return []; }
   return (data ?? []).map((s: any) => ({
     id: s.id, number: s.number, total: s.total, paymentMethod: s.payment_method, status: s.status,
     createdAt: s.created_at, clientName: s.sevigo_clients?.name ?? undefined,
+    clientEmail: s.sevigo_clients?.email ?? undefined, clientPhone: s.sevigo_clients?.phone ?? undefined,
     items: (s.sevigo_sale_items ?? []).map((i: any) => ({ name: i.name, unitPrice: i.unit_price, qty: i.qty, lineTotal: i.line_total })),
   }));
 }

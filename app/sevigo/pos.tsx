@@ -2,10 +2,10 @@
 // pick how the customer paid, and "Encaisser". Prices and stock are decided
 // server-side by sevigo_create_sale; the client sends only ids and quantities.
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Image, Platform, Share } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, TextInput, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Search, Plus, Minus, Package, Banknote, Smartphone, CheckCircle, Share2, Copy, Receipt, Printer, User, ChevronDown } from 'lucide-react-native';
+import { ArrowLeft, Search, Plus, Minus, Package, Banknote, Smartphone, CheckCircle, Receipt, User, ChevronDown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { PosGate } from '../../src/components/PosGate';
@@ -14,8 +14,9 @@ import { fetchSevigoBusinessProfile } from '../../src/lib/sevigo/api';
 import { reportError } from '../../src/lib/reportError';
 import { ClientPicker } from '../../src/components/ClientPicker';
 import { fetchClients, SevigoClient } from '../../src/lib/sevigo/clients';
-import { receiptText, ReceiptSale } from '../../src/lib/sevigo/receipt';
-import { isUsbPrintingSupported, printReceipt, getPaperCols, setPaperCols, PaperCols } from '../../src/lib/escpos';
+import { SevigoDocument } from '../../src/lib/sevigo/document';
+import { DocumentActions } from '../../src/components/DocumentActions';
+import type { SevigoBusinessProfile } from '../../src/lib/sevigo/types';
 
 const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
 
@@ -33,24 +34,19 @@ function Pos() {
   const [method, setMethod] = useState<'cash' | 'mobile'>('cash');
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
-  const [bizName, setBizName] = useState('');
-  const [done, setDone] = useState<ReceiptSale | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [done, setDone] = useState<SevigoDocument | null>(null);
+  const [doneMethod, setDoneMethod] = useState<'cash' | 'mobile'>('cash');
   const [client, setClient] = useState<SevigoClient | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [printing, setPrinting] = useState(false);
-  const [printMsg, setPrintMsg] = useState('');
-  const [cols, setCols] = useState<PaperCols>(48);
-  const canPrint = isUsbPrintingSupported();
+  const [biz, setBiz] = useState<SevigoBusinessProfile | null>(null);
 
-  React.useEffect(() => { if (canPrint) setCols(getPaperCols()); }, [canPrint]);
   React.useEffect(() => {
     if (clientId) fetchClients().then(cs => setClient(cs.find(c => c.id === clientId) ?? null)).catch(reportError);
   }, [clientId]);
 
   const load = useCallback(() => {
     fetchProducts().then(setProducts).catch(reportError).finally(() => setLoading(false));
-    fetchSevigoBusinessProfile().then(b => setBizName(b?.businessName ?? '')).catch(reportError);
+    fetchSevigoBusinessProfile().then(setBiz).catch(reportError);
   }, []);
   useFocusEffect(useCallback(() => { load(); }, [load]));
 
@@ -79,31 +75,23 @@ function Pos() {
     try {
       const sale = await createSale(lines.map(l => ({ productId: l.p.id, qty: l.qty })), method, client?.id);
       setDone({
-        businessName: bizName, number: sale.number, date: new Date(), total: sale.total, method,
-        clientName: client?.name, lines: lines.map(l => ({ name: l.p.name, qty: l.qty, total: l.p.price * l.qty })),
+        kind: 'sale', number: sale.number, date: new Date(),
+        business: {
+          name: biz?.businessName || 'Ma boutique', logoUrl: biz?.logoUrl, email: biz?.contactEmail,
+          phone: biz?.contactPhone, address: biz?.address, accent: biz?.brandColor || undefined,
+        },
+        client: client ? { name: client.name, email: client.email, phone: client.phone } : undefined,
+        lines: lines.map(l => ({ description: l.p.name, qty: l.qty, unitPrice: l.p.price, total: l.p.price * l.qty })),
+        subtotal: sale.total, adjustments: [], total: sale.total,
+        paymentLabel: method === 'cash' ? 'Espèces' : 'Mobile money',
       });
+      setDoneMethod(method);
       setCart({});
-      setPrintMsg('');
       load(); // refresh stock
     } catch (e: any) {
       setError(e.message ?? "Échec de l'encaissement.");
       load(); // stock may have changed
     } finally { setPaying(false); }
-  }
-
-  async function shareReceipt() { if (done) await Share.share({ message: receiptText(done) }); }
-  async function copyReceipt() {
-    if (!done) return;
-    if (Platform.OS === 'web' && typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(receiptText(done)); setCopied(true); setTimeout(() => setCopied(false), 2000);
-    } else { await shareReceipt(); }
-  }
-  async function printTicket() {
-    if (!done) return;
-    setPrintMsg(''); setPrinting(true);
-    try { setPaperCols(cols); await printReceipt(done); setPrintMsg("Ticket envoyé à l'imprimante."); }
-    catch (e: any) { setPrintMsg(e.message ?? "Échec de l'impression."); }
-    finally { setPrinting(false); }
   }
 
   if (done) {
@@ -113,40 +101,18 @@ function Pos() {
           <CheckCircle size={64} color={colors.vert} />
           <Text style={[text.h2, { color: colors.encre, marginTop: spacing.md }]}>Vente enregistrée</Text>
           <Text style={[text.data, { color: colors.vert, fontSize: 34, marginTop: spacing.xs }]}>{money(done.total)}</Text>
-          <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>{done.number} · {done.method === 'cash' ? 'Espèces' : 'Mobile money'}{done.clientName ? ` · ${done.clientName}` : ''}</Text>
+          <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>{done.number} · {done.paymentLabel}{done.client ? ` · ${done.client.name}` : ''}</Text>
           <View style={[styles.card, shadow.card, { alignSelf: 'stretch', marginTop: spacing.xl }]}>
             {done.lines.map((l, i) => (
               <View key={i} style={styles.sumRow}>
-                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{l.qty} × {l.name}</Text>
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{l.qty} × {l.description}</Text>
                 <Text style={[text.small, { color: colors.encre }]}>{money(l.total)}</Text>
               </View>
             ))}
           </View>
-          <View style={styles.doneActions}>
-            <Pressable style={styles.secondaryBtn} onPress={copyReceipt}>
-              <Copy size={16} color={colors.encre} /><Text style={[text.small, { color: colors.encre }]}>{copied ? 'Copié' : 'Copier le reçu'}</Text>
-            </Pressable>
-            <Pressable style={styles.secondaryBtn} onPress={shareReceipt}>
-              <Share2 size={16} color={colors.encre} /><Text style={[text.small, { color: colors.encre }]}>Partager</Text>
-            </Pressable>
+          <View style={{ alignSelf: 'stretch', marginTop: spacing.lg }}>
+            <DocumentActions doc={done} />
           </View>
-          {canPrint && (
-            <View style={{ alignSelf: 'stretch', marginTop: spacing.md, gap: spacing.sm }}>
-              <Pressable style={[styles.secondaryBtn, { borderColor: colors.vert, backgroundColor: '#F2FBF6', flex: 0 }]} onPress={printTicket} disabled={printing}>
-                {printing ? <ActivityIndicator size="small" color={colors.vert} /> : <Printer size={16} color={colors.vert} />}
-                <Text style={[text.small, { color: colors.vert }]}>Imprimer le ticket (USB)</Text>
-              </Pressable>
-              <View style={styles.paperRow}>
-                <Text style={[text.label, { color: colors.textMuted }]}>PAPIER</Text>
-                {([32, 48] as PaperCols[]).map(c => (
-                  <Pressable key={c} style={[styles.paperChip, cols === c && styles.paperChipOn]} onPress={() => setCols(c)}>
-                    <Text style={[text.label, { color: cols === c ? colors.white : colors.encre }]}>{c === 32 ? '58 mm' : '80 mm'}</Text>
-                  </Pressable>
-                ))}
-              </View>
-              {!!printMsg && <Text style={[text.small, { color: printMsg.startsWith('Ticket') ? colors.vert : colors.terre, textAlign: 'center' }]}>{printMsg}</Text>}
-            </View>
-          )}
           <View style={{ alignSelf: 'stretch', marginTop: spacing.lg }}>
             <Button label="Nouvelle vente" onPress={() => setDone(null)} />
           </View>
@@ -236,9 +202,6 @@ function Pos() {
 
 const styles = StyleSheet.create({
   clientRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, height: 42, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, paddingHorizontal: spacing.md },
-  paperRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, justifyContent: 'center' },
-  paperChip: { paddingHorizontal: spacing.md, height: 30, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white, justifyContent: 'center' },
-  paperChipOn: { backgroundColor: colors.encre, borderColor: colors.encre },
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
   iconBtn: { width: 40, height: 40, borderRadius: radii.md, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },

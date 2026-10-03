@@ -4,7 +4,7 @@
 // non-tab-bar screen here is a plain file registered with href:null on
 // app/admin/_layout.tsx's <Tabs>.
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Platform, Switch } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
@@ -12,7 +12,7 @@ import {
   Briefcase, Star, Clock, Trash2, ClipboardList,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchAdminUserDetail, adminDeleteUser, AdminUserDetail } from '../../src/lib/api';
+import { fetchAdminUserDetail, adminDeleteUser, adminSetThermalPrinter, AdminUserDetail } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
 import { alert } from '../../src/lib/alert';
 
@@ -50,6 +50,16 @@ export default function AdminUserDetailScreen() {
   const [detail, setDetail] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [savingThermal, setSavingThermal] = useState(false);
+
+  async function toggleThermal(on: boolean) {
+    if (!detail) return;
+    setSavingThermal(true);
+    setDetail({ ...detail, thermalPrinter: on }); // optimistic
+    try { await adminSetThermalPrinter(detail.id, on); }
+    catch (e: any) { setDetail({ ...detail, thermalPrinter: !on }); alert('Erreur', e.message ?? 'Échec de la mise à jour.'); }
+    finally { setSavingThermal(false); }
+  }
 
   const load = useCallback(() => {
     if (!id) return;
@@ -226,6 +236,16 @@ export default function AdminUserDetailScreen() {
               })}
             </View>
           )}
+
+          {/* Sèvi Go feature switch */}
+          <View style={[styles.card, shadow.card, { flexDirection: 'row', alignItems: 'center', gap: spacing.md }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>Imprimante thermique USB</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>Sèvi Go : impression directe des tickets sur une imprimante Munbyn / ESC-POS.</Text>
+            </View>
+            <Switch value={detail.thermalPrinter} onValueChange={toggleThermal} disabled={savingThermal}
+              trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
+          </View>
 
           {/* Danger zone */}
           <Pressable style={styles.deleteBtn} onPress={confirmDelete} disabled={deleting}>

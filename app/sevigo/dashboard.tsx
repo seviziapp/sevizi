@@ -100,6 +100,14 @@ export default function SevigoDashboard() {
           <Text style={[text.bodyMd, { color: colors.white }]}>Nouvelle facture</Text>
         </Pressable>
 
+        {/* Saved clients — every plan */}
+        <Pressable style={[styles.posCard, shadow.card, { flexDirection: 'row', alignItems: 'center', gap: spacing.md }]}
+          onPress={() => router.push('/sevigo/clients' as any)}>
+          <Users size={18} color={colors.vert} />
+          <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes clients</Text>
+          <ChevronRight size={16} color={colors.textMuted} />
+        </Pressable>
+
         {/* Reports — every paid plan */}
         <Pressable style={[styles.posCard, shadow.card, { flexDirection: 'row', alignItems: 'center', gap: spacing.md }]}
           onPress={() => router.push((plan.hasReports ? '/sevigo/reports' : '/sevigo/plan') as any)}>
@@ -124,7 +132,6 @@ export default function SevigoDashboard() {
             { label: 'Vendre (caisse)', icon: <Store size={18} color={colors.encre} />, route: '/sevigo/pos' },
             { label: 'Produits & stock', icon: <Package size={18} color={colors.encre} />, route: '/sevigo/products' },
             { label: 'Historique des ventes', icon: <Receipt size={18} color={colors.encre} />, route: '/sevigo/sales' },
-            { label: 'Mes clients', icon: <Users size={18} color={colors.encre} />, route: '/sevigo/clients' },
           ].map(r => (
             <Pressable key={r.route} style={styles.posRow}
               onPress={() => router.push((usage?.planId === 'unlimited' ? r.route : '/sevigo/plan') as any)}>

@@ -7,7 +7,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Plus, Search, X, Users, Phone, Mail, MapPin, Store, FileText, Trash2, Pencil } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
-import { PosGate } from '../../src/components/PosGate';
+import { fetchSevigoUsage } from '../../src/lib/sevigo/api';
 import { alert } from '../../src/lib/alert';
 import { fetchClients, saveClient, deleteClient, fetchClientHistory, SevigoClient, ClientPurchase } from '../../src/lib/sevigo/clients';
 import { reportError } from '../../src/lib/reportError';
@@ -16,12 +16,11 @@ const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
 type Draft = { id?: string; name: string; phone: string; email: string; address: string; notes: string };
 const EMPTY: Draft = { name: '', phone: '', email: '', address: '', notes: '' };
 
-export default function ClientsScreen() {
-  return <PosGate title="Clients"><Clients /></PosGate>;
-}
-
-function Clients() {
+export default function Clients() {
   const router = useRouter();
+  // The till is an Unlimited feature; the client list itself is for every plan.
+  const [hasPos, setHasPos] = useState(false);
+  React.useEffect(() => { fetchSevigoUsage().then(u => setHasPos(u.planId === 'unlimited')).catch(reportError); }, []);
   const [clients, setClients] = useState<SevigoClient[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -121,7 +120,7 @@ function Clients() {
                   <View style={styles.actions}>
                     {!!c.phone && <Chip icon={<Phone size={14} color={colors.vert} />} label="Appeler" onPress={() => call(c.phone!)} />}
                     {!!c.email && <Chip icon={<Mail size={14} color={colors.vert} />} label="Email" onPress={() => mail(c.email!)} />}
-                    <Chip icon={<Store size={14} color={colors.vert} />} label="Vendre" onPress={() => router.push({ pathname: '/sevigo/pos', params: { clientId: c.id } } as any)} />
+                    {hasPos && <Chip icon={<Store size={14} color={colors.vert} />} label="Vendre" onPress={() => router.push({ pathname: '/sevigo/pos', params: { clientId: c.id } } as any)} />}
                     <Chip icon={<FileText size={14} color={colors.vert} />} label="Facturer" onPress={() => router.push({ pathname: '/sevigo/new-invoice', params: { clientId: c.id } } as any)} />
                   </View>
                   {!!c.address && <Line icon={<MapPin size={14} color={colors.textMuted} />} t={c.address} />}

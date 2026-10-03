@@ -80,6 +80,7 @@ export type AdminUserDetail = {
   phone: string;
   role: string;
   verified: boolean;
+  thermalPrinter: boolean;
   locationLabel: string;
   createdAt: string;
   provider: {
@@ -108,6 +109,7 @@ export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail 
     phone: profile.phone ?? '',
     role: profile.role,
     verified: !!profile.verified,
+    thermalPrinter: !!profile.thermal_printer,
     locationLabel: profile.location_label ?? '',
     createdAt: profile.created_at,
     provider: provider ? {
@@ -122,6 +124,13 @@ export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail 
       id: r.id, description: r.description, category: r.category, status: r.status, createdAt: r.created_at,
     })),
   };
+}
+
+// Switches direct USB thermal-printer printing (Sèvi Go) on or off for one
+// account. Off for everyone by default; admin-only, enforced server-side.
+export async function adminSetThermalPrinter(userId: string, enabled: boolean): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_thermal_printer', { p_user_id: userId, p_enabled: enabled });
+  if (error) throw new Error(error.message);
 }
 
 // Deletes a marketplace user's account (client or prestataire) outright —

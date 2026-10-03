@@ -15,6 +15,8 @@ import {
 import { computeLineTotal } from '../../../src/lib/sevigo/types';
 import type { SevigoInvoice, SevigoInvoiceStatus, SevigoBusinessProfile } from '../../../src/lib/sevigo/types';
 import { reportError } from '../../../src/lib/reportError';
+import { DocumentActions } from '../../../src/components/DocumentActions';
+import { invoiceToDocument } from '../../../src/lib/sevigo/document';
 
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
   pending_fee: { label: 'Verrouillée', color: colors.terre },
@@ -31,93 +33,6 @@ function buildRedirectUrl(kind: 'payment' | 'feepayment', status: 'return' | 'ca
     return `${window.location.origin}/sevigo/invoice/${invoiceId}?${query}`;
   }
   return ExpoLinking.createURL(`/sevigo/invoice/${invoiceId}`, { queryParams: { [kind]: status } });
-}
-
-function printHtml(invoice: SevigoInvoice, biz: SevigoBusinessProfile | null, format: 'a4' | 'receipt'): string {
-  const accent = biz?.brandColor || '#0FA76A';
-  const rows = invoice.items.map(it => `
-    <tr>
-      <td>${escapeHtml(it.description)}</td>
-      <td style="text-align:center">${it.quantity}</td>
-      <td style="text-align:right">${it.unitPrice.toLocaleString('fr-FR')} F</td>
-      <td style="text-align:right">${computeLineTotal(it).toLocaleString('fr-FR')} F</td>
-    </tr>`).join('');
-  const receiptRows = invoice.items.map(it => `
-    <div class="rrow"><span>${escapeHtml(it.description)} ×${it.quantity}</span><span>${computeLineTotal(it).toLocaleString('fr-FR')} F</span></div>`).join('');
-
-  const page = format === 'a4'
-    ? '@page { size: A4; margin: 18mm; }'
-    : '@page { size: 80mm auto; margin: 4mm; }';
-
-  const body = format === 'a4' ? `
-    <div class="head">
-      ${biz?.logoUrl ? `<img src="${biz.logoUrl}" class="logo"/>` : ''}
-      <div>
-        <div class="biz">${escapeHtml(biz?.businessName || 'Mon entreprise')}</div>
-        <div class="muted">${escapeHtml(biz?.contactEmail || '')} ${biz?.contactPhone ? '· ' + escapeHtml(biz.contactPhone) : ''}</div>
-        <div class="muted">${escapeHtml(biz?.address || '')}</div>
-      </div>
-      <div class="invNum" style="color:${accent}">${escapeHtml(invoice.number)}</div>
-    </div>
-    <div class="client">
-      <div class="muted">FACTURÉ À</div>
-      <div class="bold">${escapeHtml(invoice.clientName)}</div>
-      <div class="muted">${escapeHtml(invoice.clientEmail || '')} ${invoice.clientContact ? '· ' + escapeHtml(invoice.clientContact) : ''}</div>
-    </div>
-    <table>
-      <thead><tr style="color:${accent}"><th>Description</th><th>Qté</th><th>Prix</th><th>Total</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    <div class="totals">
-      <div class="trow"><span>Sous-total</span><span>${invoice.subtotal.toLocaleString('fr-FR')} F</span></div>
-      ${invoice.discountPct ? `<div class="trow"><span>Réduction (${invoice.discountPct}%)</span><span>-${Math.round(invoice.subtotal * invoice.discountPct / 100).toLocaleString('fr-FR')} F</span></div>` : ''}
-      ${invoice.discountFlat ? `<div class="trow"><span>Réduction</span><span>-${invoice.discountFlat.toLocaleString('fr-FR')} F</span></div>` : ''}
-      <div class="trow total" style="color:${accent}"><span>Total</span><span>${invoice.total.toLocaleString('fr-FR')} F</span></div>
-    </div>
-  ` : `
-    <div class="rcenter">
-      ${biz?.logoUrl ? `<img src="${biz.logoUrl}" class="rlogo"/>` : ''}
-      <div class="bold">${escapeHtml(biz?.businessName || 'Mon entreprise')}</div>
-      <div class="muted">${escapeHtml(biz?.contactPhone || '')}</div>
-    </div>
-    <div class="rdash"></div>
-    <div class="rrow"><span>Facture</span><span>${escapeHtml(invoice.number)}</span></div>
-    <div class="rrow"><span>Client</span><span>${escapeHtml(invoice.clientName)}</span></div>
-    <div class="rdash"></div>
-    ${receiptRows}
-    <div class="rdash"></div>
-    <div class="rrow bold"><span>TOTAL</span><span>${invoice.total.toLocaleString('fr-FR')} F</span></div>
-    <div class="rcenter muted" style="margin-top:8px">Merci !</div>
-  `;
-
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${escapeHtml(invoice.number)}</title>
-  <style>
-    ${page}
-    body { font-family: -apple-system, Arial, sans-serif; color: #06291F; margin:0; }
-    .muted { color: #5B6B63; font-size: 12px; }
-    .bold { font-weight: 700; }
-    .head { display:flex; align-items:flex-start; gap:12px; border-bottom:2px solid #eee; padding-bottom:14px; margin-bottom:16px; }
-    .logo { width:48px; height:48px; object-fit:contain; border-radius:6px; }
-    .biz { font-size:18px; font-weight:800; }
-    .invNum { margin-left:auto; font-size:16px; font-weight:700; }
-    .client { margin-bottom:18px; }
-    table { width:100%; border-collapse:collapse; font-size:13px; }
-    th { text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:0.5px; padding-bottom:6px; border-bottom:1px solid #ddd; }
-    td { padding:8px 0; border-bottom:1px solid #f0f0f0; }
-    .totals { margin-top:16px; margin-left:auto; width:260px; }
-    .trow { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
-    .total { font-size:20px; font-weight:800; border-top:1px solid #ddd; margin-top:6px; padding-top:8px; }
-    .rcenter { text-align:center; }
-    .rlogo { width:36px; height:36px; object-fit:contain; margin-bottom:4px; }
-    .rdash { border-top:1px dashed #999; margin:8px 0; }
-    .rrow { display:flex; justify-content:space-between; font-size:12px; padding:2px 0; }
-    body[data-fmt="receipt"] { width:72mm; margin:0 auto; font-size:12px; }
-  </style></head>
-  <body data-fmt="${format}">${body}</body></html>`;
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
 }
 
 export default function InvoiceDetail() {
@@ -208,25 +123,9 @@ export default function InvoiceDetail() {
     load();
   }
 
-  async function sendByEmail() {
-    if (!invoice || !invoice.clientEmail) return;
-    const subject = encodeURIComponent(`Facture ${invoice.number} — ${biz?.businessName || 'Sèvi Go'}`);
-    const lines = invoice.items.map(it => `- ${it.description} × ${it.quantity} — ${computeLineTotal(it).toLocaleString('fr-FR')} F`);
-    const body = encodeURIComponent(
-      `Bonjour ${invoice.clientName},\n\nVoici votre facture ${invoice.number} :\n\n${lines.join('\n')}\n\nTotal : ${invoice.total.toLocaleString('fr-FR')} F\n\nMerci,\n${biz?.businessName || ''}`,
-    );
-    await Linking.openURL(`mailto:${invoice.clientEmail}?subject=${subject}&body=${body}`).catch(reportError);
-    if (invoice.status === 'draft') { await updateSevigoInvoiceStatus(invoice.id, 'sent').catch(reportError); load(); }
-  }
-
-  function printFormat(format: 'a4' | 'receipt') {
-    if (!invoice || Platform.OS !== 'web' || typeof window === 'undefined') return;
-    const win = window.open('', '_blank');
-    if (!win) return;
-    win.document.write(printHtml(invoice, biz, format));
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+  // Emailing a draft invoice marks it as sent (same as before).
+  async function markSentIfDraft() {
+    if (invoice?.status === 'draft') { await updateSevigoInvoiceStatus(invoice.id, 'sent').catch(reportError); load(); }
   }
 
   async function share() {
@@ -349,25 +248,7 @@ export default function InvoiceDetail() {
             </View>
           </View>
 
-          {Platform.OS === 'web' && (
-            <View style={styles.rowActions}>
-              <Pressable style={styles.outlineBtn} onPress={() => printFormat('a4')}>
-                <Printer size={16} color={colors.encre} />
-                <Text style={[text.small, { color: colors.encre }]}>Imprimer (A4)</Text>
-              </Pressable>
-              <Pressable style={styles.outlineBtn} onPress={() => printFormat('receipt')}>
-                <Receipt size={16} color={colors.encre} />
-                <Text style={[text.small, { color: colors.encre }]}>Imprimer (Reçu)</Text>
-              </Pressable>
-            </View>
-          )}
-
-          {!!invoice.clientEmail && (
-            <Pressable style={styles.outlineBtnFull} onPress={sendByEmail}>
-              <Mail size={16} color={colors.encre} />
-              <Text style={[text.small, { color: colors.encre }]}>Envoyer par e-mail à {invoice.clientEmail}</Text>
-            </Pressable>
-          )}
+          <DocumentActions doc={invoiceToDocument(invoice, biz)} onEmailed={markSentIfDraft} />
 
           {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
             <View style={{ gap: spacing.md }}>

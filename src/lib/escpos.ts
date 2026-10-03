@@ -1,5 +1,7 @@
-// Sèvi Go — print a till receipt straight to a USB thermal printer (Munbyn
-// and other ESC/POS models) with WebUSB: no driver, no print dialog.
+// Sèvi Go — print an invoice or till receipt straight to a USB thermal
+// printer (Munbyn and other ESC/POS models) with WebUSB: no driver, no print
+// dialog. Reserved for accounts with profiles.thermal_printer switched on by
+// an admin (see sevigo/thermal.ts) — currently Onimy Cosmetics.
 //
 // Limits to know:
 //  - WebUSB exists only in Chromium browsers (Chrome / Edge, on desktop,
@@ -9,7 +11,8 @@
 //  - On Windows the printer must use the WinUSB driver (e.g. via Zadig) —
 //    the vendor driver holds the device and Chrome can't claim it. ChromeOS,
 //    Linux, macOS and Android need nothing.
-import type { ReceiptSale } from './sevigo/receipt';
+import { documentTitle } from './sevigo/document';
+import type { SevigoDocument } from './sevigo/document';
 
 const ESC = 0x1b;
 const GS = 0x1d;
@@ -58,7 +61,41 @@ function wrap(text: string, cols: number): string[] {
   return out;
 }
 
-export function buildReceiptBytes(r: ReceiptSale, cols: PaperCols = getPaperCols()): Uint8Array {
+// The Sèvi Go pin-and-bolt mark as a 1-bit bitmap (GS v 0 raster command),
+// drawn on a canvas from the same geometry as components/SevigoLogo.tsx.
+// Black pin with a white bolt reads well on thermal paper. Returns null where
+// there is no canvas (then the ticket falls back to the "SEVI GO" text line).
+export function sevigoLogoRaster(widthDots = 120): number[] | null {
+  if (typeof document === 'undefined') return null;
+  const w = widthDots - (widthDots % 8);
+  const s = w / 190;
+  const h = Math.ceil(226 * s);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);
+  ctx.scale(s, s); ctx.translate(10, 10);
+  ctx.fillStyle = '#000';
+  ctx.fill(new Path2D('M75 181 L22.1 128 A75 75 0 1 1 127.9 128 Z'));
+  ctx.save();
+  ctx.translate(75, 72); ctx.scale(0.62, 0.62); ctx.translate(-76, -90);
+  ctx.fillStyle = '#fff';
+  ctx.fill(new Path2D('M82 12 L34 100 H70 L58 168 L118 78 H80 Z'));
+  ctx.restore();
+
+  const px = ctx.getImageData(0, 0, w, h).data;
+  const bpr = w / 8;
+  const data = new Array<number>(bpr * h).fill(0);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      if (px[(y * w + x) * 4] < 128) data[y * bpr + (x >> 3)] |= 0x80 >> (x & 7);
+    }
+  }
+  return [GS, 0x76, 0x30, 0x00, bpr & 0xff, bpr >> 8, h & 0xff, h >> 8, ...data];
+}
+
+export function buildDocumentBytes(d: SevigoDocument, cols: PaperCols = getPaperCols(), logo: number[] | null = null): Uint8Array {
   const bytes: number[] = [];
   const text = (s: string) => { for (const ch of toPrinterAscii(s)) bytes.push(ch.charCodeAt(0)); };
   const line = (s = '') => { text(s); bytes.push(0x0a); };
@@ -67,28 +104,41 @@ export function buildReceiptBytes(r: ReceiptSale, cols: PaperCols = getPaperCols
 
   cmd(ESC, 0x40);                       // initialise
   cmd(ESC, 0x61, 0x01);                 // centre
-  cmd(ESC, 0x45, 0x01);                 // bold
-  for (const l of wrap(r.businessName || 'Recu', cols)) line(l);
-  cmd(ESC, 0x45, 0x00);
-  line(`Vente ${r.number}`);
-  line(r.date.toLocaleString('fr-FR'));
-  if (r.clientName) line(`Client: ${r.clientName}`);
-  cmd(ESC, 0x61, 0x00);                 // left
+  if (logo) { bytes.push(...logo); line(); }
+  cmd(ESC, 0x45, 0x01); cmd(GS, 0x21, 0x11); // bold + double size
+  line('Sevi Go');
+  cmd(GS, 0x21, 0x00); cmd(ESC, 0x45, 0x00);
   line(rule);
-  for (const l of r.lines) {
-    const left = `${l.qty} x ${l.name}`;
+  cmd(ESC, 0x45, 0x01);
+  for (const l of wrap(d.business.name, cols)) line(l);
+  cmd(ESC, 0x45, 0x00);
+  if (d.business.phone) line(d.business.phone);
+  if (d.business.address) for (const l of wrap(d.business.address, cols)) line(l);
+  line(rule);
+  cmd(ESC, 0x61, 0x00);                 // left
+  line(row(`${documentTitle(d).replace('REÇU', 'RECU')} ${d.number}`, d.date.toLocaleDateString('fr-FR'), cols));
+  line(row('Client', d.client?.name || 'Client de passage', cols));
+  line(rule);
+  for (const l of d.lines) {
+    const left = l.qty > 1 ? `${l.qty} x ${l.description}` : l.description;
     const price = fmt(l.total);
     if (left.length + price.length + 1 <= cols) line(row(left, price, cols));
     else { for (const w of wrap(left, cols)) line(w); line(row('', price, cols)); }
+    if (l.qty > 1) line(`  ${l.qty} x ${fmt(l.unitPrice)}`);
   }
   line(rule);
+  if (d.adjustments.length) {
+    line(row('Sous-total', fmt(d.subtotal), cols));
+    for (const a of d.adjustments) line(row(a.label, `-${fmt(Math.abs(a.amount))}`, cols));
+  }
   cmd(ESC, 0x45, 0x01); cmd(GS, 0x21, 0x01); // bold + double height
-  line(row('TOTAL', fmt(r.total), cols));
+  line(row('TOTAL', fmt(d.total), cols));
   cmd(GS, 0x21, 0x00); cmd(ESC, 0x45, 0x00);
-  line(`Paiement: ${r.method === 'cash' ? 'Especes' : 'Mobile money'}`);
+  if (d.paymentLabel) line(row('Paiement', d.paymentLabel, cols));
   cmd(ESC, 0x61, 0x01);
   line();
-  line('Merci !');
+  cmd(ESC, 0x45, 0x01); line('Merci !'); cmd(ESC, 0x45, 0x00);
+  line('Genere avec Sevi Go - sevizi.app');
   cmd(ESC, 0x64, 0x04);                 // feed 4 lines
   cmd(GS, 0x56, 0x00);                  // cut (ignored by printers without a cutter)
   return new Uint8Array(bytes);
@@ -140,6 +190,6 @@ export async function printEscPos(data: Uint8Array): Promise<void> {
   }
 }
 
-export async function printReceipt(r: ReceiptSale): Promise<void> {
-  await printEscPos(buildReceiptBytes(r));
+export async function printDocument(d: SevigoDocument): Promise<void> {
+  await printEscPos(buildDocumentBytes(d, getPaperCols(), sevigoLogoRaster()));
 }

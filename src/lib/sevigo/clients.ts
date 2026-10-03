@@ -57,6 +57,17 @@ export async function saveClient(input: {
   return mapClient(data);
 }
 
+// Reuses an existing saved client with the same name (and phone, when both
+// have one) instead of creating a duplicate each time the same person is
+// invoiced.
+export async function findOrCreateClient(input: { name: string; phone?: string; email?: string }): Promise<SevigoClient> {
+  const name = input.name.trim().toLowerCase();
+  const phone = (input.phone ?? '').replace(/\s/g, '');
+  const existing = (await fetchClients()).find(c =>
+    c.name.trim().toLowerCase() === name && (!phone || !c.phone || c.phone.replace(/\s/g, '') === phone));
+  return existing ?? saveClient(input);
+}
+
 export async function deleteClient(id: string): Promise<void> {
   const { error } = await supabase.from('sevigo_clients').delete().eq('id', id);
   if (error) throw new Error(error.message);

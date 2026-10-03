@@ -18,7 +18,7 @@ import { computeInvoiceTotals } from '../../src/lib/sevigo/types';
 import type { SevigoInvoiceTemplate, SevigoLineItem } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
 import { ClientPicker } from '../../src/components/ClientPicker';
-import { fetchClients, SevigoClient } from '../../src/lib/sevigo/clients';
+import { fetchClients, findOrCreateClient, SevigoClient } from '../../src/lib/sevigo/clients';
 
 type DraftLine = { id: string; description: string; quantity: string; unitPrice: string };
 
@@ -46,7 +46,7 @@ export default function NewInvoice() {
   const router = useRouter();
   const { clientId: clientIdParam } = useLocalSearchParams<{ clientId?: string }>();
   const [savedClientId, setSavedClientId] = useState<string | undefined>();
-  const [hasClientFile, setHasClientFile] = useState(false);
+  const [saveNewClient, setSaveNewClient] = useState(true);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -62,9 +62,6 @@ export default function NewInvoice() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchSevigoUsage().then(u => setHasClientFile(u.planId === 'unlimited')).catch(reportError);
-  }, []);
   useEffect(() => {
     if (!clientIdParam) return;
     fetchClients().then(cs => { const c = cs.find(x => x.id === clientIdParam); if (c) applyClient(c); }).catch(reportError);
@@ -138,9 +135,16 @@ export default function NewInvoice() {
     setError('');
     setCreating(true);
     try {
+      // Remember a new client for next time (never blocks the invoice).
+      let linkedClientId = savedClientId;
+      if (!linkedClientId && saveNewClient) {
+        try {
+          linkedClientId = (await findOrCreateClient({ name: clientName, phone: clientContact, email: clientEmail })).id;
+        } catch (e) { reportError(e); }
+      }
       const invoice = await createSevigoInvoice({
         clientName: clientName.trim(),
-        clientId: savedClientId,
+        clientId: linkedClientId,
         clientEmail: clientEmail.trim() || undefined,
         clientContact: clientContact.trim() || undefined,
         items: items.map(({ id, ...rest }) => rest),
@@ -191,15 +195,19 @@ export default function NewInvoice() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Field label="Client">
-            {hasClientFile && (
-              <Pressable style={styles.savedClientBtn} onPress={() => setPickerOpen(true)}>
-                <Users size={16} color={colors.vert} />
-                <Text style={[text.small, { color: colors.vert }]}>{savedClientId ? 'Changer de client enregistré' : 'Choisir un client enregistré'}</Text>
-              </Pressable>
-            )}
+            <Pressable style={styles.savedClientBtn} onPress={() => setPickerOpen(true)}>
+              <Users size={16} color={colors.vert} />
+              <Text style={[text.small, { color: colors.vert }]}>{savedClientId ? 'Changer de client enregistré' : 'Choisir un client enregistré'}</Text>
+            </Pressable>
             <TextInput style={styles.input} placeholder="Nom du client / entreprise" placeholderTextColor={colors.textMuted} value={clientName} onChangeText={setClientName} />
             <TextInput style={styles.input} placeholder="Email (facultatif)" placeholderTextColor={colors.textMuted} value={clientEmail} onChangeText={setClientEmail} keyboardType="email-address" autoCapitalize="none" />
             <TextInput style={styles.input} placeholder="Téléphone (facultatif)" placeholderTextColor={colors.textMuted} value={clientContact} onChangeText={setClientContact} keyboardType="phone-pad" />
+            {!savedClientId && (
+              <Pressable style={styles.saveClientRow} onPress={() => setSaveNewClient(v => !v)}>
+                <View style={[styles.checkbox, saveNewClient && styles.checkboxOn]}>{saveNewClient && <Check size={13} color={colors.white} strokeWidth={3} />}</View>
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>Enregistrer ce client pour la prochaine fois</Text>
+              </Pressable>
+            )}
           </Field>
 
           <Field label="Articles">
@@ -367,6 +375,9 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const styles = StyleSheet.create({
+  saveClientRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  checkbox: { width: 20, height: 20, borderRadius: 5, borderWidth: 1.5, borderColor: colors.border, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  checkboxOn: { backgroundColor: colors.vert, borderColor: colors.vert },
   savedClientBtn: { flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start', backgroundColor: '#F2FBF6', borderWidth: 1, borderColor: colors.vert, borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: 8 },
   safe: { flex: 1, backgroundColor: colors.creme },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },

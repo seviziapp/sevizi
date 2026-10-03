@@ -137,7 +137,7 @@ export default function SevigoPlanScreen() {
                       text={`Commission : ${Math.round(plan.paydunyaFeePct * 100)}%`}
                     />
                     {plan.hasReports && <Feature icon={<BarChart3 size={14} color={colors.textMuted} />} text="Rapports & analyses" />}
-                    {plan.hasPos && <Feature icon={<Store size={14} color={colors.textMuted} />} text="Caisse (POS), stock & fichier clients" />}
+                    {plan.hasPos && <Feature icon={<Store size={14} color={colors.textMuted} />} text="Caisse (POS) & gestion de stock" />}
                   </View>
 
                   <Button
