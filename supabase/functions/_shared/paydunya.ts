@@ -80,27 +80,46 @@ export async function confirmInvoice(token: string): Promise<{ status: string; [
 }
 
 function extractTokenFromBody(body: any): string | undefined {
-  return body?.data?.token ?? body?.data?.invoice?.token ?? body?.token;
+  // PayDunya's JSON shape is { data: { invoice: { token } } }; also accept the
+  // already-unwrapped shapes so a form field like data={"invoice":{...}} works.
+  return body?.data?.invoice?.token ?? body?.data?.token ?? body?.invoice?.token ?? body?.token;
 }
 
-// Pulls the PayDunya invoice token out of an anonymous webhook request,
-// whether PayDunya sent it as JSON or form-encoded. Throws 'token manquant'
-// if neither shape yields one — callers should let this propagate to their
-// existing catch block.
+// Pulls the PayDunya invoice token out of an anonymous webhook request.
+// PayDunya's real IPN is application/x-www-form-urlencoded with PHP-style
+// bracket keys (data[invoice][token]=…, data[status]=…, data[hash]=…) — the
+// previous version only understood JSON or a single "data" JSON field, so
+// every genuine callback threw "token manquant" and no payment was ever
+// confirmed automatically. All known shapes are accepted now: JSON, bracket
+// form fields, a data=<json> form field, or a plain token field. Whatever
+// token comes out is still only a *lookup key* — the webhooks re-confirm the
+// real status with PayDunya before granting anything, so a forged callback
+// cannot unlock anything.
 export async function extractWebhookToken(req: Request): Promise<string> {
-  const contentType = req.headers.get('content-type') ?? '';
+  const raw = await req.text();
+  const trimmed = raw.trim();
   let token: string | undefined;
 
-  if (contentType.includes('application/json')) {
-    token = extractTokenFromBody(await req.json());
-  } else {
-    const form = await req.formData();
-    const raw = form.get('data');
-    if (raw) {
-      try { token = extractTokenFromBody(JSON.parse(String(raw))); } catch { /* fall through */ }
-    }
-    token ??= (form.get('token') as string | null) ?? undefined;
+  if (trimmed.startsWith('{')) {
+    try { token = extractTokenFromBody(JSON.parse(trimmed)); } catch { /* fall through to form parsing */ }
   }
+
+  if (!token) {
+    const params = new URLSearchParams(raw);
+    token =
+      params.get('data[invoice][token]') ??
+      params.get('data[token]') ??
+      params.get('invoice[token]') ??
+      params.get('token') ??
+      undefined;
+    if (!token) {
+      const dataField = params.get('data');
+      if (dataField) {
+        try { token = extractTokenFromBody(JSON.parse(dataField)); } catch { /* not JSON */ }
+      }
+    }
+  }
+
   if (!token) throw new Error('token manquant');
   return token;
 }
