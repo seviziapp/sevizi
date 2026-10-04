@@ -24,11 +24,16 @@ Deno.serve(async (req: Request) => {
     }
 
     if (confirm.status === 'completed') {
+      // Activate first, then mark completed: if activation fails the payment
+      // stays pending so a retry (or the reconcile job) can finish the job.
+      // 30-day period; paying again while still active extends from the current end.
+      const { error: actErr } = await admin.rpc('activate_sevigo_plan', {
+        p_user_id: payment.user_id, p_plan_id: payment.plan_id, p_days: 30, p_source: 'paid',
+      });
+      if (actErr) throw new Error(actErr.message);
       await admin.from('sevigo_plan_payments')
         .update({ status: 'completed', confirmed_at: new Date().toISOString() })
         .eq('id', payment.id);
-      await admin.from('sevigo_subscriptions')
-        .upsert({ user_id: payment.user_id, plan_id: payment.plan_id }, { onConflict: 'user_id' });
       if (payment.referral_credit_applied > 0) {
         await admin.from('referral_credits').insert({
           user_id: payment.user_id, amount: -payment.referral_credit_applied,

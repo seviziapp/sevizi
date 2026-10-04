@@ -44,7 +44,8 @@ Deno.serve(async (req: Request) => {
         user_id: user.id, plan_id: planId, amount: 0, status: 'completed',
         referral_credit_applied: creditApplied, confirmed_at: new Date().toISOString(),
       });
-      await admin.from('sevigo_subscriptions').upsert({ user_id: user.id, plan_id: planId }, { onConflict: 'user_id' });
+      const { error: actErr } = await admin.rpc('activate_sevigo_plan', { p_user_id: user.id, p_plan_id: planId, p_days: 30, p_source: 'paid' });
+      if (actErr) throw new Error(actErr.message);
       await admin.from('referral_credits').insert({
         user_id: user.id, amount: -creditApplied, kind: 'spend_sevigo_plan', note: `Formule Sèvi Go ${PLAN_LABELS[planId]}`,
       });

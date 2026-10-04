@@ -4,7 +4,7 @@
 // non-tab-bar screen here is a plain file registered with href:null on
 // app/admin/_layout.tsx's <Tabs>.
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Platform, Switch } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Linking, Platform, Switch, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import {
@@ -12,7 +12,7 @@ import {
   Briefcase, Star, Clock, Trash2, ClipboardList,
 } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchAdminUserDetail, adminDeleteUser, adminSetThermalPrinter, AdminUserDetail } from '../../src/lib/api';
+import { fetchAdminUserDetail, adminDeleteUser, adminSetThermalPrinter, adminGrantSevigoPlan, adminRevokeSevigoPlan, AdminUserDetail } from '../../src/lib/api';
 import { CATEGORIES } from '../../src/lib/types';
 import { alert } from '../../src/lib/alert';
 
@@ -51,6 +51,26 @@ export default function AdminUserDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [savingThermal, setSavingThermal] = useState(false);
+  const [grantPlan, setGrantPlan] = useState<'starter' | 'growth' | 'unlimited'>('unlimited');
+  const [grantDays, setGrantDays] = useState('30');
+  const [granting, setGranting] = useState(false);
+
+  async function grant(noEnd: boolean) {
+    if (!detail) return;
+    const days = noEnd ? null : parseInt(grantDays, 10);
+    if (!noEnd && (!days || days < 1 || days > 3650)) { alert('Durée invalide', 'Entrez un nombre de jours entre 1 et 3650.'); return; }
+    setGranting(true);
+    try { await adminGrantSevigoPlan(detail.id, grantPlan, days); load(); alert('Formule offerte', noEnd ? 'Sans date de fin.' : `Pour ${days} jour${days === 1 ? '' : 's'}.`); }
+    catch (e: any) { alert('Erreur', e.message ?? 'Échec.'); }
+    finally { setGranting(false); }
+  }
+  async function revoke() {
+    if (!detail) return;
+    setGranting(true);
+    try { await adminRevokeSevigoPlan(detail.id); load(); }
+    catch (e: any) { alert('Erreur', e.message ?? 'Échec.'); }
+    finally { setGranting(false); }
+  }
 
   async function toggleThermal(on: boolean) {
     if (!detail) return;
@@ -247,6 +267,42 @@ export default function AdminUserDetailScreen() {
               trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
           </View>
 
+          {/* Sèvi Go plan: free trial / complimentary plan */}
+          <View style={[styles.card, shadow.card, { gap: spacing.sm }]}>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>Formule Sèvi Go</Text>
+            <Text style={[text.small, { color: colors.textMuted }]}>
+              {!detail.sevigoPlan || detail.sevigoPlan.planId === 'payg'
+                ? 'Pay As You Go'
+                : `${detail.sevigoPlan.planId.charAt(0).toUpperCase()}${detail.sevigoPlan.planId.slice(1)} · ${detail.sevigoPlan.source === 'granted' ? 'offerte' : 'payée'} · ${detail.sevigoPlan.expiresAt ? 'jusqu\u2019au ' + new Date(detail.sevigoPlan.expiresAt).toLocaleDateString('fr-FR') : 'sans date de fin'}`}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: spacing.xs }}>
+              {(['starter', 'growth', 'unlimited'] as const).map(p => (
+                <Pressable key={p} onPress={() => setGrantPlan(p)}
+                  style={[styles.planChip, grantPlan === p && { backgroundColor: colors.vert, borderColor: colors.vert }]}>
+                  <Text style={[text.small, { color: grantPlan === p ? colors.white : colors.encre }]}>{p.charAt(0).toUpperCase() + p.slice(1)}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+              <TextInput value={grantDays} onChangeText={t => setGrantDays(t.replace(/[^0-9]/g, ''))} keyboardType="number-pad"
+                style={styles.daysInput} placeholder="30" />
+              <Text style={[text.small, { color: colors.textMuted }]}>jours</Text>
+              <Pressable style={[styles.grantBtn, granting && { opacity: 0.5 }]} onPress={() => grant(false)} disabled={granting}>
+                <Text style={[text.bodyMd, { color: colors.white }]}>Offrir</Text>
+              </Pressable>
+            </View>
+            <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+              <Pressable style={[styles.ghostBtn, granting && { opacity: 0.5 }]} onPress={() => grant(true)} disabled={granting}>
+                <Text style={[text.small, { color: colors.encre }]}>Offrir sans date de fin</Text>
+              </Pressable>
+              {detail.sevigoPlan && detail.sevigoPlan.planId !== 'payg' && (
+                <Pressable style={[styles.ghostBtn, { borderColor: colors.terre }, granting && { opacity: 0.5 }]} onPress={revoke} disabled={granting}>
+                  <Text style={[text.small, { color: colors.terre }]}>Retirer la formule</Text>
+                </Pressable>
+              )}
+            </View>
+          </View>
+
           {/* Danger zone */}
           <Pressable style={styles.deleteBtn} onPress={confirmDelete} disabled={deleting}>
             {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={18} color={colors.terre} />}
@@ -278,6 +334,10 @@ const styles = StyleSheet.create({
   statItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   dot: { width: 8, height: 8, borderRadius: 4 },
   reqRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingTop: spacing.md, marginTop: spacing.sm, borderTopWidth: 1, borderTopColor: 'rgba(6,41,31,0.05)' },
+  planChip: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border },
+  daysInput: { width: 72, height: 40, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, color: colors.encre },
+  grantBtn: { marginLeft: 'auto', height: 40, paddingHorizontal: spacing.xl, borderRadius: radii.md, backgroundColor: colors.vert, alignItems: 'center', justifyContent: 'center' },
+  ghostBtn: { paddingHorizontal: spacing.md, height: 36, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
   deleteBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
     height: 48, borderRadius: radii.md, borderWidth: 1, borderColor: colors.terre, marginTop: spacing.md,

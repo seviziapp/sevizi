@@ -9,7 +9,7 @@ import { Button } from '../../src/components/Button';
 import { alert } from '../../src/lib/alert';
 import { fetchSevigoUsage, setSevigoPlan, createSevigoPlanPayment } from '../../src/lib/sevigo/api';
 import { SEVIGO_PLANS } from '../../src/lib/sevigo/types';
-import type { SevigoPlanId } from '../../src/lib/sevigo/types';
+import type { SevigoPlanId, SevigoUsage } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
 
 function buildRedirectUrl(status: 'return' | 'cancel'): string {
@@ -22,14 +22,17 @@ function buildRedirectUrl(status: 'return' | 'cancel'): string {
 
 export default function SevigoPlanScreen() {
   const { payment: paymentParam } = useLocalSearchParams<{ payment?: string }>();
-  const [currentPlan, setCurrentPlan] = useState<SevigoPlanId>('payg');
+  const [usage, setUsage] = useState<SevigoUsage | null>(null);
+  const currentPlan: SevigoPlanId = usage?.planId ?? 'payg';
+  const setCurrentPlan = (planId: SevigoPlanId) => setUsage(u => ({ ...(u ?? { cycleStart: '', invoicesThisCycle: 0, expiresAt: null, source: 'paid' as const }), planId }));
+  const startExpiry = useRef<string | null | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<SevigoPlanId | null>(null);
   const [verifying, setVerifying] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   function load() {
-    fetchSevigoUsage().then(u => setCurrentPlan(u.planId)).catch(reportError).finally(() => setLoading(false));
+    fetchSevigoUsage().then(setUsage).catch(reportError).finally(() => setLoading(false));
   }
   useEffect(load, []);
 
@@ -39,11 +42,13 @@ export default function SevigoPlanScreen() {
     if (paymentParam !== 'return') return;
     setVerifying(true);
     let attempts = 0;
+    startExpiry.current = usage?.expiresAt ?? null;
     pollRef.current = setInterval(async () => {
       attempts += 1;
       const u = await fetchSevigoUsage().catch(() => null);
-      if (u && u.planId !== 'payg') {
-        setCurrentPlan(u.planId);
+      // Done once a paid plan is active and, for a renewal, its end date moved.
+      if (u && u.planId !== 'payg' && (u.expiresAt !== startExpiry.current || startExpiry.current === null)) {
+        setUsage(u);
         setVerifying(false);
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (attempts >= 10) {
@@ -55,7 +60,7 @@ export default function SevigoPlanScreen() {
   }, [paymentParam]);
 
   async function choose(planId: SevigoPlanId) {
-    if (planId === currentPlan) return;
+    if (planId === currentPlan && !(planId !== 'payg' && usage?.expiresAt)) return;
     setSwitching(planId);
     try {
       if (planId === 'payg') {
@@ -100,6 +105,19 @@ export default function SevigoPlanScreen() {
           </View>
         )}
 
+        {usage && usage.planId !== 'payg' && (
+          <View style={styles.statusBanner}>
+            <Text style={[text.bodyMd, { color: colors.vertDark }]}>
+              {usage.source === 'granted' ? 'Formule offerte' : 'Formule active'}
+            </Text>
+            <Text style={[text.small, { color: colors.vertDark }]}>
+              {usage.expiresAt
+                ? `${usage.source === 'granted' ? 'Offerte jusqu\u2019au' : 'Valable jusqu\u2019au'} ${new Date(usage.expiresAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
+                : 'Sans date de fin'}
+            </Text>
+          </View>
+        )}
+
         {loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.xl }} />
         ) : (
@@ -141,10 +159,10 @@ export default function SevigoPlanScreen() {
                   </View>
 
                   <Button
-                    label={active ? 'Formule actuelle' : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
-                    variant={active ? 'ghost' : 'primary'}
+                    label={active ? (plan.id !== 'payg' && usage?.expiresAt ? 'Renouveler 30 jours' : 'Formule actuelle') : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
+                    variant={active && !(plan.id !== 'payg' && usage?.expiresAt) ? 'ghost' : 'primary'}
                     onPress={() => choose(plan.id)}
-                    disabled={active || !!switching}
+                    disabled={(active && !(plan.id !== 'payg' && !!usage?.expiresAt)) || !!switching}
                     loading={switching === plan.id}
                     style={{ marginTop: spacing.lg }}
                   />
@@ -171,6 +189,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.sm },
   verifyingBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.md },
+  statusBanner: { backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.md, gap: 2 },
   card: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   cardActive: { borderColor: colors.vert, borderWidth: 1.5 },
   cardHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },

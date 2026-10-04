@@ -81,6 +81,7 @@ export type AdminUserDetail = {
   role: string;
   verified: boolean;
   thermalPrinter: boolean;
+  sevigoPlan: { planId: string; expiresAt: string | null; source: 'paid' | 'granted' } | null;
   locationLabel: string;
   createdAt: string;
   provider: {
@@ -94,11 +95,12 @@ export type AdminUserDetail = {
 
 export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail | null> {
   if (!hasSupabase) return null;
-  const [{ data: profile }, { data: providerRows }, { data: verifRows }, { data: reqRows }] = await Promise.all([
+  const [{ data: profile }, { data: providerRows }, { data: verifRows }, { data: reqRows }, { data: subRow }] = await Promise.all([
     supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
     supabase.from('providers').select('*').eq('user_id', id).limit(1),
     supabase.from('verification_requests').select('status').eq('user_id', id).order('created_at', { ascending: false }).limit(1),
     supabase.from('requests').select('id, description, category, status, created_at').eq('client_id', id).order('created_at', { ascending: false }).limit(10),
+    supabase.from('sevigo_subscriptions').select('plan_id, plan_expires_at, plan_source').eq('user_id', id).maybeSingle(),
   ]);
   if (!profile) return null;
   const provider = providerRows?.[0];
@@ -110,6 +112,7 @@ export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail 
     role: profile.role,
     verified: !!profile.verified,
     thermalPrinter: !!profile.thermal_printer,
+    sevigoPlan: subRow ? { planId: subRow.plan_id, expiresAt: subRow.plan_expires_at ?? null, source: subRow.plan_source === 'granted' ? 'granted' : 'paid' } : null,
     locationLabel: profile.location_label ?? '',
     createdAt: profile.created_at,
     provider: provider ? {
@@ -124,6 +127,19 @@ export async function fetchAdminUserDetail(id: string): Promise<AdminUserDetail 
       id: r.id, description: r.description, category: r.category, status: r.status, createdAt: r.created_at,
     })),
   };
+}
+
+// Gives a user a free Sèvi Go plan for `days` days (null = no end date).
+// Granting the plan they already have extends it. Admin-only, enforced server-side.
+export async function adminGrantSevigoPlan(userId: string, planId: string, days: number | null): Promise<string | null> {
+  const { data, error } = await supabase.rpc('admin_grant_sevigo_plan', { p_user_id: userId, p_plan_id: planId, p_days: days });
+  if (error) throw new Error(error.message);
+  return (data as string | null) ?? null;
+}
+
+export async function adminRevokeSevigoPlan(userId: string): Promise<void> {
+  const { error } = await supabase.rpc('admin_revoke_sevigo_plan', { p_user_id: userId });
+  if (error) throw new Error(error.message);
 }
 
 // Switches direct USB thermal-printer printing (Sèvi Go) on or off for one

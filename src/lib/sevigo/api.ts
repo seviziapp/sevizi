@@ -37,7 +37,7 @@ const demoInvoices: SevigoInvoice[] = [
   },
 ];
 
-const demoUsage: SevigoUsage = { planId: 'payg', cycleStart: new Date().toISOString(), invoicesThisCycle: demoInvoices.length };
+const demoUsage: SevigoUsage = { planId: 'payg', cycleStart: new Date().toISOString(), invoicesThisCycle: demoInvoices.length, expiresAt: null, source: 'paid' };
 
 function mapInvoiceRow(row: any, items: any[]): SevigoInvoice {
   const fees = (row.sevigo_invoice_generation_fees ?? [])
@@ -81,12 +81,15 @@ export async function fetchSevigoUsage(): Promise<SevigoUsage> {
   if (!user) return demoUsage;
   const { data, error } = await supabase
     .from('sevigo_subscriptions')
-    .select('plan_id, cycle_start, invoices_this_cycle')
+    .select('plan_id, cycle_start, invoices_this_cycle, plan_expires_at, plan_source')
     .eq('user_id', user.id)
     .maybeSingle();
   if (error && !isTableMissing(error)) throw error;
-  if (!data) return { planId: 'payg', cycleStart: new Date().toISOString(), invoicesThisCycle: 0 };
-  return { planId: data.plan_id, cycleStart: data.cycle_start, invoicesThisCycle: data.invoices_this_cycle };
+  if (!data) return { planId: 'payg', cycleStart: new Date().toISOString(), invoicesThisCycle: 0, expiresAt: null, source: 'paid' };
+  return {
+    planId: data.plan_id, cycleStart: data.cycle_start, invoicesThisCycle: data.invoices_this_cycle,
+    expiresAt: data.plan_expires_at ?? null, source: data.plan_source === 'granted' ? 'granted' : 'paid',
+  };
 }
 
 // Switches to Pay As You Go — free, so it applies instantly. Switching to a

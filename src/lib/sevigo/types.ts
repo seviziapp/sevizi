@@ -72,6 +72,10 @@ export interface SevigoUsage {
   planId: SevigoPlanId;
   cycleStart: string;
   invoicesThisCycle: number;
+  /** End of the current paid/free period; null = no end (Pay As You Go, or a free plan with no end date). */
+  expiresAt: string | null;
+  /** 'granted' = offered by an admin, 'paid' = bought by the user. */
+  source: 'paid' | 'granted';
 }
 
 // -- Pure calculation helpers (no I/O) --
