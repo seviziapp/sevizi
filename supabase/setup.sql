@@ -2227,8 +2227,8 @@ declare
 begin
   if not is_super_admin() then raise exception 'Réservé aux super admins.'; end if;
 
-  create temp table if not exists _rev (at timestamptz, stream text, who text, amount int, uid uuid) on commit drop;
-  delete from _rev;
+  drop table if exists _rev;
+  create temp table _rev (at timestamptz, stream text, who text, amount int, uid uuid) on commit drop;
 
   insert into _rev
   select p.confirmed_at, 'pro', coalesce(pr.name, pf.full_name, '—'), p.amount, p.user_id
