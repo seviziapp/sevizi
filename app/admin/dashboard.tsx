@@ -111,6 +111,7 @@ export default function AdminDashboard() {
         {/* Quick links */}
         <View style={styles.quickLinks}>
           {[
+            ...(isSuperAdmin ? [{ label: 'Revenus & rapports', route: '/admin/revenue', count: null }] : []),
             { label: 'Demandes ouvertes', route: '/admin/requests', count: stats?.openRequests },
             { label: 'File de vérification', route: '/admin/verification', count: stats?.pendingVerifications },
             { label: 'Litiges actifs', route: '/admin/disputes', count: stats?.openDisputes },

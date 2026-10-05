@@ -12,3 +12,4 @@ export * from './admin';
 export * from './booking';
 export * from './discounts';
 export * from './referral';
+export * from './revenue';
