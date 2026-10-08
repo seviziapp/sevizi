@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { StaggerIn } from '../../src/components/StaggerIn';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
 import { getQueryParams } from 'expo-auth-session/build/QueryParams';
@@ -148,10 +149,13 @@ export default function Auth() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           {/* Logo */}
-          <View style={styles.logoRow}>
-            <LogoFull height={52} />
-          </View>
+          <StaggerIn index={0}>
+            <View style={styles.logoRow}>
+              <LogoFull height={52} />
+            </View>
+          </StaggerIn>
 
+          <StaggerIn index={1}>
           <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>
             {mode === 'login' ? 'Bon retour' : 'Créer un compte'}
           </Text>
@@ -160,15 +164,19 @@ export default function Auth() {
               ? 'Connectez-vous pour continuer.'
               : 'Rejoignez Sèvizi en quelques secondes.'}
           </Text>
+          </StaggerIn>
 
           {/* Google button */}
+          <StaggerIn index={2}>
           <Pressable style={styles.googleBtn} onPress={handleGoogle} disabled={loading}>
             <Text style={styles.googleG}>G</Text>
             <Text style={[text.bodyMd, { color: colors.encre }]}>
               Continuer avec Google
             </Text>
           </Pressable>
+          </StaggerIn>
 
+          <StaggerIn index={3}>
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.line} />
@@ -233,6 +241,8 @@ export default function Auth() {
             </Pressable>
           )}
 
+          </StaggerIn>
+
           {/* Info / error */}
           {!!info && <Text style={styles.infoText}>{info}</Text>}
           {!!error && <Text style={styles.errorText}>{error}</Text>}
@@ -245,6 +255,7 @@ export default function Auth() {
           )}
 
           {/* Submit */}
+          <StaggerIn index={4}>
           <Pressable style={[styles.submitBtn, loading && { opacity: 0.6 }]} onPress={handleEmail} disabled={loading}>
             {loading
               ? <ActivityIndicator color={colors.creme} />
@@ -253,8 +264,10 @@ export default function Auth() {
                 </Text>
             }
           </Pressable>
+          </StaggerIn>
 
           {/* Toggle mode */}
+          <StaggerIn index={5}>
           <Pressable style={styles.toggleRow} onPress={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(''); setInfo(''); setPendingConfirmEmail(''); }}>
             <Text style={[text.small, { color: colors.textMuted }]}>
               {mode === 'login' ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
@@ -263,6 +276,7 @@ export default function Auth() {
               {mode === 'login' ? 'S\'inscrire' : 'Se connecter'}
             </Text>
           </Pressable>
+          </StaggerIn>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
