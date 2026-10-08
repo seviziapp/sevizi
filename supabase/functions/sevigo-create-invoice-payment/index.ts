@@ -13,7 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Keep in sync with SEVIGO_PLANS in src/lib/sevigo/types.ts.
 const PAYDUNYA_FEE_PCT: Record<string, number> = {
-  payg: 0.10, starter: 0.10, growth: 0.07, unlimited: 0.05,
+  payg: 0.10, starter: 0.08, growth: 0.07, unlimited: 0.05,
 };
 
 Deno.serve(async (req: Request) => {

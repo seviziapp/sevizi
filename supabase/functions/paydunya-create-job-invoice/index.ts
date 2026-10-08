@@ -15,6 +15,11 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 // Keep in sync with src/lib/pricing.ts.
 const COMMISSION_RATE = 0.10;
 const COMMISSION_RATE_PRO = 0.07;
+// Launch rate for the first quarter after the free period, then the standard
+// rates above. Keep in sync with src/lib/pricing.ts.
+const COMMISSION_RATE_INTRO = 0.05;
+const COMMISSION_RATE_PRO_INTRO = 0.035;
+const COMMISSION_INTRO_UNTIL = new Date('2027-04-04T00:00:00Z');
 // Promo: zero commission for every provider until this date — keep in sync
 // with COMMISSION_FREE_UNTIL in src/lib/pricing.ts.
 const COMMISSION_FREE_UNTIL = new Date('2027-01-04T00:00:00Z');
@@ -48,7 +53,10 @@ Deno.serve(async (req: Request) => {
     const providerRow = providerRows?.[0];
     const tier = providerRow?.tier ?? 'free';
     const isFreePeriod = Date.now() < COMMISSION_FREE_UNTIL.getTime();
-    let rate = isFreePeriod ? 0 : (tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE);
+    const isIntroPeriod = !isFreePeriod && Date.now() < COMMISSION_INTRO_UNTIL.getTime();
+    let rate = isFreePeriod ? 0
+      : isIntroPeriod ? (tier === 'pro' ? COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE_INTRO)
+      : (tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE);
     // Admin-granted commission discount (redeemed discount code) — a
     // percentage taken OFF the normal rate, only while still active.
     const discountPct = providerRow?.commission_discount_pct ?? 0;

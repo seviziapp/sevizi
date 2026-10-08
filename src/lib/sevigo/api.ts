@@ -111,9 +111,9 @@ export async function setSevigoPlan(planId: 'payg'): Promise<void> {
 // redirect to invoiceUrl and poll fetchSevigoUsage() on return.
 // A payment fully covered by referral credit skips PayDunya entirely and
 // returns { confirmed: true } instead — see sevigo-create-plan-payment.
-export async function createSevigoPlanPayment(planId: Exclude<SevigoPlanId, 'payg'>, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string; fee: number } | { confirmed: true }> {
+export async function createSevigoPlanPayment(planId: Exclude<SevigoPlanId, 'payg'>, returnUrl: string, cancelUrl: string, cycle: 'monthly' | 'annual' = 'monthly'): Promise<{ invoiceUrl: string; fee: number } | { confirmed: true }> {
   const { data, error } = await supabase.functions.invoke('sevigo-create-plan-payment', {
-    body: { planId, returnUrl, cancelUrl },
+    body: { planId, returnUrl, cancelUrl, cycle },
   });
   if (error) throw error;
   return data;

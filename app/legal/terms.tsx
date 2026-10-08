@@ -69,9 +69,10 @@ export default function TermsOfService() {
           Le paiement d'une mission se fait exclusivement via Sèvizi, par mobile money (Flooz, T-Money) ou
           carte bancaire, via un paiement sécurisé traité par PayDunya — les paiements en espèces ne sont
           pas acceptés. Le client règle le prix affiché au moment de l'acceptation de l'offre ; ce montant
-          est perçu par Sèvizi, qui prélève une commission (10% standard, 7% pour les prestataires Sèvizi
-          Pro) avant de reverser le solde au prestataire selon les modalités communiquées séparément. Ce
-          taux peut évoluer ; les prestataires seront informés à l'avance de tout changement.
+          est perçu par Sèvizi, qui prélève une commission avant de reverser le solde au prestataire selon les modalités
+          communiquées séparément. La commission est de 0% jusqu'au 4 janvier 2027, puis de 5% (3,5% pour
+          les prestataires Sèvizi Pro) jusqu'au 4 avril 2027, puis de 10% (7% pour les prestataires Sèvizi
+          Pro). Ces taux peuvent évoluer ; les prestataires seront informés à l'avance de tout changement.
         </Section>
 
         <Section title="7. Vérification">

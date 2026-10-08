@@ -7,7 +7,7 @@ import { ArrowLeft, Check, Crown, ShieldCheck, Clock } from 'lucide-react-native
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchMyProviderProfile, createProSubscriptionInvoice, fetchLatestProPayment } from '../../src/lib/api';
-import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO, freeTierCommissionLabel, isCommissionFreePeriod } from '../../src/lib/pricing';
+import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO, COMMISSION_RATE_INTRO, COMMISSION_RATE_PRO_INTRO, isCommissionIntroPeriod, pctLabel, freeTierCommissionLabel, isCommissionFreePeriod } from '../../src/lib/pricing';
 import { reportError } from '../../src/lib/reportError';
 
 function getFreeFeatures(): string[] {
@@ -140,7 +140,7 @@ export default function UpgradeToPro() {
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
               {isCommissionFreePeriod()
                 ? `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission est à 0% pour tout le monde en ce moment, alors profitez-en pour construire votre visibilité avec le placement prioritaire.`
-                : `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission réduite (${Math.round(COMMISSION_RATE_PRO * 100)}% au lieu de ${Math.round(COMMISSION_RATE * 100)}%) suffit à couvrir l'abonnement dès votre premier gros contrat du mois.`}
+                : `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission réduite (${pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE_PRO)} au lieu de ${pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO : COMMISSION_RATE)}) vous fait économiser dès que vos missions payées dans l'application dépassent ${(Math.round(PRO_MONTHLY_FEE / ((isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO - COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE - COMMISSION_RATE_PRO)) / 1000) * 1000).toLocaleString('fr-FR')} F par mois.`}
             </Text>
           </View>
 

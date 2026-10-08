@@ -11,6 +11,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Keep in sync with SEVIGO_PLANS in src/lib/sevigo/types.ts.
 const PLAN_FEES: Record<string, number> = { starter: 2000, growth: 5000, unlimited: 10000 };
+// Annual = 10 months' price (2 months free), valid 365 days.
+const PLAN_FEES_ANNUAL: Record<string, number> = { starter: 20000, growth: 50000, unlimited: 100000 };
 const PLAN_LABELS: Record<string, string> = { starter: 'Starter', growth: 'Growth', unlimited: 'Unlimited' };
 
 Deno.serve(async (req: Request) => {
@@ -26,8 +28,10 @@ Deno.serve(async (req: Request) => {
     const { data: { user }, error: userErr } = await caller.auth.getUser();
     if (userErr || !user) throw new Error('Non connecté');
 
-    const { planId, returnUrl, cancelUrl } = await req.json().catch(() => ({} as any));
-    const fee = PLAN_FEES[planId];
+    const { planId, returnUrl, cancelUrl, cycle: rawCycle } = await req.json().catch(() => ({} as any));
+    const cycle: 'monthly' | 'annual' = rawCycle === 'annual' ? 'annual' : 'monthly';
+    const days = cycle === 'annual' ? 365 : 30;
+    const fee = (cycle === 'annual' ? PLAN_FEES_ANNUAL : PLAN_FEES)[planId];
     if (!fee) throw new Error('Formule invalide.');
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
@@ -42,9 +46,9 @@ Deno.serve(async (req: Request) => {
     if (totalAmount <= 0) {
       await admin.from('sevigo_plan_payments').insert({
         user_id: user.id, plan_id: planId, amount: 0, status: 'completed',
-        referral_credit_applied: creditApplied, confirmed_at: new Date().toISOString(),
+        referral_credit_applied: creditApplied, billing_cycle: cycle, confirmed_at: new Date().toISOString(),
       });
-      const { error: actErr } = await admin.rpc('activate_sevigo_plan', { p_user_id: user.id, p_plan_id: planId, p_days: 30, p_source: 'paid' });
+      const { error: actErr } = await admin.rpc('activate_sevigo_plan', { p_user_id: user.id, p_plan_id: planId, p_days: days, p_source: 'paid' });
       if (actErr) throw new Error(actErr.message);
       await admin.from('referral_credits').insert({
         user_id: user.id, amount: -creditApplied, kind: 'spend_sevigo_plan', note: `Formule Sèvi Go ${PLAN_LABELS[planId]}`,
@@ -58,7 +62,7 @@ Deno.serve(async (req: Request) => {
 
     const { token, invoiceUrl } = await createInvoice({
       totalAmount,
-      description: `Abonnement Sèvi Go ${PLAN_LABELS[planId]} — 1 mois`,
+      description: `Abonnement Sèvi Go ${PLAN_LABELS[planId]} — ${cycle === 'annual' ? '1 an' : '1 mois'}`,
       callbackUrl, returnUrl, cancelUrl,
       customData: { user_id: user.id, plan_id: planId, kind: 'plan_payment' },
       storeName: 'Sèvi Go',
@@ -66,7 +70,7 @@ Deno.serve(async (req: Request) => {
 
     await admin.from('sevigo_plan_payments').insert({
       user_id: user.id, plan_id: planId, amount: totalAmount, status: 'pending', paydunya_token: token,
-      referral_credit_applied: creditApplied,
+      referral_credit_applied: creditApplied, billing_cycle: cycle,
     });
 
     return new Response(JSON.stringify({ invoiceUrl, fee: totalAmount }), {

@@ -13,7 +13,7 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Keep in sync with SEVIGO_PLANS in src/lib/sevigo/types.ts.
 const PLAN_RULES: Record<string, { included: number | null; extraFee: number }> = {
-  payg: { included: 0, extraFee: 500 },
+  payg: { included: 3, extraFee: 500 }, // first 3 invoices each month are free
   starter: { included: 15, extraFee: 500 },
   growth: { included: 50, extraFee: 350 },
   unlimited: { included: null, extraFee: 0 },

@@ -21,6 +21,21 @@ export const COMMISSION_RATE_PRO = 0.07;
 // Function can't import from here, so it's duplicated there).
 export const COMMISSION_FREE_UNTIL = new Date('2027-01-04T00:00:00Z');
 
+// Launch rate for the quarter after the free period (announced ahead of the
+// move to the standard rates). Also duplicated in the Edge Function above.
+export const COMMISSION_RATE_INTRO = 0.05;
+export const COMMISSION_RATE_PRO_INTRO = 0.035;
+export const COMMISSION_INTRO_UNTIL = new Date('2027-04-04T00:00:00Z');
+
+export function isCommissionIntroPeriod(now: Date = new Date()): boolean {
+  return !isCommissionFreePeriod(now) && now.getTime() < COMMISSION_INTRO_UNTIL.getTime();
+}
+
+// Rate as shown to people: 5 -> "5%", 3.5 -> "3,5%".
+export function pctLabel(rate: number): string {
+  return `${String(Math.round(rate * 1000) / 10).replace('.', ',')}%`;
+}
+
 export function isCommissionFreePeriod(now: Date = new Date()): boolean {
   return now.getTime() < COMMISSION_FREE_UNTIL.getTime();
 }
@@ -43,7 +58,9 @@ function isDiscountActive(discount?: CommissionDiscount): discount is Commission
 
 export function getCommissionRate(tier?: ProviderTier, discount?: CommissionDiscount): number {
   if (isCommissionFreePeriod()) return 0;
-  const base = tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE;
+  const base = isCommissionIntroPeriod()
+    ? (tier === 'pro' ? COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE_INTRO)
+    : (tier === 'pro' ? COMMISSION_RATE_PRO : COMMISSION_RATE);
   if (isDiscountActive(discount)) return base * (1 - discount.pct / 100);
   return base;
 }
@@ -55,27 +72,27 @@ export function computeCommission(price: number, tier?: ProviderTier, discount?:
 }
 
 export function formatCommissionPct(tier?: ProviderTier, discount?: CommissionDiscount): string {
-  return `${Math.round(getCommissionRate(tier, discount) * 100)}%`;
+  return pctLabel(getCommissionRate(tier, discount));
 }
 
 // Commission line for the free-tier feature list — reflects the promo while
 // it's running, the standard rate once it ends.
 export function freeTierCommissionLabel(): string {
-  return isCommissionFreePeriod()
-    ? `Commission 0% jusqu'au ${formatPromoEndDate()}`
-    : `Commission standard (${Math.round(COMMISSION_RATE * 100)}%)`;
+  if (isCommissionFreePeriod()) return `Commission 0% jusqu'au ${formatPromoEndDate()}, puis ${pctLabel(COMMISSION_RATE_INTRO)} pendant 3 mois`;
+  if (isCommissionIntroPeriod()) return `Commission de lancement ${pctLabel(COMMISSION_RATE_INTRO)} (puis ${pctLabel(COMMISSION_RATE)} dès le 4 avril 2027)`;
+  return `Commission standard (${pctLabel(COMMISSION_RATE)})`;
 }
 
 // Same for the Pro pitch line.
 export function proTierCommissionLabel(): string {
-  return isCommissionFreePeriod()
-    ? `Commission 0% pour tous jusqu'au ${formatPromoEndDate()} (puis ${Math.round(COMMISSION_RATE_PRO * 100)}% au lieu de ${Math.round(COMMISSION_RATE * 100)}% avec Sèvizi Pro)`
-    : `Commission réduite (${Math.round(COMMISSION_RATE_PRO * 100)}% au lieu de ${Math.round(COMMISSION_RATE * 100)}%)`;
+  if (isCommissionFreePeriod()) return `Commission 0% pour tous jusqu'au ${formatPromoEndDate()}, puis ${pctLabel(COMMISSION_RATE_PRO_INTRO)} au lieu de ${pctLabel(COMMISSION_RATE_INTRO)} avec Sèvizi Pro`;
+  if (isCommissionIntroPeriod()) return `Commission réduite (${pctLabel(COMMISSION_RATE_PRO_INTRO)} au lieu de ${pctLabel(COMMISSION_RATE_INTRO)})`;
+  return `Commission réduite (${pctLabel(COMMISSION_RATE_PRO)} au lieu de ${pctLabel(COMMISSION_RATE)})`;
 }
 
 // ---- Sèvizi Pro subscription ----
 
-export const PRO_MONTHLY_FEE = 5000; // FCFA / month
+export const PRO_MONTHLY_FEE = 3000; // FCFA / month
 export const GALLERY_CAP_FREE = 3;   // gallery photos allowed on the free tier (unlimited on Pro)
 
 // Function (not a constant array) so the commission line stays accurate

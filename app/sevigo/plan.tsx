@@ -26,6 +26,7 @@ export default function SevigoPlanScreen() {
   const currentPlan: SevigoPlanId = usage?.planId ?? 'payg';
   const setCurrentPlan = (planId: SevigoPlanId) => setUsage(u => ({ ...(u ?? { cycleStart: '', invoicesThisCycle: 0, expiresAt: null, source: 'paid' as const }), planId }));
   const startExpiry = useRef<string | null | undefined>(undefined);
+  const [cycle, setCycle] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState(true);
   const [switching, setSwitching] = useState<SevigoPlanId | null>(null);
   const [verifying, setVerifying] = useState(false);
@@ -71,7 +72,7 @@ export default function SevigoPlanScreen() {
       }
       // Paid plan — must pay the monthly fee first; the plan only actually
       // changes once sevigo-plan-payment-webhook confirms it.
-      const result = await createSevigoPlanPayment(planId, buildRedirectUrl('return'), buildRedirectUrl('cancel'));
+      const result = await createSevigoPlanPayment(planId, buildRedirectUrl('return'), buildRedirectUrl('cancel'), cycle);
       // Referral credit fully covered the fee — no PayDunya round-trip
       // needed, the plan already switched server-side.
       if ('confirmed' in result) {
@@ -118,6 +119,16 @@ export default function SevigoPlanScreen() {
           </View>
         )}
 
+        <View style={styles.cycleRow}>
+          {(['monthly', 'annual'] as const).map(c => (
+            <Pressable key={c} onPress={() => setCycle(c)} style={[styles.cycleChip, cycle === c && styles.cycleChipOn]}>
+              <Text style={[text.small, { color: cycle === c ? colors.white : colors.encre }]}>
+                {c === 'monthly' ? 'Mensuel' : 'Annuel · 2 mois offerts'}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+
         {loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.xl }} />
         ) : (
@@ -129,7 +140,12 @@ export default function SevigoPlanScreen() {
                   <View style={styles.cardHead}>
                     <View>
                       <Text style={[text.h3, { color: colors.encre }]}>{plan.label}</Text>
-                      <Text style={[text.bodyMd, { color: colors.vert, marginTop: 2 }]}>{plan.priceLabel}</Text>
+                      <Text style={[text.bodyMd, { color: colors.vert, marginTop: 2 }]}>{cycle === 'annual' && plan.annualFee > 0 ? `${plan.annualFee.toLocaleString('fr-FR')} F / an` : plan.priceLabel}</Text>
+                      {cycle === 'annual' && plan.annualFee > 0 && (
+                        <Text style={[text.small, { color: colors.textMuted }]}>
+                          soit {Math.round(plan.annualFee / 12).toLocaleString('fr-FR')} F / mois · 2 mois offerts
+                        </Text>
+                      )}
                     </View>
                     {active && (
                       <View style={styles.activeTag}>
@@ -159,7 +175,7 @@ export default function SevigoPlanScreen() {
                   </View>
 
                   <Button
-                    label={active ? (plan.id !== 'payg' && usage?.expiresAt ? 'Renouveler 30 jours' : 'Formule actuelle') : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
+                    label={active ? (plan.id !== 'payg' && usage?.expiresAt ? (cycle === 'annual' ? 'Renouveler 1 an' : 'Renouveler 30 jours') : 'Formule actuelle') : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
                     variant={active && !(plan.id !== 'payg' && usage?.expiresAt) ? 'ghost' : 'primary'}
                     onPress={() => choose(plan.id)}
                     disabled={(active && !(plan.id !== 'payg' && !!usage?.expiresAt)) || !!switching}
@@ -189,6 +205,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.sm },
   verifyingBanner: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.md },
+  cycleRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.md },
+  cycleChip: { paddingHorizontal: spacing.md, paddingVertical: 7, borderRadius: radii.pill, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.white },
+  cycleChipOn: { backgroundColor: colors.vert, borderColor: colors.vert },
   statusBanner: { backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, marginTop: spacing.md, gap: 2 },
   card: { backgroundColor: colors.white, borderRadius: radii.xl, padding: spacing.lg, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
   cardActive: { borderColor: colors.vert, borderWidth: 1.5 },

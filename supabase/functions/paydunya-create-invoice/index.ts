@@ -11,7 +11,7 @@ const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
 // Keep in sync with src/lib/pricing.ts PRO_MONTHLY_FEE.
-const PRO_MONTHLY_FEE = 5000;
+const PRO_MONTHLY_FEE = 3000;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });

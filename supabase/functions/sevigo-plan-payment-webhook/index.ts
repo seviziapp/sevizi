@@ -26,9 +26,10 @@ Deno.serve(async (req: Request) => {
     if (confirm.status === 'completed') {
       // Activate first, then mark completed: if activation fails the payment
       // stays pending so a retry (or the reconcile job) can finish the job.
-      // 30-day period; paying again while still active extends from the current end.
+      // 30-day (monthly) or 365-day (annual) period; paying again while still
+      // active extends from the current end.
       const { error: actErr } = await admin.rpc('activate_sevigo_plan', {
-        p_user_id: payment.user_id, p_plan_id: payment.plan_id, p_days: 30, p_source: 'paid',
+        p_user_id: payment.user_id, p_plan_id: payment.plan_id, p_days: payment.billing_cycle === 'annual' ? 365 : 30, p_source: 'paid',
       });
       if (actErr) throw new Error(actErr.message);
       await admin.from('sevigo_plan_payments')

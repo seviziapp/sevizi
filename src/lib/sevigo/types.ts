@@ -7,6 +7,7 @@ export interface SevigoPlan {
   label: string;
   priceLabel: string;
   monthlyFee: number;           // FCFA/month, 0 for payg
+  annualFee: number;            // FCFA/year (2 months free), 0 for payg
   includedInvoices: number | null; // null = unlimited
   extraInvoiceFee: number;      // FCFA per invoice beyond included (or per invoice for payg)
   paydunyaFeePct: number;       // cut Sèvi Go takes off each PayDunya payment, e.g. 0.10
@@ -18,10 +19,10 @@ export interface SevigoPlan {
 // plan (payg/starter included) until confirmed otherwise — see note on
 // SEVIGO_PLANS below.
 export const SEVIGO_PLANS: SevigoPlan[] = [
-  { id: 'payg',      label: 'Pay As You Go',   priceLabel: '500 F / facture', monthlyFee: 0,     includedInvoices: 0,  extraInvoiceFee: 500, paydunyaFeePct: 0.10, hasReports: false, hasPos: false },
-  { id: 'starter',   label: 'Starter',         priceLabel: '2 000 F / mois',  monthlyFee: 2000,  includedInvoices: 15, extraInvoiceFee: 500, paydunyaFeePct: 0.10, hasReports: true,  hasPos: false },
-  { id: 'growth',    label: 'Growth',          priceLabel: '5 000 F / mois',  monthlyFee: 5000,  includedInvoices: 50, extraInvoiceFee: 350, paydunyaFeePct: 0.07, hasReports: true,  hasPos: false },
-  { id: 'unlimited', label: 'Unlimited / Pro', priceLabel: '10 000 F / mois', monthlyFee: 10000, includedInvoices: null, extraInvoiceFee: 0,  paydunyaFeePct: 0.05, hasReports: true,  hasPos: true  },
+  { id: 'payg',      label: 'Pay As You Go',   priceLabel: '500 F / facture', monthlyFee: 0,     annualFee: 0,      includedInvoices: 3,  extraInvoiceFee: 500, paydunyaFeePct: 0.10, hasReports: false, hasPos: false },
+  { id: 'starter',   label: 'Starter',         priceLabel: '2 000 F / mois',  monthlyFee: 2000,  annualFee: 20000,  includedInvoices: 15, extraInvoiceFee: 500, paydunyaFeePct: 0.08, hasReports: true,  hasPos: false },
+  { id: 'growth',    label: 'Growth',          priceLabel: '5 000 F / mois',  monthlyFee: 5000,  annualFee: 50000,  includedInvoices: 50, extraInvoiceFee: 350, paydunyaFeePct: 0.07, hasReports: true,  hasPos: false },
+  { id: 'unlimited', label: 'Unlimited / Pro', priceLabel: '10 000 F / mois', monthlyFee: 10000, annualFee: 100000, includedInvoices: null, extraInvoiceFee: 0,  paydunyaFeePct: 0.05, hasReports: true,  hasPos: true  },
 ];
 
 // 'pending_fee' = created but locked: a Sèvi Go generation fee applies (see
