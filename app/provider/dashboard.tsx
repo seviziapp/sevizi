@@ -6,7 +6,7 @@ import { Bell, TrendingUp, Star, Briefcase, Zap, ChevronRight, Crown, ArrowLeftR
 import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
-import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME } from '../../src/lib/api';
+import { fetchProviderStats, fetchNearbyRequests, toggleOnline, fetchMyProviderProfile, fetchCurrentJob, fetchNotifications, resolveMyLocation, LOME, fetchClientAccessStatus, formatOpeningDate } from '../../src/lib/api';
 import type { ProviderStats, ServiceRequest, GeoPoint } from '../../src/lib/types';
 import { CATEGORIES } from '../../src/lib/types';
 import { COMMISSION_RATE, COMMISSION_RATE_PRO, isCommissionFreePeriod } from '../../src/lib/pricing';
@@ -43,6 +43,16 @@ export default function ProviderDashboard() {
   // Concrete, current-numbers tease: what Pro's lower commission would have
   // saved on this month's earnings so far. Zero during the no-commission
   // promo — there's nothing to save when nobody's being charged.
+  // Providers-first launch: while clients are closed, tell providers when they arrive.
+  // Accounts without client access also lose the "Mode client" shortcut (nothing to do there yet).
+  const [clientsOpen, setClientsOpen] = useState(true);
+  const [hasClientAccess, setHasClientAccess] = useState(true);
+  const [opensAt, setOpensAt] = useState<string | null>(null);
+  useEffect(() => {
+    fetchClientAccessStatus().then(s => { setClientsOpen(s.open); setHasClientAccess(s.hasAccess); setOpensAt(s.opensAt); }).catch(reportError);
+  }, []);
+  const clientsClosed = !clientsOpen && !hasClientAccess;
+
   const monthlySavings = stats && !isCommissionFreePeriod()
     ? Math.round(stats.earnings * (COMMISSION_RATE - COMMISSION_RATE_PRO)) : 0;
 
@@ -66,10 +76,12 @@ export default function ProviderDashboard() {
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-            <Pressable style={styles.switchPill} onPress={() => router.push('/client/home' as any)}>
-              <ArrowLeftRight size={14} color={colors.vert} />
-              <Text style={[text.label, { color: colors.vert }]}>Mode client</Text>
-            </Pressable>
+            {!clientsClosed && (
+              <Pressable style={styles.switchPill} onPress={() => router.push('/client/home' as any)}>
+                <ArrowLeftRight size={14} color={colors.vert} />
+                <Text style={[text.label, { color: colors.vert }]}>Mode client</Text>
+              </Pressable>
+            )}
             <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
               <Bell size={20} color={colors.encre} />
               {unread > 0 && (
@@ -80,6 +92,15 @@ export default function ProviderDashboard() {
             </Pressable>
           </View>
         </View>
+
+        {!clientsOpen && (
+          <View style={styles.launchBanner}>
+            <Text style={[text.bodyMd, { color: colors.vertDark }]}>Les clients arrivent le {formatOpeningDate(opensAt)}</Text>
+            <Text style={[text.small, { color: colors.vertDark }]}>
+              Complétez votre profil, ajoutez vos services et vos photos : vous serez prêt à recevoir vos premières demandes dès l'ouverture.
+            </Text>
+          </View>
+        )}
 
         {/* Online toggle */}
         <View style={[styles.toggleCard, online ? styles.toggleOnline : styles.toggleOffline]}>
@@ -208,6 +229,7 @@ function RequestRow({ req, onPress }: { req: ServiceRequest; onPress: () => void
 }
 
 const styles = StyleSheet.create({
+  launchBanner: { backgroundColor: colors.surface, borderRadius: radii.md, padding: spacing.md, gap: 2, marginBottom: spacing.md },
   safe: { flex: 1, backgroundColor: colors.creme },
   scroll: { padding: spacing.xl, paddingBottom: spacing.xxxl, gap: spacing.lg },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

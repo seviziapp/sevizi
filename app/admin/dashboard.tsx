@@ -119,6 +119,7 @@ export default function AdminDashboard() {
             { label: 'Gestion utilisateurs', route: '/admin/users', count: null },
             { label: 'Codes de réduction', route: '/admin/discounts', count: null },
             { label: 'Activité (services & ventes)', route: '/admin/activity', count: null },
+            { label: "Liste d'attente clients", route: '/admin/waitlist', count: null },
             { label: 'Diffuser un message', route: '/admin/broadcast', count: null },
             ...(isSuperAdmin ? [{ label: 'Équipe admin', route: '/admin/team', count: null }] : []),
           ].map(l => (
