@@ -3,7 +3,7 @@ import {
   View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StaggerIn } from '../../src/components/StaggerIn';
 import * as WebBrowser from 'expo-web-browser';
 import * as AuthSession from 'expo-auth-session';
@@ -19,7 +19,9 @@ WebBrowser.maybeCompleteAuthSession();
 
 export default function Auth() {
   const router = useRouter();
-  const [mode, setMode] = useState<'login' | 'signup'>('login');
+  // ?mode=signup opens straight on "Créer un compte" (used by the Sèvi Go landing page).
+  const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
+  const [mode, setMode] = useState<'login' | 'signup'>(modeParam === 'signup' ? 'signup' : 'login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -53,7 +55,11 @@ export default function Auth() {
           throw e;
         }
       } else {
-        const { data, error: e } = await supabase.auth.signUp({ email, password });
+        const { data, error: e } = await supabase.auth.signUp({
+          email, password,
+          // Bring people back to the site they signed up on (go.sevizi.app vs sevizi.app).
+          options: Platform.OS === 'web' ? { emailRedirectTo: window.location.origin + '/' } : undefined,
+        });
         if (e) throw e;
         // If Supabase requires email confirmation, signUp returns no session.
         // Don't drop the user into the app with no session (it would fail with

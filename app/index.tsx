@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
 import { supabase } from '../src/lib/supabase';
 
@@ -9,7 +10,16 @@ type Dest =
   | '/onboarding/auth'
   | '/onboarding/client-details'
   | '/onboarding/provider-details'
-  | '/admin/dashboard';
+  | '/admin/dashboard'
+  | '/go'
+  | '/sevigo/dashboard';
+
+// Sèvi Go has its own front door: go.sevizi.app (web). Same app and backend,
+// but visitors there see the Sèvi Go landing page and land on Sèvi Go after
+// sign-in, never on the marketplace screens.
+function isSevigoHost(): boolean {
+  return Platform.OS === 'web' && typeof window !== 'undefined' && /^go\./i.test(window.location.hostname);
+}
 
 export default function Index() {
   const [dest, setDest] = useState<Dest | null>(null);
@@ -17,7 +27,8 @@ export default function Index() {
   useEffect(() => {
     async function resolve() {
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setDest('/onboarding/auth'); return; }
+      const goHost = isSevigoHost();
+      if (!session) { setDest(goHost ? '/go' : '/onboarding/auth'); return; }
       const uid = session.user.id;
 
       // Look at real data, not just a flag, so a registered user is never sent
@@ -30,6 +41,16 @@ export default function Index() {
       // Admin accounts are exclusive — never a client/provider home, always
       // the back-office (which itself gates on is_admin again).
       if (profile?.is_admin) { setDest('/admin/dashboard'); return; }
+      // Sèvi Go door: any account goes to Sèvi Go. A brand-new account gets a
+      // bare profile (no marketplace onboarding); it can't post requests while
+      // clients are closed, which the database enforces.
+      if (goHost) {
+        if (!profile) {
+          await supabase.from('profiles').upsert({ id: uid, role: 'client', email: session.user.email ?? null, onboarded: false });
+        }
+        setDest('/sevigo/dashboard');
+        return;
+      }
       // Registered provider (has a business row) → straight to dashboard.
       if (provs && provs.length > 0) { setDest('/provider/dashboard'); return; }
       // Chose provider but hasn't created the business row yet → finish that.
@@ -46,5 +67,5 @@ export default function Index() {
   }, []);
 
   if (!dest) return null;
-  return <Redirect href={dest} />;
+  return <Redirect href={dest as any} />;
 }
