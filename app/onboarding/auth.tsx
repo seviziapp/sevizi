@@ -11,6 +11,8 @@ import { getQueryParams } from 'expo-auth-session/build/QueryParams';
 import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LogoFull } from '../../src/components/Logo';
+import { SevigoLogoFull } from '../../src/components/SevigoLogo';
+import { isSevigoHost } from '../../src/lib/brand';
 import { supabase } from '../../src/lib/supabase';
 
 // Required so the in-app browser tab used for OAuth closes itself and hands
@@ -22,6 +24,7 @@ export default function Auth() {
   // ?mode=signup opens straight on "Créer un compte" (used by the Sèvi Go landing page).
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
   const [mode, setMode] = useState<'login' | 'signup'>(modeParam === 'signup' ? 'signup' : 'login');
+  const go = isSevigoHost(); // go.sevizi.app presents everything as Sèvi Go
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -58,7 +61,11 @@ export default function Auth() {
         const { data, error: e } = await supabase.auth.signUp({
           email, password,
           // Bring people back to the site they signed up on (go.sevizi.app vs sevizi.app).
-          options: Platform.OS === 'web' ? { emailRedirectTo: window.location.origin + '/' } : undefined,
+          // `brand` lets the confirmation email greet a Sèvi Go signup as Sèvi Go.
+          options: {
+            ...(Platform.OS === 'web' ? { emailRedirectTo: window.location.origin + '/' } : {}),
+            ...(go ? { data: { brand: 'sevigo' } } : {}),
+          },
         });
         if (e) throw e;
         // If Supabase requires email confirmation, signUp returns no session.
@@ -157,7 +164,7 @@ export default function Auth() {
           {/* Logo */}
           <StaggerIn index={0}>
             <View style={styles.logoRow}>
-              <LogoFull height={52} />
+              {go ? <SevigoLogoFull height={48} /> : <LogoFull height={52} />}
             </View>
           </StaggerIn>
 
@@ -167,8 +174,8 @@ export default function Auth() {
           </Text>
           <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.xl }]}>
             {mode === 'login'
-              ? 'Connectez-vous pour continuer.'
-              : 'Rejoignez Sèvizi en quelques secondes.'}
+              ? (go ? 'Connectez-vous à votre compte Sèvi Go.' : 'Connectez-vous pour continuer.')
+              : (go ? 'Rejoignez Sèvi Go : votre première facture en quelques minutes.' : 'Rejoignez Sèvizi en quelques secondes.')}
           </Text>
           </StaggerIn>
 
@@ -242,7 +249,7 @@ export default function Auth() {
                 >
                   politique de confidentialité
                 </Text>{' '}
-                de Sèvizi.
+                de {go ? 'Sèvi Go' : 'Sèvizi'}.
               </Text>
             </Pressable>
           )}

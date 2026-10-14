@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
@@ -16,6 +16,7 @@ import {
 } from '@expo-google-fonts/hanken-grotesk';
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { colors } from '../src/theme/tokens';
+import { isSevigoHost } from '../src/lib/brand';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -25,6 +26,16 @@ Sentry.init({
 });
 
 function RootLayout() {
+  // go.sevizi.app: Sèvi Go tab title and icon (screens with their own <Head> override the title).
+  useEffect(() => {
+    if (!isSevigoHost()) return;
+    document.title = 'Sèvi Go';
+    let icon = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!icon) { icon = document.createElement('link'); icon.rel = 'icon'; document.head.appendChild(icon); }
+    icon.type = 'image/svg+xml';
+    icon.href = '/sevigo-favicon.svg';
+  }, []);
+
   const [fontsLoaded] = useFonts({
     HankenGrotesk_300Light,
     HankenGrotesk_400Regular,

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
 import { Redirect } from 'expo-router';
+import { isSevigoHost } from '../src/lib/brand';
 import { supabase } from '../src/lib/supabase';
 
 type Dest =
@@ -14,12 +14,9 @@ type Dest =
   | '/go'
   | '/sevigo/dashboard';
 
-// Sèvi Go has its own front door: go.sevizi.app (web). Same app and backend,
-// but visitors there see the Sèvi Go landing page and land on Sèvi Go after
-// sign-in, never on the marketplace screens.
-function isSevigoHost(): boolean {
-  return Platform.OS === 'web' && typeof window !== 'undefined' && /^go\./i.test(window.location.hostname);
-}
+// Sèvi Go has its own front door (go.sevizi.app, see src/lib/brand.ts): visitors
+// there see the Sèvi Go landing page and land on Sèvi Go after sign-in, never on
+// the marketplace screens.
 
 export default function Index() {
   const [dest, setDest] = useState<Dest | null>(null);
