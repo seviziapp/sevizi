@@ -53,7 +53,7 @@ export function documentText(d: SevigoDocument): string {
     ...(d.paymentLabel ? [`Paiement : ${d.paymentLabel}`] : []),
     '',
     'Merci !',
-    'Document généré avec Sèvi Go — sevizi.app',
+    'Document généré avec Sèvi Go — go.sevizi.app',
   ].join('\n');
 }
 
@@ -121,7 +121,7 @@ export function documentHtml(d: SevigoDocument, format: 'a4' | 'receipt'): strin
       <div class="trow grand" style="color:${accent}"><span>Total</span><span>${fr(d.total)}</span></div>
       ${d.paymentLabel ? `<div class="trow"><span>Paiement</span><span>${esc(d.paymentLabel)}</span></div>` : ''}
     </div>
-    <div class="foot">${lockup(18, 14)}<span class="muted">Document généré avec Sèvi Go · sevizi.app</span></div>
+    <div class="foot">${lockup(18, 14)}<span class="muted">Document généré avec Sèvi Go · go.sevizi.app</span></div>
   `;
 
   const receipt = `

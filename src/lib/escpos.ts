@@ -138,7 +138,7 @@ export function buildDocumentBytes(d: SevigoDocument, cols: PaperCols = getPaper
   cmd(ESC, 0x61, 0x01);
   line();
   cmd(ESC, 0x45, 0x01); line('Merci !'); cmd(ESC, 0x45, 0x00);
-  line('Genere avec Sevi Go - sevizi.app');
+  line('Genere avec Sevi Go - go.sevizi.app');
   cmd(ESC, 0x64, 0x04);                 // feed 4 lines
   cmd(GS, 0x56, 0x00);                  // cut (ignored by printers without a cutter)
   return new Uint8Array(bytes);

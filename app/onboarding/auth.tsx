@@ -87,6 +87,27 @@ export default function Auth() {
     }
   }
 
+  // "Mot de passe oublié": e-mails a link that opens the reset-password screen.
+  // The wording never says whether the address has an account (no account enumeration).
+  async function forgotPassword() {
+    setError(''); setInfo(''); setPendingConfirmEmail('');
+    const addr = email.trim();
+    if (!addr) { setError("Entrez d'abord votre adresse e-mail dans le champ ci-dessus."); return; }
+    setLoading(true);
+    try {
+      // The link opens in the browser: on the web, back on the same site; in an Android app, on that app's site.
+      const base = Platform.OS === 'web' ? window.location.origin : (isSevigoApp() ? 'https://go.sevizi.app' : 'https://sevizi.app');
+      const { error: e } = await supabase.auth.resetPasswordForEmail(addr, { redirectTo: base + '/onboarding/reset-password' });
+      if (e) throw e;
+      setInfo("Si un compte existe pour cette adresse, un e-mail vient d'être envoyé avec un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les courriers indésirables.");
+    } catch (e: any) {
+      const m = String(e?.message ?? '');
+      setError(/second|rate|too many/i.test(m) ? 'Patientez une minute avant de redemander un e-mail.' : (m || "Envoi impossible pour l'instant."));
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function resendConfirmation() {
     if (!pendingConfirmEmail) return;
     setResending(true);
@@ -228,6 +249,13 @@ export default function Auth() {
               {showPw ? <EyeOff size={18} color={colors.textMuted} /> : <Eye size={18} color={colors.textMuted} />}
             </Pressable>
           </View>
+
+          {/* Forgot password — login only */}
+          {mode === 'login' && (
+            <Pressable onPress={forgotPassword} disabled={loading} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }} hitSlop={8}>
+              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>Mot de passe oublié ?</Text>
+            </Pressable>
+          )}
 
           {/* Terms & conditions — signup only */}
           {mode === 'signup' && (
