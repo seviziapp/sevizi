@@ -15,6 +15,17 @@
       "android": {
         "credentialsSource": "local"
       }
+    },
+    "sevigo": {
+      "extends": "production",
+      "autoIncrement": false,
+      "env": {
+        "APP_VARIANT": "sevigo"
+      },
+      "android": {
+        "credentialsSource": "remote",
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {

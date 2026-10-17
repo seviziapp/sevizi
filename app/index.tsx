@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Redirect } from 'expo-router';
-import { isSevigoHost } from '../src/lib/brand';
+import { Platform } from 'react-native';
+import { isSevigoBrand, isSevigoHost } from '../src/lib/brand';
 import { supabase } from '../src/lib/supabase';
 
 type Dest =
@@ -24,8 +25,9 @@ export default function Index() {
   useEffect(() => {
     async function resolve() {
       const { data: { session } } = await supabase.auth.getSession();
-      const goHost = isSevigoHost();
-      if (!session) { setDest(goHost ? '/go' : '/onboarding/auth'); return; }
+      const goHost = isSevigoBrand();
+      // The web front door shows the Sèvi Go landing page; the Android app goes straight to sign-in.
+      if (!session) { setDest(isSevigoHost() && Platform.OS === 'web' ? '/go' : '/onboarding/auth'); return; }
       const uid = session.user.id;
 
       // Look at real data, not just a flag, so a registered user is never sent

@@ -12,7 +12,7 @@ import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { LogoFull } from '../../src/components/Logo';
 import { SevigoLogoFull } from '../../src/components/SevigoLogo';
-import { isSevigoHost } from '../../src/lib/brand';
+import { isSevigoApp, isSevigoBrand } from '../../src/lib/brand';
 import { supabase } from '../../src/lib/supabase';
 
 // Required so the in-app browser tab used for OAuth closes itself and hands
@@ -24,7 +24,7 @@ export default function Auth() {
   // ?mode=signup opens straight on "Créer un compte" (used by the Sèvi Go landing page).
   const { mode: modeParam } = useLocalSearchParams<{ mode?: string }>();
   const [mode, setMode] = useState<'login' | 'signup'>(modeParam === 'signup' ? 'signup' : 'login');
-  const go = isSevigoHost(); // go.sevizi.app presents everything as Sèvi Go
+  const go = isSevigoBrand(); // go.sevizi.app and the Sèvi Go Android app present everything as Sèvi Go
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -125,7 +125,8 @@ export default function Auth() {
       // browser or handle the redirect on its own. We have to drive both:
       // open Google's consent screen ourselves, wait for it to redirect back
       // to our `sevizi://` scheme, then hand the returned tokens to Supabase.
-      const redirectTo = AuthSession.makeRedirectUri({ scheme: 'sevizi' });
+      // Each Android app has its own link scheme (Sèvizi: sevizi://, Sèvi Go: sevigo://).
+      const redirectTo = AuthSession.makeRedirectUri({ scheme: isSevigoApp() ? 'sevigo' : 'sevizi' });
       const { data, error: e } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo, skipBrowserRedirect: true },
