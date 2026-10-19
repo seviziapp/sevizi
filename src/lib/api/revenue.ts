@@ -33,3 +33,18 @@ export async function fetchRevenueReport(from: Date, to: Date): Promise<RevenueR
   if (error) throw new Error(error.message);
   return data as RevenueReport;
 }
+
+export type SevigoTotals = {
+  businesses: { total: number; new: number; active: number };
+  invoices: { created: number; paid: number; total_amount: number; paid_amount: number };
+  till: { sales: number; amount: number; cash: number; mobile: number };
+  top: { name: string; invoices: number; sales: number; amount: number }[];
+};
+
+// Aggregates only — never individual invoices, sales or clients.
+export async function fetchSevigoTotals(from: Date, to: Date): Promise<SevigoTotals> {
+  if (!hasSupabase) throw new Error('Non disponible hors ligne.');
+  const { data, error } = await supabase.rpc('admin_sevigo_totals', { p_from: from.toISOString(), p_to: to.toISOString() });
+  if (error) throw new Error(error.message);
+  return data as SevigoTotals;
+}

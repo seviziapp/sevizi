@@ -8,7 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { ArrowLeft, Download, TrendingUp, TrendingDown } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
-import { fetchMyProfile, fetchRevenueReport, REVENUE_STREAMS, RevenueReport, RevenueStream } from '../../src/lib/api';
+import { fetchMyProfile, fetchRevenueReport, fetchSevigoTotals, REVENUE_STREAMS, RevenueReport, RevenueStream, SevigoTotals } from '../../src/lib/api';
 import { reportError } from '../../src/lib/reportError';
 import { alert } from '../../src/lib/alert';
 
@@ -71,6 +71,7 @@ export default function AdminRevenueScreen() {
   const [access, setAccess] = useState<'checking' | 'ok' | 'denied'>('checking');
   const [period, setPeriod] = useState<PeriodId>('30d');
   const [report, setReport] = useState<RevenueReport | null>(null);
+  const [go, setGo] = useState<SevigoTotals | null>(null);
   const [prevTotal, setPrevTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -88,8 +89,9 @@ export default function AdminRevenueScreen() {
     Promise.all([
       fetchRevenueReport(w.from, w.to),
       w.prevFrom ? fetchRevenueReport(w.prevFrom, w.from).then(r => r.total) : Promise.resolve(null),
+      fetchSevigoTotals(w.from, w.to).catch(() => null),
     ])
-      .then(([r, prev]) => { setReport(r); setPrevTotal(prev); })
+      .then(([r, prev, g]) => { setReport(r); setPrevTotal(prev); setGo(g); })
       .catch(e => { reportError(e); setError(e.message ?? 'Impossible de charger les revenus.'); })
       .finally(() => setLoading(false));
   }, [access, period]);
@@ -223,6 +225,25 @@ export default function AdminRevenueScreen() {
               <Stat label="Utilisateurs" value={String(report.active.users)} />
               <Stat label="Prestataires" value={String(report.active.providers)} />
             </View>
+
+            {/* Sèvi Go usage — aggregates only */}
+            {go && (
+              <View style={[styles.card, shadow.card, { gap: spacing.xs }]}>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>Activité Sèvi Go</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>Totaux uniquement : aucune facture ni aucun client n'est visible ici.</Text>
+                <Row label="Entreprises inscrites" value={`${go.businesses.total} (+${go.businesses.new} sur la période)`} />
+                <Row label="Entreprises actives" value={String(go.businesses.active)} />
+                <Row label="Factures créées" value={`${go.invoices.created} · ${fmt(go.invoices.total_amount)}`} />
+                <Row label="Factures payées" value={`${go.invoices.paid} · ${fmt(go.invoices.paid_amount)}`} />
+                <Row label="Ventes en caisse" value={`${go.till.sales} · ${fmt(go.till.amount)}`} />
+                <Row label="  dont espèces" value={fmt(go.till.cash)} />
+                <Row label="  dont mobile" value={fmt(go.till.mobile)} />
+                {go.top.length > 0 && <Text style={[text.small, { color: colors.encre, marginTop: spacing.sm }]}>Entreprises les plus actives</Text>}
+                {go.top.map((t, i) => (
+                  <Row key={i} label={`${i + 1}. ${t.name} (${t.invoices} fact., ${t.sales} ventes)`} value={fmt(t.amount)} />
+                ))}
+              </View>
+            )}
 
             {/* Not cash */}
             <View style={[styles.card, shadow.card, { gap: spacing.xs }]}>
