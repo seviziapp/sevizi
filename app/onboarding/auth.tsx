@@ -68,6 +68,15 @@ export default function Auth() {
           },
         });
         if (e) throw e;
+        // For an address that already has an account, Supabase answers "success" with
+        // an empty identities list and sends NO e-mail (so it can't be probed). Say so
+        // plainly instead of promising an e-mail that will never come.
+        if (data.user && (data.user.identities?.length ?? 1) === 0) {
+          setMode('login');
+          setError('Un compte existe déjà avec cette adresse. Connectez-vous, ou touchez « Mot de passe oublié ? » pour choisir un nouveau mot de passe.');
+          setLoading(false);
+          return;
+        }
         // If Supabase requires email confirmation, signUp returns no session.
         // Don't drop the user into the app with no session (it would fail with
         // "Non connecté"); ask them to confirm, then log in.
