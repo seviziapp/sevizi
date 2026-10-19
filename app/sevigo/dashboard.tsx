@@ -1,3 +1,4 @@
+import { LanguageSwitch } from '../../src/components/LanguageSwitch';
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -44,6 +45,7 @@ export default function SevigoDashboard() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <View style={{ alignItems: 'flex-end' }}><LanguageSwitch compact /></View>
         <View style={styles.header}>
           <SevigoLogoFull height={30} />
           <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.push('/sevigo/business-profile')}>

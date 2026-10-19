@@ -1,3 +1,4 @@
+import { LanguageSwitch } from '../../src/components/LanguageSwitch';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Switch, ActivityIndicator, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -291,6 +292,7 @@ export default function ProviderProfile() {
               <ChevronRight size={18} color={colors.textMuted} />
             </Pressable>
           )}
+          <View style={[styles.settingRow, styles.settingBorder]}><LanguageSwitch /></View>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
             <LogOut size={20} color={colors.terre} />
             <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Se déconnecter</Text>

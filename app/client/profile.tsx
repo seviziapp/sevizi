@@ -1,3 +1,4 @@
+import { LanguageSwitch } from '../../src/components/LanguageSwitch';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -114,6 +115,7 @@ export default function Profile() {
           </Pressable>
         )}
 
+        <View style={{ alignItems: 'center', marginBottom: spacing.md }}><LanguageSwitch /></View>
         <Pressable style={styles.logout} onPress={logout}>
           <LogOut size={20} color={colors.terre} />
           <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>

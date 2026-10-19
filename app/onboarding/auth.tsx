@@ -1,3 +1,5 @@
+import { t } from '../../src/i18n';
+import { LanguageSwitch } from '../../src/components/LanguageSwitch';
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, StyleSheet, Pressable, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
@@ -39,8 +41,8 @@ export default function Auth() {
     setError('');
     setInfo('');
     setPendingConfirmEmail('');
-    if (!email || !password) { setError('Remplissez tous les champs.'); return; }
-    if (mode === 'signup' && !agreedTC) { setError('Veuillez accepter les conditions d\'utilisation.'); return; }
+    if (!email || !password) { setError(t('Remplissez tous les champs.')); return; }
+    if (mode === 'signup' && !agreedTC) { setError(t("Veuillez accepter les conditions d'utilisation.")); return; }
     setLoading(true);
     try {
       if (mode === 'login') {
@@ -51,7 +53,7 @@ export default function Auth() {
           // surfacing the raw error.
           if (e.message?.toLowerCase().includes('email not confirmed') || (e as any).code === 'email_not_confirmed') {
             setPendingConfirmEmail(email);
-            setError('Confirmez votre e-mail avant de vous connecter.');
+            setError(t('Confirmez votre e-mail avant de vous connecter.'));
             setLoading(false);
             return;
           }
@@ -73,7 +75,7 @@ export default function Auth() {
         // plainly instead of promising an e-mail that will never come.
         if (data.user && (data.user.identities?.length ?? 1) === 0) {
           setMode('login');
-          setError('Un compte existe déjà avec cette adresse. Connectez-vous, ou touchez « Mot de passe oublié ? » pour choisir un nouveau mot de passe.');
+          setError(t('Un compte existe déjà avec cette adresse. Connectez-vous, ou touchez « Mot de passe oublié ? » pour choisir un nouveau mot de passe.'));
           setLoading(false);
           return;
         }
@@ -83,14 +85,14 @@ export default function Auth() {
         if (!data.session) {
           setMode('login');
           setPendingConfirmEmail(email);
-          setInfo('Compte créé. Vérifiez votre e-mail pour confirmer, puis connectez-vous.');
+          setInfo(t('Compte créé. Vérifiez votre e-mail pour confirmer, puis connectez-vous.'));
           setLoading(false);
           return;
         }
       }
       router.replace('/');
     } catch (e: any) {
-      setError(e.message ?? 'Une erreur est survenue.');
+      setError(e.message ?? t('Une erreur est survenue.'));
     } finally {
       setLoading(false);
     }
@@ -101,17 +103,17 @@ export default function Auth() {
   async function forgotPassword() {
     setError(''); setInfo(''); setPendingConfirmEmail('');
     const addr = email.trim();
-    if (!addr) { setError("Entrez d'abord votre adresse e-mail dans le champ ci-dessus."); return; }
+    if (!addr) { setError(t("Entrez d'abord votre adresse e-mail dans le champ ci-dessus.")); return; }
     setLoading(true);
     try {
       // The link opens in the browser: on the web, back on the same site; in an Android app, on that app's site.
       const base = Platform.OS === 'web' ? window.location.origin : (isSevigoApp() ? 'https://go.sevizi.app' : 'https://sevizi.app');
       const { error: e } = await supabase.auth.resetPasswordForEmail(addr, { redirectTo: base + '/onboarding/reset-password' });
       if (e) throw e;
-      setInfo("Si un compte existe pour cette adresse, un e-mail vient d'être envoyé avec un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les courriers indésirables.");
+      setInfo(t("Si un compte existe pour cette adresse, un e-mail vient d'être envoyé avec un lien pour choisir un nouveau mot de passe. Pensez à regarder dans les courriers indésirables."));
     } catch (e: any) {
       const m = String(e?.message ?? '');
-      setError(/second|rate|too many/i.test(m) ? 'Patientez une minute avant de redemander un e-mail.' : (m || "Envoi impossible pour l'instant."));
+      setError(/second|rate|too many/i.test(m) ? t('Patientez une minute avant de redemander un e-mail.') : (m || t("Envoi impossible pour l'instant.")));
     } finally {
       setLoading(false);
     }
@@ -124,9 +126,9 @@ export default function Auth() {
     try {
       const { error: e } = await supabase.auth.resend({ type: 'signup', email: pendingConfirmEmail });
       if (e) throw e;
-      setInfo(`E-mail de confirmation renvoyé à ${pendingConfirmEmail}.`);
+      setInfo(t('E-mail de confirmation renvoyé à {email}.', { email: pendingConfirmEmail }));
     } catch (e: any) {
-      setError(e.message ?? "Échec de l'envoi.");
+      setError(e.message ?? t("Échec de l'envoi."));
     } finally {
       setResending(false);
     }
@@ -162,7 +164,7 @@ export default function Auth() {
         options: { redirectTo, skipBrowserRedirect: true },
       });
       if (e) throw e;
-      if (!data?.url) throw new Error('Connexion Google échouée.');
+      if (!data?.url) throw new Error(t('Connexion Google échouée.'));
 
       const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
       if (result.type !== 'success' || !result.url) {
@@ -174,7 +176,7 @@ export default function Auth() {
       const { params, errorCode } = getQueryParams(result.url);
       if (errorCode) throw new Error(errorCode);
       if (!params.access_token || !params.refresh_token) {
-        throw new Error('Connexion Google échouée.');
+        throw new Error(t('Connexion Google échouée.'));
       }
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: params.access_token,
@@ -183,7 +185,7 @@ export default function Auth() {
       if (sessionError) throw sessionError;
       router.replace('/');
     } catch (e: any) {
-      setError(e.message ?? 'Connexion Google échouée.');
+      setError(e.message ?? t('Connexion Google échouée.'));
       setLoading(false);
     }
   }
@@ -192,6 +194,7 @@ export default function Auth() {
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+          <View style={{ alignItems: 'flex-end', marginBottom: spacing.sm }}><LanguageSwitch compact /></View>
           {/* Logo */}
           <StaggerIn index={0}>
             <View style={styles.logoRow}>
@@ -201,12 +204,12 @@ export default function Auth() {
 
           <StaggerIn index={1}>
           <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>
-            {mode === 'login' ? 'Bon retour' : 'Créer un compte'}
+            {mode === 'login' ? t('Bon retour') : t('Créer un compte')}
           </Text>
           <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.xl }]}>
             {mode === 'login'
-              ? (go ? 'Connectez-vous à votre compte Sèvi Go.' : 'Connectez-vous pour continuer.')
-              : (go ? 'Rejoignez Sèvi Go : votre première facture en quelques minutes.' : 'Rejoignez Sèvizi en quelques secondes.')}
+              ? (go ? t('Connectez-vous à votre compte Sèvi Go.') : t('Connectez-vous pour continuer.'))
+              : (go ? t('Rejoignez Sèvi Go : votre première facture en quelques minutes.') : t('Rejoignez Sèvizi en quelques secondes.'))}
           </Text>
           </StaggerIn>
 
@@ -215,7 +218,7 @@ export default function Auth() {
           <Pressable style={styles.googleBtn} onPress={handleGoogle} disabled={loading}>
             <Text style={styles.googleG}>G</Text>
             <Text style={[text.bodyMd, { color: colors.encre }]}>
-              Continuer avec Google
+              {t('Continuer avec Google')}
             </Text>
           </Pressable>
           </StaggerIn>
@@ -224,7 +227,7 @@ export default function Auth() {
           {/* Divider */}
           <View style={styles.divider}>
             <View style={styles.line} />
-            <Text style={[text.label, { color: colors.textMuted, paddingHorizontal: spacing.md }]}>OU</Text>
+            <Text style={[text.label, { color: colors.textMuted, paddingHorizontal: spacing.md }]}>{t('OU')}</Text>
             <View style={styles.line} />
           </View>
 
@@ -233,7 +236,7 @@ export default function Auth() {
             <Mail size={18} color={colors.textMuted} />
             <TextInput
               style={styles.input}
-              placeholder="Adresse e-mail"
+              placeholder={t('Adresse e-mail')}
               placeholderTextColor={colors.textMuted}
               value={email}
               onChangeText={setEmail}
@@ -248,7 +251,7 @@ export default function Auth() {
             <Lock size={18} color={colors.textMuted} />
             <TextInput
               style={styles.input}
-              placeholder="Mot de passe"
+              placeholder={t('Mot de passe')}
               placeholderTextColor={colors.textMuted}
               value={password}
               onChangeText={setPassword}
@@ -262,7 +265,7 @@ export default function Auth() {
           {/* Forgot password — login only */}
           {mode === 'login' && (
             <Pressable onPress={forgotPassword} disabled={loading} style={{ alignSelf: 'flex-end', marginBottom: spacing.md }} hitSlop={8}>
-              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>Mot de passe oublié ?</Text>
+              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>{t('Mot de passe oublié ?')}</Text>
             </Pressable>
           )}
 
@@ -273,21 +276,21 @@ export default function Auth() {
                 {agreedTC && <Check size={14} color={colors.white} strokeWidth={3} />}
               </View>
               <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
-                J'accepte les{' '}
+                {t("J'accepte les")}{' '}
                 <Text
                   style={{ color: colors.vert }}
                   onPress={(e: any) => { e.stopPropagation?.(); router.push('/legal/terms'); }}
                 >
-                  conditions d'utilisation
+                  {t("conditions d'utilisation")}
                 </Text>{' '}
-                et la{' '}
+                {t('et la')}{' '}
                 <Text
                   style={{ color: colors.vert }}
                   onPress={(e: any) => { e.stopPropagation?.(); router.push('/legal/privacy'); }}
                 >
-                  politique de confidentialité
+                  {t('politique de confidentialité')}
                 </Text>{' '}
-                de {go ? 'Sèvi Go' : 'Sèvizi'}.
+                {t('de')} {go ? 'Sèvi Go' : 'Sèvizi'}.
               </Text>
             </Pressable>
           )}
@@ -300,7 +303,7 @@ export default function Auth() {
           {!!pendingConfirmEmail && (
             <Pressable onPress={resendConfirmation} disabled={resending} style={{ marginBottom: spacing.md }}>
               <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>
-                {resending ? 'Envoi…' : "Renvoyer l'e-mail de confirmation"}
+                {resending ? t('Envoi…') : t("Renvoyer l'e-mail de confirmation")}
               </Text>
             </Pressable>
           )}
@@ -311,7 +314,7 @@ export default function Auth() {
             {loading
               ? <ActivityIndicator color={colors.creme} />
               : <Text style={[text.bodyMd, { color: colors.creme }]}>
-                  {mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+                  {mode === 'login' ? t('Se connecter') : t('Créer mon compte')}
                 </Text>
             }
           </Pressable>
@@ -321,10 +324,10 @@ export default function Auth() {
           <StaggerIn index={5}>
           <Pressable style={styles.toggleRow} onPress={() => { setMode(m => m === 'login' ? 'signup' : 'login'); setError(''); setInfo(''); setPendingConfirmEmail(''); }}>
             <Text style={[text.small, { color: colors.textMuted }]}>
-              {mode === 'login' ? 'Pas encore de compte ? ' : 'Déjà un compte ? '}
+              {mode === 'login' ? t('Pas encore de compte ?') + ' ' : t('Déjà un compte ?') + ' '}
             </Text>
             <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>
-              {mode === 'login' ? 'S\'inscrire' : 'Se connecter'}
+              {mode === 'login' ? t("S'inscrire") : t('Se connecter')}
             </Text>
           </Pressable>
           </StaggerIn>

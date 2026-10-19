@@ -17,6 +17,7 @@ import {
 import { SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-fonts/space-mono';
 import { colors } from '../src/theme/tokens';
 import { isSevigoHost } from '../src/lib/brand';
+import { LanguageRoot } from '../src/i18n';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -74,6 +75,7 @@ function RootLayout() {
       }}
       autocapture
     >
+      <LanguageRoot>
       <View style={{ flex: 1, backgroundColor: colors.creme }} onLayout={onReady}>
         <StatusBar style="dark" />
         <Stack
@@ -84,6 +86,7 @@ function RootLayout() {
           }}
         />
       </View>
+      </LanguageRoot>
     </PostHogProvider>
   );
 }
