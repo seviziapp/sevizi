@@ -7,7 +7,10 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
-import { EN } from './en';
+import { EN as EN_BASE } from './en';
+import { EN_SEVIGO } from './en_sevigo';
+
+const EN: Record<string, string> = { ...EN_BASE, ...EN_SEVIGO };
 
 export type Lang = 'fr' | 'en';
 const KEY = 'sevizi.lang';
@@ -71,3 +74,5 @@ export function LanguageRoot({ children }: { children: React.ReactNode }) {
     </LangContext.Provider>
   );
 }
+
+export const tr = t;

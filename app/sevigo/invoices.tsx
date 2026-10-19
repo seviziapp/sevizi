@@ -8,21 +8,22 @@ import { fetchSevigoInvoices } from '../../src/lib/sevigo/api';
 import type { SevigoInvoice, SevigoInvoiceStatus } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
-  pending_fee: { label: 'Verrouillée', color: colors.terre },
-  draft: { label: 'Brouillon', color: colors.textMuted },
-  sent: { label: 'Envoyée', color: colors.soleil },
-  paid: { label: 'Payée', color: colors.vert },
-  overdue: { label: 'En retard', color: colors.terre },
-  cancelled: { label: 'Annulée', color: colors.textMuted },
+  pending_fee: { get label() { return tr('Verrouillée'); }, color: colors.terre },
+  draft: { get label() { return tr('Brouillon'); }, color: colors.textMuted },
+  sent: { get label() { return tr('Envoyée'); }, color: colors.soleil },
+  paid: { get label() { return tr('Payée'); }, color: colors.vert },
+  overdue: { get label() { return tr('En retard'); }, color: colors.terre },
+  cancelled: { get label() { return tr('Annulée'); }, color: colors.textMuted },
 };
 
 const FILTERS: { key: 'all' | SevigoInvoiceStatus; label: string }[] = [
-  { key: 'all', label: 'Toutes' },
-  { key: 'draft', label: 'Brouillons' },
-  { key: 'sent', label: 'Envoyées' },
-  { key: 'paid', label: 'Payées' },
-  { key: 'overdue', label: 'En retard' },
+  { key: 'all', get label() { return tr('Toutes'); } },
+  { key: 'draft', get label() { return tr('Brouillons'); } },
+  { key: 'sent', get label() { return tr('Envoyées'); } },
+  { key: 'paid', get label() { return tr('Payées'); } },
+  { key: 'overdue', get label() { return tr('En retard'); } },
 ];
 
 export default function SevigoInvoices() {
@@ -42,7 +43,7 @@ export default function SevigoInvoices() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[text.h2, { color: colors.encre }]}>Factures</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Factures')}</Text>
         <Pressable style={[styles.addBtn, shadow.sm]} onPress={() => router.push('/sevigo/new-invoice')}>
           <Plus size={20} color={colors.white} />
         </Pressable>
@@ -61,7 +62,7 @@ export default function SevigoInvoices() {
       ) : filtered.length === 0 ? (
         <View style={styles.empty}>
           <FileText size={44} color={colors.border} />
-          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>Aucune facture ici.</Text>
+          <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>{tr('Aucune facture ici.')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -76,11 +77,11 @@ export default function SevigoInvoices() {
                 <View style={{ flex: 1 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{inv.clientName}</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {inv.number} · {new Date(inv.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+                    {inv.number} · {new Date(inv.createdAt).toLocaleDateString(locale(), { day: 'numeric', month: 'short' })}
                   </Text>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={[text.data, { color: colors.encre }]}>{inv.total.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.data, { color: colors.encre }]}>{inv.total.toLocaleString(locale())} {tr('F')}</Text>
                   <View style={[styles.statusPill, { backgroundColor: st.color + '1A' }]}>
                     <Text style={[text.label, { color: st.color, fontSize: 10 }]}>{st.label.toUpperCase()}</Text>
                   </View>

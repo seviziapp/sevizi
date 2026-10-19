@@ -12,6 +12,7 @@ import { SEVIGO_PLANS } from '../../src/lib/sevigo/types';
 import type { SevigoPlanId, SevigoUsage } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 function buildRedirectUrl(status: 'return' | 'cancel'): string {
   const query = `payment=${status}`;
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -85,7 +86,7 @@ export default function SevigoPlanScreen() {
       }
       await Linking.openURL(result.invoiceUrl);
     } catch (e: any) {
-      alert('Erreur', e.message ?? "Échec du changement de formule.");
+      alert(tr('Erreur'), e.message ?? tr('Échec du changement de formule.'));
     } finally {
       setSwitching(null);
     }
@@ -94,27 +95,24 @@ export default function SevigoPlanScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[text.h2, { color: colors.encre }]}>Choisissez votre formule</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Choisissez votre formule')}</Text>
         <Text style={[text.body, { color: colors.textMuted }]}>
-          Passez à une formule payante à tout moment — l'abonnement est réglé et prend effet dès confirmation du paiement.
-        </Text>
+          {tr("Passez à une formule payante à tout moment — l'abonnement est réglé et prend effet dès confirmation du paiement.")}</Text>
 
         {verifying && (
           <View style={styles.verifyingBanner}>
             <ActivityIndicator size="small" color={colors.vert} />
-            <Text style={[text.small, { color: colors.vertDark }]}>Vérification du paiement…</Text>
+            <Text style={[text.small, { color: colors.vertDark }]}>{tr('Vérification du paiement…')}</Text>
           </View>
         )}
 
         {usage && usage.planId !== 'payg' && (
           <View style={styles.statusBanner}>
             <Text style={[text.bodyMd, { color: colors.vertDark }]}>
-              {usage.source === 'granted' ? 'Formule offerte' : 'Formule active'}
+              {usage.source === 'granted' ? tr('Formule offerte') : tr('Formule active')}
             </Text>
             <Text style={[text.small, { color: colors.vertDark }]}>
-              {usage.expiresAt
-                ? `${usage.source === 'granted' ? 'Offerte jusqu\u2019au' : 'Valable jusqu\u2019au'} ${new Date(usage.expiresAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}`
-                : 'Sans date de fin'}
+              {usage.expiresAt ? `${usage.source === 'granted' ? tr('Offerte jusqu\u2019au') : tr('Valable jusqu\u2019au')} ${new Date(usage.expiresAt).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })}` : tr('Sans date de fin')}
             </Text>
           </View>
         )}
@@ -123,7 +121,7 @@ export default function SevigoPlanScreen() {
           {(['monthly', 'annual'] as const).map(c => (
             <Pressable key={c} onPress={() => setCycle(c)} style={[styles.cycleChip, cycle === c && styles.cycleChipOn]}>
               <Text style={[text.small, { color: cycle === c ? colors.white : colors.encre }]}>
-                {c === 'monthly' ? 'Mensuel' : 'Annuel · 2 mois offerts'}
+                {c === 'monthly' ? tr('Mensuel') : tr('Annuel · 2 mois offerts')}
               </Text>
             </Pressable>
           ))}
@@ -140,17 +138,16 @@ export default function SevigoPlanScreen() {
                   <View style={styles.cardHead}>
                     <View>
                       <Text style={[text.h3, { color: colors.encre }]}>{plan.label}</Text>
-                      <Text style={[text.bodyMd, { color: colors.vert, marginTop: 2 }]}>{cycle === 'annual' && plan.annualFee > 0 ? `${plan.annualFee.toLocaleString('fr-FR')} F / an` : plan.priceLabel}</Text>
+                      <Text style={[text.bodyMd, { color: colors.vert, marginTop: 2 }]}>{cycle === 'annual' && plan.annualFee > 0 ? tr('{v0} F / an', { v0: plan.annualFee.toLocaleString(locale()) }) : plan.priceLabel}</Text>
                       {cycle === 'annual' && plan.annualFee > 0 && (
                         <Text style={[text.small, { color: colors.textMuted }]}>
-                          soit {Math.round(plan.annualFee / 12).toLocaleString('fr-FR')} F / mois · 2 mois offerts
-                        </Text>
+                          {tr('soit')} {Math.round(plan.annualFee / 12).toLocaleString(locale())} {tr('F / mois · 2 mois offerts')}</Text>
                       )}
                     </View>
                     {active && (
                       <View style={styles.activeTag}>
                         <Check size={13} color={colors.vert} />
-                        <Text style={[text.label, { color: colors.vert }]}>ACTUELLE</Text>
+                        <Text style={[text.label, { color: colors.vert }]}>{tr('ACTUELLE')}</Text>
                       </View>
                     )}
                   </View>
@@ -159,23 +156,19 @@ export default function SevigoPlanScreen() {
                     <Feature
                       icon={<FileText size={14} color={colors.textMuted} />}
                       text={
-                        plan.includedInvoices === null
-                          ? 'Factures illimitées'
-                          : plan.includedInvoices === 0
-                            ? `${plan.extraInvoiceFee.toLocaleString('fr-FR')} F par facture`
-                            : `${plan.includedInvoices} factures incluses, puis ${plan.extraInvoiceFee.toLocaleString('fr-FR')} F/facture`
+                        plan.includedInvoices === null ? tr('Factures illimitées') : plan.includedInvoices === 0 ? tr('{v0} F par facture', { v0: plan.extraInvoiceFee.toLocaleString(locale()) }) : tr('{includedInvoices} factures incluses, puis {v1} F/facture', { includedInvoices: plan.includedInvoices, v1: plan.extraInvoiceFee.toLocaleString(locale()) })
                       }
                     />
                     <Feature
                       icon={<BarChart3 size={14} color={colors.textMuted} />}
-                      text={`Commission : ${Math.round(plan.paydunyaFeePct * 100)}%`}
+                      text={tr('Commission : {v0}%', { v0: Math.round(plan.paydunyaFeePct * 100) })}
                     />
-                    {plan.hasReports && <Feature icon={<BarChart3 size={14} color={colors.textMuted} />} text="Rapports & analyses" />}
-                    {plan.hasPos && <Feature icon={<Store size={14} color={colors.textMuted} />} text="Caisse (POS) & gestion de stock" />}
+                    {plan.hasReports && <Feature icon={<BarChart3 size={14} color={colors.textMuted} />} text={tr('Rapports & analyses')} />}
+                    {plan.hasPos && <Feature icon={<Store size={14} color={colors.textMuted} />} text={tr('Caisse (POS) & gestion de stock')} />}
                   </View>
 
                   <Button
-                    label={active ? (plan.id !== 'payg' && usage?.expiresAt ? (cycle === 'annual' ? 'Renouveler 1 an' : 'Renouveler 30 jours') : 'Formule actuelle') : switching === plan.id ? (plan.id === 'payg' ? 'Changement…' : 'Redirection…') : 'Choisir cette formule'}
+                    label={active ? (plan.id !== 'payg' && usage?.expiresAt ? (cycle === 'annual' ? tr('Renouveler 1 an') : tr('Renouveler 30 jours')) : tr('Formule actuelle')) : switching === plan.id ? (plan.id === 'payg' ? tr('Changement…') : tr('Redirection…')) : tr('Choisir cette formule')}
                     variant={active && !(plan.id !== 'payg' && usage?.expiresAt) ? 'ghost' : 'primary'}
                     onPress={() => choose(plan.id)}
                     disabled={(active && !(plan.id !== 'payg' && !!usage?.expiresAt)) || !!switching}

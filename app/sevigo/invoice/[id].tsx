@@ -18,13 +18,14 @@ import { reportError } from '../../../src/lib/reportError';
 import { DocumentActions } from '../../../src/components/DocumentActions';
 import { invoiceToDocument } from '../../../src/lib/sevigo/document';
 
+import { tr, locale } from '../../../src/i18n';
 const STATUS_LABEL: Record<SevigoInvoiceStatus, { label: string; color: string }> = {
-  pending_fee: { label: 'Verrouillée', color: colors.terre },
-  draft: { label: 'Brouillon', color: colors.textMuted },
-  sent: { label: 'Envoyée', color: colors.soleil },
-  paid: { label: 'Payée', color: colors.vert },
-  overdue: { label: 'En retard', color: colors.terre },
-  cancelled: { label: 'Annulée', color: colors.textMuted },
+  pending_fee: { get label() { return tr('Verrouillée'); }, color: colors.terre },
+  draft: { get label() { return tr('Brouillon'); }, color: colors.textMuted },
+  sent: { get label() { return tr('Envoyée'); }, color: colors.soleil },
+  paid: { get label() { return tr('Payée'); }, color: colors.vert },
+  overdue: { get label() { return tr('En retard'); }, color: colors.terre },
+  cancelled: { get label() { return tr('Annulée'); }, color: colors.textMuted },
 };
 
 function buildRedirectUrl(kind: 'payment' | 'feepayment', status: 'return' | 'cancel', invoiceId: string): string {
@@ -130,9 +131,9 @@ export default function InvoiceDetail() {
 
   async function share() {
     if (!invoice) return;
-    const lines = invoice.items.map(it => `${it.description} × ${it.quantity} — ${computeLineTotal(it).toLocaleString('fr-FR')} F`);
+    const lines = invoice.items.map(it => `${it.description} × ${it.quantity} — ${computeLineTotal(it).toLocaleString(locale())} F`);
     await Share.share({
-      message: `Facture ${invoice.number} — ${invoice.clientName}\n\n${lines.join('\n')}\n\nTotal : ${invoice.total.toLocaleString('fr-FR')} F`,
+      message: tr('Facture {number} — {clientName}\n\n{v2}\n\nTotal : {v3} F', { number: invoice.number, clientName: invoice.clientName, v2: lines.join('\n'), v3: invoice.total.toLocaleString(locale()) }),
     }).catch(reportError);
   }
 
@@ -152,7 +153,7 @@ export default function InvoiceDetail() {
           </Pressable>
           <View style={{ width: 40 }} />
         </View>
-        <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: 60 }]}>Facture introuvable.</Text>
+        <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: 60 }]}>{tr('Facture introuvable.')}</Text>
       </SafeAreaView>
     );
   }
@@ -177,19 +178,18 @@ export default function InvoiceDetail() {
       {verifying ? (
         <View style={styles.verifying}>
           <ActivityIndicator color={colors.vert} />
-          <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.md }]}>Vérification du paiement…</Text>
+          <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.md }]}>{tr('Vérification du paiement…')}</Text>
         </View>
       ) : locked ? (
         <View style={styles.lockedWrap}>
           <View style={styles.lockIcon}>
             <Lock size={28} color={colors.terre} />
           </View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Facture verrouillée</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Facture verrouillée')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Payez les frais de génération ({(invoice.generationFee ?? 0).toLocaleString('fr-FR')} F) pour débloquer, imprimer, envoyer par e-mail ou demander le paiement au client.
-          </Text>
+            {tr('Payez les frais de génération (')}{(invoice.generationFee ?? 0).toLocaleString(locale())} {tr('F) pour débloquer, imprimer, envoyer par e-mail ou demander le paiement au client.')}</Text>
           <Button
-            label={unlocking ? 'Redirection…' : `Payer ${(invoice.generationFee ?? 0).toLocaleString('fr-FR')} F et débloquer`}
+            label={unlocking ? tr('Redirection…') : tr('Payer {v0} F et débloquer', { v0: (invoice.generationFee ?? 0).toLocaleString(locale()) })}
             onPress={unlockWithFee}
             loading={unlocking}
             style={{ marginTop: spacing.lg, alignSelf: 'stretch' }}
@@ -209,17 +209,17 @@ export default function InvoiceDetail() {
               </View>
             </View>
 
-            <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>ARTICLES</Text>
+            <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('ARTICLES')}</Text>
             <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
               {invoice.items.map(it => (
                 <View key={it.id} style={styles.itemRow}>
                   <View style={{ flex: 1 }}>
                     <Text style={[text.body, { color: colors.encre }]}>{it.description}</Text>
                     <Text style={[text.label, { color: colors.textMuted }]}>
-                      {it.quantity} × {it.unitPrice.toLocaleString('fr-FR')} F{it.discountPct ? ` · -${it.discountPct}%` : ''}
+                      {it.quantity} {tr('×')} {it.unitPrice.toLocaleString(locale())} {tr('F')}{it.discountPct ? ` · -${it.discountPct}%` : ''}
                     </Text>
                   </View>
-                  <Text style={[text.bodyMd, { color: colors.encre }]}>{computeLineTotal(it).toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.bodyMd, { color: colors.encre }]}>{computeLineTotal(it).toLocaleString(locale())} {tr('F')}</Text>
                 </View>
               ))}
             </View>
@@ -227,24 +227,24 @@ export default function InvoiceDetail() {
             <View style={styles.divider} />
 
             <View style={styles.totalRow}>
-              <Text style={[text.small, { color: colors.textMuted }]}>Sous-total</Text>
-              <Text style={[text.body, { color: colors.encre }]}>{invoice.subtotal.toLocaleString('fr-FR')} F</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr('Sous-total')}</Text>
+              <Text style={[text.body, { color: colors.encre }]}>{invoice.subtotal.toLocaleString(locale())} {tr('F')}</Text>
             </View>
             {!!invoice.discountPct && (
               <View style={styles.totalRow}>
-                <Text style={[text.small, { color: colors.textMuted }]}>Réduction ({invoice.discountPct}%)</Text>
-                <Text style={[text.small, { color: colors.terre }]}>-{Math.round(invoice.subtotal * invoice.discountPct / 100).toLocaleString('fr-FR')} F</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr('Réduction (')}{invoice.discountPct}%)</Text>
+                <Text style={[text.small, { color: colors.terre }]}>-{Math.round(invoice.subtotal * invoice.discountPct / 100).toLocaleString(locale())} {tr('F')}</Text>
               </View>
             )}
             {!!invoice.discountFlat && (
               <View style={styles.totalRow}>
-                <Text style={[text.small, { color: colors.textMuted }]}>Réduction</Text>
-                <Text style={[text.small, { color: colors.terre }]}>-{invoice.discountFlat.toLocaleString('fr-FR')} F</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr('Réduction')}</Text>
+                <Text style={[text.small, { color: colors.terre }]}>-{invoice.discountFlat.toLocaleString(locale())} {tr('F')}</Text>
               </View>
             )}
             <View style={styles.totalRow}>
-              <Text style={[text.h3, { color: colors.encre }]}>Total</Text>
-              <Text style={[text.h2, { color: colors.vert }]}>{invoice.total.toLocaleString('fr-FR')} F</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{tr('Total')}</Text>
+              <Text style={[text.h2, { color: colors.vert }]}>{invoice.total.toLocaleString(locale())} {tr('F')}</Text>
             </View>
           </View>
 
@@ -253,12 +253,12 @@ export default function InvoiceDetail() {
           {invoice.status !== 'paid' && invoice.status !== 'cancelled' && (
             <View style={{ gap: spacing.md }}>
               <Button
-                label={requestingLink ? 'Génération du lien…' : 'Demander le paiement (PayDunya)'}
+                label={requestingLink ? tr('Génération du lien…') : tr('Demander le paiement (PayDunya)')}
                 icon={<Link2 size={18} color={colors.white} />}
                 onPress={requestPaymentLink}
                 loading={requestingLink}
               />
-              <Button label="Marquer comme payée (espèces)" variant="ghost" icon={<Check size={18} color={colors.encre} />} onPress={markPaidManually} />
+              <Button label={tr('Marquer comme payée (espèces)')} variant="ghost" icon={<Check size={18} color={colors.encre} />} onPress={markPaidManually} />
             </View>
           )}
         </ScrollView>

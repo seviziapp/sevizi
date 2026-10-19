@@ -10,6 +10,7 @@ import { fetchMyWithdrawalRequests } from '../../src/lib/api';
 import type { WithdrawalRequest } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 export default function SevigoWallet() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -42,7 +43,7 @@ export default function SevigoWallet() {
       setBalance(b => b - amountNum);
       fetchMyWithdrawalRequests().then(setRequests).catch(reportError);
     } catch (e: any) {
-      setError(e.message ?? 'Échec de la demande de retrait.');
+      setError(e.message ?? tr('Échec de la demande de retrait.'));
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +55,7 @@ export default function SevigoWallet() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Portefeuille</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Portefeuille')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -64,33 +65,31 @@ export default function SevigoWallet() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={[styles.balanceCard, shadow.card]}>
             <Wallet size={22} color={colors.vert} />
-            <Text style={[text.label, { color: colors.textMuted }]}>SOLDE DISPONIBLE</Text>
-            <Text style={[text.display, { color: colors.encre, fontSize: 32 }]}>{balance.toLocaleString('fr-FR')} F</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('SOLDE DISPONIBLE')}</Text>
+            <Text style={[text.display, { color: colors.encre, fontSize: 32 }]}>{balance.toLocaleString(locale())} {tr('F')}</Text>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Alimenté par les paiements de vos factures Sèvi Go (commission déduite).
-            </Text>
+              {tr('Alimenté par les paiements de vos factures Sèvi Go (commission déduite).')}</Text>
           </View>
 
           {success ? (
             <View style={styles.successBox}>
               <Check size={20} color={colors.vert} />
               <Text style={[text.body, { color: colors.vertDark, flex: 1 }]}>
-                Demande envoyée. Notre équipe vous enverra votre retrait sous peu et vous serez notifié.
-              </Text>
+                {tr('Demande envoyée. Notre équipe vous enverra votre retrait sous peu et vous serez notifié.')}</Text>
             </View>
           ) : (
             <>
-              <Text style={[text.label, { color: colors.textMuted }]}>MOYEN DE RETRAIT</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{tr('MOYEN DE RETRAIT')}</Text>
               <View style={styles.methodRow}>
                 <Pressable style={[styles.methodBtn, method === 'flooz' && styles.methodBtnActive]} onPress={() => setMethod('flooz')}>
-                  <Text style={[text.bodyMd, { color: method === 'flooz' ? colors.white : colors.encre }]}>Flooz</Text>
+                  <Text style={[text.bodyMd, { color: method === 'flooz' ? colors.white : colors.encre }]}>{tr('Flooz')}</Text>
                 </Pressable>
                 <Pressable style={[styles.methodBtn, method === 'mixx' && styles.methodBtnActive]} onPress={() => setMethod('mixx')}>
-                  <Text style={[text.bodyMd, { color: method === 'mixx' ? colors.white : colors.encre }]}>Mixx by Yas</Text>
+                  <Text style={[text.bodyMd, { color: method === 'mixx' ? colors.white : colors.encre }]}>{tr('Mixx by Yas')}</Text>
                 </Pressable>
               </View>
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>MONTANT (FCFA)</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('MONTANT (FCFA)')}</Text>
               <TextInput
                 style={styles.input}
                 keyboardType="number-pad"
@@ -100,31 +99,31 @@ export default function SevigoWallet() {
                 placeholderTextColor={colors.textMuted}
               />
               {amountNum > balance && (
-                <Text style={styles.error}>Le montant dépasse votre solde disponible.</Text>
+                <Text style={styles.error}>{tr('Le montant dépasse votre solde disponible.')}</Text>
               )}
 
               <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
-                NUMÉRO {method === 'flooz' ? 'MOOV' : 'YAS'}
+                {tr('NUMÉRO')} {method === 'flooz' ? tr('MOOV') : tr('YAS')}
               </Text>
               <TextInput
                 style={styles.input}
                 keyboardType="phone-pad"
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="9X XX XX XX"
+                placeholder={tr('9X XX XX XX')}
                 placeholderTextColor={colors.textMuted}
               />
 
               {!!error && <Text style={styles.error}>{error}</Text>}
 
               <View style={{ height: spacing.lg }} />
-              <Button label="Demander le retrait" onPress={submit} loading={submitting} disabled={!valid} />
+              <Button label={tr('Demander le retrait')} onPress={submit} loading={submitting} disabled={!valid} />
             </>
           )}
 
           {requests.length > 0 && (
             <>
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl }]}>HISTORIQUE</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl }]}>{tr('HISTORIQUE')}</Text>
               <View style={{ gap: spacing.sm }}>
                 {requests.map(r => (
                   <View key={r.id} style={[styles.reqCard, shadow.card]}>
@@ -136,11 +135,11 @@ export default function SevigoWallet() {
                         : <Clock size={16} color={colors.soleil} />}
                     </View>
                     <View style={{ flex: 1 }}>
-                      <Text style={[text.bodyMd, { color: colors.encre }]}>{r.amount.toLocaleString('fr-FR')} F · {r.method === 'flooz' ? 'Flooz' : 'Mixx'}</Text>
+                      <Text style={[text.bodyMd, { color: colors.encre }]}>{r.amount.toLocaleString(locale())} {tr('F ·')} {r.method === 'flooz' ? tr('Flooz') : tr('Mixx')}</Text>
                       <Text style={[text.small, { color: colors.textMuted }]}>{r.phone}</Text>
                     </View>
                     <Text style={[text.label, { color: r.status === 'sent' ? colors.vert : r.status === 'rejected' ? colors.terre : colors.soleil }]}>
-                      {r.status === 'sent' ? 'ENVOYÉ' : r.status === 'rejected' ? 'REFUSÉ' : 'EN ATTENTE'}
+                      {r.status === 'sent' ? tr('ENVOYÉ') : r.status === 'rejected' ? tr('REFUSÉ') : tr('EN ATTENTE')}
                     </Text>
                   </View>
                 ))}

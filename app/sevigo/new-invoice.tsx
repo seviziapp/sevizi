@@ -20,14 +20,15 @@ import { reportError } from '../../src/lib/reportError';
 import { ClientPicker } from '../../src/components/ClientPicker';
 import { fetchClients, findOrCreateClient, SevigoClient } from '../../src/lib/sevigo/clients';
 
+import { tr, locale } from '../../src/i18n';
 type DraftLine = { id: string; description: string; quantity: string; unitPrice: string };
 
 const BRAND_COLORS = ['#0FA76A', '#06291F', '#CE5A37', '#FCC419', '#2D7FF9', '#7C4DFF'];
 
 const TEMPLATES: { key: SevigoInvoiceTemplate; label: string }[] = [
-  { key: 'classic', label: 'Classique' },
-  { key: 'modern', label: 'Moderne' },
-  { key: 'minimal', label: 'Minimal' },
+  { key: 'classic', get label() { return tr('Classique'); } },
+  { key: 'modern', get label() { return tr('Moderne'); } },
+  { key: 'minimal', get label() { return tr('Minimal'); } },
 ];
 
 function newLine(): DraftLine {
@@ -112,7 +113,7 @@ export default function NewInvoice() {
       setLogoUrl(url);
       await saveSevigoBusinessProfile({ businessName: businessName || 'Mon entreprise', logoUrl: url, brandColor });
     } catch (e: any) {
-      setError(e.message ?? "Échec du téléversement du logo.");
+      setError(e.message ?? tr('Échec du téléversement du logo.'));
     } finally {
       setUploadingLogo(false);
     }
@@ -124,8 +125,8 @@ export default function NewInvoice() {
   }
 
   function validate(): string {
-    if (!clientName.trim()) return 'Indiquez le nom du client.';
-    if (items.length === 0) return 'Ajoutez au moins un article.';
+    if (!clientName.trim()) return tr('Indiquez le nom du client.');
+    if (items.length === 0) return tr('Ajoutez au moins un article.');
     return '';
   }
 
@@ -176,7 +177,7 @@ export default function NewInvoice() {
 
       router.replace({ pathname: '/sevigo/invoice/[id]', params: { id: invoice.id } });
     } catch (e: any) {
-      setError(e.message ?? "Échec de la création de la facture.");
+      setError(e.message ?? tr('Échec de la création de la facture.'));
     } finally {
       setCreating(false);
     }
@@ -188,35 +189,35 @@ export default function NewInvoice() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Nouvelle facture</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Nouvelle facture')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          <Field label="Client">
+          <Field label={tr('Client')}>
             <Pressable style={styles.savedClientBtn} onPress={() => setPickerOpen(true)}>
               <Users size={16} color={colors.vert} />
-              <Text style={[text.small, { color: colors.vert }]}>{savedClientId ? 'Changer de client enregistré' : 'Choisir un client enregistré'}</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{savedClientId ? tr('Changer de client enregistré') : tr('Choisir un client enregistré')}</Text>
             </Pressable>
-            <TextInput style={styles.input} placeholder="Nom du client / entreprise" placeholderTextColor={colors.textMuted} value={clientName} onChangeText={setClientName} />
-            <TextInput style={styles.input} placeholder="Email (facultatif)" placeholderTextColor={colors.textMuted} value={clientEmail} onChangeText={setClientEmail} keyboardType="email-address" autoCapitalize="none" />
-            <TextInput style={styles.input} placeholder="Téléphone (facultatif)" placeholderTextColor={colors.textMuted} value={clientContact} onChangeText={setClientContact} keyboardType="phone-pad" />
+            <TextInput style={styles.input} placeholder={tr('Nom du client / entreprise')} placeholderTextColor={colors.textMuted} value={clientName} onChangeText={setClientName} />
+            <TextInput style={styles.input} placeholder={tr('Email (facultatif)')} placeholderTextColor={colors.textMuted} value={clientEmail} onChangeText={setClientEmail} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder={tr('Téléphone (facultatif)')} placeholderTextColor={colors.textMuted} value={clientContact} onChangeText={setClientContact} keyboardType="phone-pad" />
             {!savedClientId && (
               <Pressable style={styles.saveClientRow} onPress={() => setSaveNewClient(v => !v)}>
                 <View style={[styles.checkbox, saveNewClient && styles.checkboxOn]}>{saveNewClient && <Check size={13} color={colors.white} strokeWidth={3} />}</View>
-                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>Enregistrer ce client pour la prochaine fois</Text>
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{tr('Enregistrer ce client pour la prochaine fois')}</Text>
               </Pressable>
             )}
           </Field>
 
-          <Field label="Articles">
+          <Field label={tr('Articles')}>
             <View style={{ gap: spacing.sm }}>
               {lines.map(l => (
                 <View key={l.id} style={[styles.lineCard, shadow.sm]}>
                   <TextInput
                     style={styles.lineDesc}
-                    placeholder="Description"
+                    placeholder={tr('Description')}
                     placeholderTextColor={colors.textMuted}
                     value={l.description}
                     onChangeText={t => updateLine(l.id, { description: t })}
@@ -224,16 +225,16 @@ export default function NewInvoice() {
                   <View style={styles.lineRow}>
                     <TextInput
                       style={styles.lineQty}
-                      placeholder="Qté"
+                      placeholder={tr('Qté')}
                       placeholderTextColor={colors.textMuted}
                       value={l.quantity}
                       onChangeText={t => updateLine(l.id, { quantity: t })}
                       keyboardType="numeric"
                     />
-                    <Text style={[text.small, { color: colors.textMuted }]}>×</Text>
+                    <Text style={[text.small, { color: colors.textMuted }]}>{tr('×')}</Text>
                     <TextInput
                       style={styles.linePrice}
-                      placeholder="Prix unitaire"
+                      placeholder={tr('Prix unitaire')}
                       placeholderTextColor={colors.textMuted}
                       value={l.unitPrice}
                       onChangeText={t => updateLine(l.id, { unitPrice: t })}
@@ -248,18 +249,18 @@ export default function NewInvoice() {
             </View>
             <Pressable style={styles.addLine} onPress={() => setLines(ls => [...ls, newLine()])}>
               <Plus size={16} color={colors.vert} />
-              <Text style={[text.small, { color: colors.vert }]}>Ajouter un article</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Ajouter un article')}</Text>
             </Pressable>
           </Field>
 
-          <Field label="Réduction (facultatif)">
+          <Field label={tr('Réduction (facultatif)')}>
             <View style={styles.discountRow}>
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="% sur le total" placeholderTextColor={colors.textMuted} value={discountPct} onChangeText={setDiscountPct} keyboardType="numeric" />
-              <TextInput style={[styles.input, { flex: 1 }]} placeholder="Montant fixe (F)" placeholderTextColor={colors.textMuted} value={discountFlat} onChangeText={setDiscountFlat} keyboardType="numeric" />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder={tr('% sur le total')} placeholderTextColor={colors.textMuted} value={discountPct} onChangeText={setDiscountPct} keyboardType="numeric" />
+              <TextInput style={[styles.input, { flex: 1 }]} placeholder={tr('Montant fixe (F)')} placeholderTextColor={colors.textMuted} value={discountFlat} onChangeText={setDiscountFlat} keyboardType="numeric" />
             </View>
           </Field>
 
-          <Field label="Personnaliser">
+          <Field label={tr('Personnaliser')}>
             <View style={styles.customizeRow}>
               <Pressable style={styles.logoPicker} onPress={pickLogo} disabled={uploadingLogo}>
                 {logoUrl
@@ -280,7 +281,7 @@ export default function NewInvoice() {
             </View>
           </Field>
 
-          <Field label="Modèle">
+          <Field label={tr('Modèle')}>
             <View style={styles.templateRow}>
               {TEMPLATES.map(t => (
                 <Pressable key={t.key} style={styles.templatePreviewWrap} onPress={() => setTemplate(t.key)}>
@@ -293,12 +294,12 @@ export default function NewInvoice() {
 
           <View style={[styles.totalsCard, shadow.card]}>
             <View style={styles.totalRow}>
-              <Text style={[text.small, { color: colors.textMuted }]}>Sous-total</Text>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>{totals.subtotal.toLocaleString('fr-FR')} F</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr('Sous-total')}</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{totals.subtotal.toLocaleString(locale())} {tr('F')}</Text>
             </View>
             <View style={styles.totalRow}>
-              <Text style={[text.h3, { color: colors.encre }]}>Total</Text>
-              <Text style={[text.h3, { color: colors.vert }]}>{totals.total.toLocaleString('fr-FR')} F</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{tr('Total')}</Text>
+              <Text style={[text.h3, { color: colors.vert }]}>{totals.total.toLocaleString(locale())} {tr('F')}</Text>
             </View>
           </View>
 
@@ -307,7 +308,7 @@ export default function NewInvoice() {
       </KeyboardAvoidingView>
 
       <View style={styles.footer}>
-        <Button label={creating ? 'Création…' : 'Créer la facture'} onPress={createInvoice} loading={creating} />
+        <Button label={creating ? tr('Création…') : tr('Créer la facture')} onPress={createInvoice} loading={creating} />
       </View>
       <ClientPicker visible={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={applyClient} />
     </SafeAreaView>

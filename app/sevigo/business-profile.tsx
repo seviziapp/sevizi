@@ -10,6 +10,7 @@ import { uploadDocument } from '../../src/lib/api';
 import { pickFile } from '../../src/lib/pickFile';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function SevigoBusinessProfile() {
   const router = useRouter();
   const [businessName, setBusinessName] = useState('');
@@ -45,14 +46,14 @@ export default function SevigoBusinessProfile() {
       const url = await uploadDocument(file.blob, 'sevigo-logos', file.name);
       setLogoUrl(url);
     } catch (e: any) {
-      setError(e.message ?? "Échec du téléversement.");
+      setError(e.message ?? tr('Échec du téléversement.'));
     } finally {
       setUploading(false);
     }
   }
 
   async function save() {
-    if (!businessName.trim()) { setError("Indiquez le nom de l'entreprise."); return; }
+    if (!businessName.trim()) { setError(tr("Indiquez le nom de l'entreprise.")); return; }
     setError('');
     setSaving(true);
     try {
@@ -64,7 +65,7 @@ export default function SevigoBusinessProfile() {
       });
       router.back();
     } catch (e: any) {
-      setError(e.message ?? "Échec de l'enregistrement.");
+      setError(e.message ?? tr("Échec de l'enregistrement."));
     } finally {
       setSaving(false);
     }
@@ -76,7 +77,7 @@ export default function SevigoBusinessProfile() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Profil entreprise</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Profil entreprise')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -85,8 +86,7 @@ export default function SevigoBusinessProfile() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={[text.small, { color: colors.textMuted }]}>
-            Ces informations préremplissent vos factures Sèvi Go.
-          </Text>
+            {tr('Ces informations préremplissent vos factures Sèvi Go.')}</Text>
 
           <Pressable style={styles.logoPicker} onPress={pickLogo} disabled={uploading}>
             {uploading ? (
@@ -96,27 +96,27 @@ export default function SevigoBusinessProfile() {
             ) : (
               <>
                 <Camera size={22} color={colors.textMuted} />
-                <Text style={[text.small, { color: colors.textMuted }]}>Logo</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr('Logo')}</Text>
               </>
             )}
           </Pressable>
 
-          <Field label="Nom de l'entreprise">
-            <TextInput style={styles.input} placeholder="Ex : Kossi Plomberie" placeholderTextColor={colors.textMuted} value={businessName} onChangeText={setBusinessName} />
+          <Field label={tr("Nom de l'entreprise")}>
+            <TextInput style={styles.input} placeholder={tr('Ex : Kossi Plomberie')} placeholderTextColor={colors.textMuted} value={businessName} onChangeText={setBusinessName} />
           </Field>
-          <Field label="Email de contact">
+          <Field label={tr('Email de contact')}>
             <TextInput style={styles.input} placeholder="contact@entreprise.tg" placeholderTextColor={colors.textMuted} value={contactEmail} onChangeText={setContactEmail} keyboardType="email-address" autoCapitalize="none" />
           </Field>
-          <Field label="Téléphone">
+          <Field label={tr('Téléphone')}>
             <TextInput style={styles.input} placeholder="+228 90 00 00 00" placeholderTextColor={colors.textMuted} value={contactPhone} onChangeText={setContactPhone} keyboardType="phone-pad" />
           </Field>
-          <Field label="Adresse">
-            <TextInput style={styles.input} placeholder="Quartier, ville" placeholderTextColor={colors.textMuted} value={address} onChangeText={setAddress} />
+          <Field label={tr('Adresse')}>
+            <TextInput style={styles.input} placeholder={tr('Quartier, ville')} placeholderTextColor={colors.textMuted} value={address} onChangeText={setAddress} />
           </Field>
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 
-          <Button label="Enregistrer" onPress={save} loading={saving} style={{ marginTop: spacing.md }} />
+          <Button label={tr('Enregistrer')} onPress={save} loading={saving} style={{ marginTop: spacing.md }} />
         </ScrollView>
       )}
     </SafeAreaView>

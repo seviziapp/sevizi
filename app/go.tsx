@@ -17,49 +17,50 @@ import { SevigoLogoFull } from '../src/components/SevigoLogo';
 import { StaggerIn } from '../src/components/StaggerIn';
 import { SEVIGO_PLANS } from '../src/lib/sevigo/types';
 
-const CTA = 'Créer ma première facture';
+import { tr, locale } from '../src/i18n';
+const CTA = () => tr('Créer ma première facture');
 
 // Pain points: [lead-in, bold key phrase, rest]
-const PROBLEMS: [string, string, string][] = [
-  ['', 'Mes factures sont dans un cahier.', " Un client demande une copie, je ne retrouve rien, et je perds du temps devant lui."],
-  ['', "Je ne sais plus qui me doit de l'argent.", ' Les impayés se mélangent, et je relance quand je m\'en souviens.'],
-  ['', 'Mon stock ne correspond jamais à mes ventes.', ' Je compte à la fin du mois et il manque toujours quelque chose.'],
+const problems = (): [string, string, string][] => [
+  ['', tr('Mes factures sont dans un cahier.'), ' ' + tr('Un client demande une copie, je ne retrouve rien, et je perds du temps devant lui.')],
+  ['', tr("Je ne sais plus qui me doit de l'argent."), ' ' + tr("Les impayés se mélangent, et je relance quand je m'en souviens.")],
+  ['', tr('Mon stock ne correspond jamais à mes ventes.'), ' ' + tr('Je compte à la fin du mois et il manque toujours quelque chose.')],
 ];
 
 const BENEFITS = [
-  { Icon: FileText, title: 'Une facture qui fait sérieux', body: 'Votre logo, votre nom, un numéro qui suit tout seul. Imprimez en A4 ou en ticket 80 mm, ou envoyez par e-mail.' },
-  { Icon: Users, title: 'Vos clients enregistrés', body: 'Chaque client est gardé dans votre liste. À la facture suivante, vous le choisissez au lieu de tout retaper. Jusqu\'à 2 000 clients.' },
-  { Icon: CreditCard, title: 'Vous voyez qui a payé', body: 'Votre client règle en ligne par mobile money ou carte, et la facture passe en « Payée ». Les retards ressortent d\'un coup d\'œil, sans cahier.' },
+  { Icon: FileText, get title() { return tr('Une facture qui fait sérieux'); }, get body() { return tr('Votre logo, votre nom, un numéro qui suit tout seul. Imprimez en A4 ou en ticket 80 mm, ou envoyez par e-mail.'); } },
+  { Icon: Users, get title() { return tr('Vos clients enregistrés'); }, get body() { return tr("Chaque client est gardé dans votre liste. À la facture suivante, vous le choisissez au lieu de tout retaper. Jusqu'à 2 000 clients."); } },
+  { Icon: CreditCard, get title() { return tr('Vous voyez qui a payé'); }, get body() { return tr("Votre client règle en ligne par mobile money ou carte, et la facture passe en « Payée ». Les retards ressortent d'un coup d'œil, sans cahier."); } },
 ];
 
 const MORE = [
-  { Icon: BarChart3, title: 'Rapports clairs', body: "Chiffre d'affaires, factures impayées, meilleurs clients : vos chiffres du mois sans calculatrice.", note: 'À partir de Starter' },
-  { Icon: Store, title: 'Caisse et stock', body: 'Listez vos produits, vendez au comptoir : le stock baisse à chaque vente et chaque vente a son reçu.', note: 'Formule Unlimited' },
+  { Icon: BarChart3, get title() { return tr('Rapports clairs'); }, get body() { return tr("Chiffre d'affaires, factures impayées, meilleurs clients : vos chiffres du mois sans calculatrice."); }, get note() { return tr('À partir de Starter'); } },
+  { Icon: Store, get title() { return tr('Caisse et stock'); }, get body() { return tr('Listez vos produits, vendez au comptoir : le stock baisse à chaque vente et chaque vente a son reçu.'); }, get note() { return tr('Formule Unlimited'); } },
 ];
 
 const STEPS = [
-  { title: 'Créez votre compte', body: 'Avec Google ou votre e-mail, en moins d\'une minute.' },
-  { title: 'Ajoutez votre logo et votre nom', body: 'Ils apparaîtront sur chaque facture.' },
-  { title: 'Faites votre première facture', body: 'Choisissez le client, ajoutez les lignes, envoyez.' },
-  { title: 'Suivez ce qui est payé', body: 'Vos factures et vos rapports se mettent à jour tout seuls.' },
+  { get title() { return tr('Créez votre compte'); }, get body() { return tr("Avec Google ou votre e-mail, en moins d'une minute."); } },
+  { get title() { return tr('Ajoutez votre logo et votre nom'); }, get body() { return tr('Ils apparaîtront sur chaque facture.'); } },
+  { get title() { return tr('Faites votre première facture'); }, get body() { return tr('Choisissez le client, ajoutez les lignes, envoyez.'); } },
+  { get title() { return tr('Suivez ce qui est payé'); }, get body() { return tr('Vos factures et vos rapports se mettent à jour tout seuls.'); } },
 ];
 
 const FAQ = [
-  { q: 'Est-ce vraiment gratuit pour commencer ?', a: "Oui. Vous créez votre compte sans carte bancaire, et les 3 premières factures de chaque mois sont offertes. Vous ne payez qu'au-delà, ou si vous choisissez une formule." },
-  { q: 'Comment mes clients me paient-ils ?', a: "Par mobile money (T-Money, Flooz) ou par carte, depuis un lien de paiement. Sèvi Go prélève une commission sur ces paiements en ligne, de 10 % à 5 % selon votre formule. Un paiement en espèces reste possible : vous marquez la facture payée vous-même." },
-  { q: 'Mes données sont-elles protégées ?', a: 'Vos factures et la liste de vos clients sont accessibles depuis votre compte, protégé par votre connexion (e-mail ou Google).' },
-  { q: "Et si j'ai un grand stock à gérer ?", a: 'La formule Unlimited ajoute la caisse : vous listez vos produits, vous vendez au comptoir, et le stock baisse à chaque vente. Chaque vente a son reçu.' },
-  { q: 'Puis-je arrêter quand je veux ?', a: "Oui. Vous pouvez repasser en Pay As You Go à tout moment. Une formule payée reste valable jusqu'à sa date de fin, puis votre compte revient automatiquement à la formule gratuite." },
+  { get q() { return tr('Est-ce vraiment gratuit pour commencer ?'); }, get a() { return tr("Oui. Vous créez votre compte sans carte bancaire, et les 3 premières factures de chaque mois sont offertes. Vous ne payez qu'au-delà, ou si vous choisissez une formule."); } },
+  { get q() { return tr('Comment mes clients me paient-ils ?'); }, get a() { return tr('Par mobile money (T-Money, Flooz) ou par carte, depuis un lien de paiement. Sèvi Go prélève une commission sur ces paiements en ligne, de 10 % à 5 % selon votre formule. Un paiement en espèces reste possible : vous marquez la facture payée vous-même.'); } },
+  { get q() { return tr('Mes données sont-elles protégées ?'); }, get a() { return tr('Vos factures et la liste de vos clients sont accessibles depuis votre compte, protégé par votre connexion (e-mail ou Google).'); } },
+  { get q() { return tr("Et si j'ai un grand stock à gérer ?"); }, get a() { return tr('La formule Unlimited ajoute la caisse : vous listez vos produits, vous vendez au comptoir, et le stock baisse à chaque vente. Chaque vente a son reçu.'); } },
+  { get q() { return tr('Puis-je arrêter quand je veux ?'); }, get a() { return tr("Oui. Vous pouvez repasser en Pay As You Go à tout moment. Une formule payée reste valable jusqu'à sa date de fin, puis votre compte revient automatiquement à la formule gratuite."); } },
 ];
 
 function planFeatures(p: (typeof SEVIGO_PLANS)[number]): string[] {
   const out: string[] = [];
-  if (p.includedInvoices === null) out.push('Factures illimitées');
-  else if (p.id === 'payg') out.push('3 factures offertes par mois, puis 500 F');
-  else out.push(`${p.includedInvoices} factures incluses, puis ${p.extraInvoiceFee} F`);
-  out.push(`Commission sur paiement en ligne : ${Math.round(p.paydunyaFeePct * 100)}%`);
-  if (p.hasReports) out.push('Rapports et analyses');
-  if (p.hasPos) out.push('Caisse (POS) et gestion de stock');
+  if (p.includedInvoices === null) out.push(tr('Factures illimitées'));
+  else if (p.id === 'payg') out.push(tr('3 factures offertes par mois, puis 500 F'));
+  else out.push(tr('{n} factures incluses, puis {fee} F', { n: p.includedInvoices, fee: p.extraInvoiceFee }));
+  out.push(tr('Commission sur paiement en ligne : {pct}%', { pct: Math.round(p.paydunyaFeePct * 100) }));
+  if (p.hasReports) out.push(tr('Rapports et analyses'));
+  if (p.hasPos) out.push(tr('Caisse (POS) et gestion de stock'));
   return out;
 }
 
@@ -76,7 +77,7 @@ export default function SevigoLanding() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <Head>
-        <title>Sèvi Go : factures et caisse pour commerçants à Lomé</title>
+        <title>{tr('Sèvi Go : factures et caisse pour commerçants à Lomé')}</title>
         <meta name="description" content="Faites vos factures avec votre logo, gardez vos clients et encaissez par mobile money. Sèvi Go est gratuit pour commencer, sans carte bancaire." />
         <meta name="keywords" content="facture en ligne Lomé, logiciel de caisse Togo, facturation mobile money" />
       </Head>
@@ -87,7 +88,7 @@ export default function SevigoLanding() {
             <View style={styles.topBar}>
               <SevigoLogoFull height={34} />
               <Pressable onPress={login} hitSlop={8}>
-                <Text style={[text.bodyMd, { color: colors.vert }]}>Se connecter</Text>
+                <Text style={[text.bodyMd, { color: colors.vert }]}>{tr('Se connecter')}</Text>
               </Pressable>
             </View>
           </StaggerIn>
@@ -96,30 +97,28 @@ export default function SevigoLanding() {
           <View style={[styles.hero, wide && { paddingTop: spacing.xxxl * 1.5 }]}>
             <StaggerIn index={1}>
               <Text style={[styles.headline, wide && { fontSize: 52, lineHeight: 56 }]}>
-                Vos factures et votre caisse,{wide ? '\n' : ' '}depuis votre téléphone
-              </Text>
+                {tr('Vos factures et votre caisse,')}{wide ? '\n' : ' '}{tr('depuis votre téléphone')}</Text>
             </StaggerIn>
             <StaggerIn index={2}>
               <Text style={[text.body, styles.sub, wide && { fontSize: 19, lineHeight: 28 }]}>
-                Sèvi Go aide les commerçants et artisans de Lomé à faire des factures propres, garder leurs clients et encaisser par mobile money.
-              </Text>
+                {tr('Sèvi Go aide les commerçants et artisans de Lomé à faire des factures propres, garder leurs clients et encaisser par mobile money.')}</Text>
             </StaggerIn>
             <StaggerIn index={3}>
               <View style={styles.ctaRow}>
                 <Pressable style={styles.cta} onPress={signup}>
-                  <Text style={[text.bodyMd, { color: colors.white }]}>{CTA}</Text>
+                  <Text style={[text.bodyMd, { color: colors.white }]}>{CTA()}</Text>
                   <ArrowRight size={18} color={colors.white} />
                 </Pressable>
-                <Text style={[text.small, { color: colors.textMuted }]}>3 factures offertes chaque mois, sans carte bancaire.</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr('3 factures offertes chaque mois, sans carte bancaire.')}</Text>
               </View>
             </StaggerIn>
           </View>
 
           {/* 2. Problem */}
           <View style={styles.section}>
-            <Text style={[text.h2, { color: colors.encre }]}>Facturer à la main, ça vous coûte des ventes</Text>
+            <Text style={[text.h2, { color: colors.encre }]}>{tr('Facturer à la main, ça vous coûte des ventes')}</Text>
             <View style={[styles.gap, row]}>
-              {PROBLEMS.map(([lead, key, rest], i) => (
+              {problems().map(([lead, key, rest], i) => (
                 <StaggerIn key={key} index={4 + i} style={wide ? { flexBasis: '31%', flexGrow: 1 } : undefined}>
                   <View style={[styles.problem, wide && { height: '100%' }]}>
                     <Text style={[text.body, { color: colors.encre }]}>
@@ -133,7 +132,7 @@ export default function SevigoLanding() {
 
           {/* 3. Solution */}
           <View style={styles.section}>
-            <Text style={[text.h2, { color: colors.encre }]}>Tout est au même endroit, sur votre téléphone</Text>
+            <Text style={[text.h2, { color: colors.encre }]}>{tr('Tout est au même endroit, sur votre téléphone')}</Text>
             <View style={[styles.gap, row]}>
               {BENEFITS.map((f, i) => (
                 <StaggerIn key={f.title} index={7 + i} style={wide ? { flexBasis: '31%', flexGrow: 1 } : undefined}>
@@ -159,7 +158,7 @@ export default function SevigoLanding() {
 
           {/* 4. How it works */}
           <View style={styles.section}>
-            <Text style={[text.h2, { color: colors.encre }]}>Prêt en cinq minutes</Text>
+            <Text style={[text.h2, { color: colors.encre }]}>{tr('Prêt en cinq minutes')}</Text>
             <View style={[styles.gap, wide && { flexDirection: 'row' }]}>
               {STEPS.map((s, i) => (
                 <View key={s.title} style={[styles.step, wide && { flex: 1 }]}>
@@ -173,17 +172,16 @@ export default function SevigoLanding() {
 
           {/* 5. Pricing */}
           <View style={styles.section}>
-            <Text style={[text.h2, { color: colors.encre }]}>Commencez gratuitement. Passez à une formule quand vous grandissez.</Text>
+            <Text style={[text.h2, { color: colors.encre }]}>{tr('Commencez gratuitement. Passez à une formule quand vous grandissez.')}</Text>
             <Text style={[text.body, { color: colors.textMuted }]}>
-              Paiement annuel : 2 mois offerts. À partir de 4 factures par mois, Starter coûte moins cher que de payer chaque facture.
-            </Text>
+              {tr('Paiement annuel : 2 mois offerts. À partir de 4 factures par mois, Starter coûte moins cher que de payer chaque facture.')}</Text>
             <View style={[styles.plans, wide && { flexDirection: 'row' }]}>
               {SEVIGO_PLANS.map(p => (
                 <View key={p.id} style={[styles.plan, shadow.card, p.id === 'growth' && styles.planHot, wide && { flex: 1 }]}>
                   <Text style={[text.h3, { color: colors.encre }]}>{p.label}</Text>
                   <Text style={[text.h2, { color: colors.vert }]}>
-                    {p.monthlyFee === 0 ? '0 F' : `${p.monthlyFee.toLocaleString('fr-FR')} F`}
-                    <Text style={[text.small, { color: colors.textMuted }]}> / mois</Text>
+                    {p.monthlyFee === 0 ? tr('0 F') : tr('{v0} F', { v0: p.monthlyFee.toLocaleString(locale()) })}
+                    <Text style={[text.small, { color: colors.textMuted }]}> {tr('/ mois')}</Text>
                   </Text>
                   <View style={{ gap: 6, marginTop: spacing.sm }}>
                     {planFeatures(p).map(line => (
@@ -200,7 +198,7 @@ export default function SevigoLanding() {
 
           {/* 6. FAQ */}
           <View style={styles.section}>
-            <Text style={[text.h2, { color: colors.encre }]}>Vos questions</Text>
+            <Text style={[text.h2, { color: colors.encre }]}>{tr('Vos questions')}</Text>
             <View style={styles.faq}>
               {FAQ.map((item, i) => {
                 const open = openFaq === i;
@@ -219,22 +217,21 @@ export default function SevigoLanding() {
 
           {/* 7. Closing CTA */}
           <View style={styles.closing}>
-            <Text style={[text.h1, { color: colors.creme, textAlign: 'center' }]}>Chaque facture perdue est de l'argent qui ne revient pas</Text>
+            <Text style={[text.h1, { color: colors.creme, textAlign: 'center' }]}>{tr("Chaque facture perdue est de l'argent qui ne revient pas")}</Text>
             <Pressable style={styles.cta} onPress={signup}>
-              <Text style={[text.bodyMd, { color: colors.white }]}>{CTA}</Text>
+              <Text style={[text.bodyMd, { color: colors.white }]}>{CTA()}</Text>
               <ArrowRight size={18} color={colors.white} />
             </Pressable>
-            <Text style={[text.small, { color: colors.textMutedDark }]}>Sans carte bancaire. 3 factures offertes chaque mois.</Text>
+            <Text style={[text.small, { color: colors.textMutedDark }]}>{tr('Sans carte bancaire. 3 factures offertes chaque mois.')}</Text>
           </View>
 
           {/* Footer */}
           <View style={styles.footer}>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Sèvi Go fait partie de Sèvizi, la plateforme de services de Lomé.
-            </Text>
+              {tr('Sèvi Go fait partie de Sèvizi, la plateforme de services de Lomé.')}</Text>
             <View style={{ flexDirection: 'row', gap: spacing.lg, justifyContent: 'center' }}>
-              <Pressable onPress={() => router.push('/legal/terms' as any)}><Text style={[text.small, { color: colors.vert }]}>Conditions</Text></Pressable>
-              <Pressable onPress={() => router.push('/legal/privacy' as any)}><Text style={[text.small, { color: colors.vert }]}>Confidentialité</Text></Pressable>
+              <Pressable onPress={() => router.push('/legal/terms' as any)}><Text style={[text.small, { color: colors.vert }]}>{tr('Conditions')}</Text></Pressable>
+              <Pressable onPress={() => router.push('/legal/privacy' as any)}><Text style={[text.small, { color: colors.vert }]}>{tr('Confidentialité')}</Text></Pressable>
             </View>
           </View>
         </View>

@@ -18,10 +18,11 @@ import { SevigoDocument } from '../../src/lib/sevigo/document';
 import { DocumentActions } from '../../src/components/DocumentActions';
 import type { SevigoBusinessProfile } from '../../src/lib/sevigo/types';
 
-const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
+import { tr, locale } from '../../src/i18n';
+const money = (n: number) => `${n.toLocaleString(locale())} F`;
 
 export default function PosScreen() {
-  return <PosGate title="Caisse"><Pos /></PosGate>;
+  return <PosGate title={tr('Caisse')}><Pos /></PosGate>;
 }
 
 function Pos() {
@@ -89,7 +90,7 @@ function Pos() {
       setCart({});
       load(); // refresh stock
     } catch (e: any) {
-      setError(e.message ?? "Échec de l'encaissement.");
+      setError(e.message ?? tr("Échec de l'encaissement."));
       load(); // stock may have changed
     } finally { setPaying(false); }
   }
@@ -99,13 +100,13 @@ function Pos() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.doneWrap}>
           <CheckCircle size={64} color={colors.vert} />
-          <Text style={[text.h2, { color: colors.encre, marginTop: spacing.md }]}>Vente enregistrée</Text>
+          <Text style={[text.h2, { color: colors.encre, marginTop: spacing.md }]}>{tr('Vente enregistrée')}</Text>
           <Text style={[text.data, { color: colors.vert, fontSize: 34, marginTop: spacing.xs }]}>{money(done.total)}</Text>
           <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>{done.number} · {done.paymentLabel}{done.client ? ` · ${done.client.name}` : ''}</Text>
           <View style={[styles.card, shadow.card, { alignSelf: 'stretch', marginTop: spacing.xl }]}>
             {done.lines.map((l, i) => (
               <View key={i} style={styles.sumRow}>
-                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{l.qty} × {l.description}</Text>
+                <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{l.qty} {tr('×')} {l.description}</Text>
                 <Text style={[text.small, { color: colors.encre }]}>{money(l.total)}</Text>
               </View>
             ))}
@@ -114,7 +115,7 @@ function Pos() {
             <DocumentActions doc={done} />
           </View>
           <View style={{ alignSelf: 'stretch', marginTop: spacing.lg }}>
-            <Button label="Nouvelle vente" onPress={() => setDone(null)} />
+            <Button label={tr('Nouvelle vente')} onPress={() => setDone(null)} />
           </View>
         </View>
       </SafeAreaView>
@@ -127,7 +128,7 @@ function Pos() {
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Caisse</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Caisse')}</Text>
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.push('/sevigo/sales' as any)}>
           <Receipt size={20} color={colors.encre} />
         </Pressable>
@@ -135,7 +136,7 @@ function Pos() {
 
       <View style={styles.searchBox}>
         <Search size={18} color={colors.textMuted} />
-        <TextInput style={styles.searchInput} placeholder="Rechercher un produit…" placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
+        <TextInput style={styles.searchInput} placeholder={tr('Rechercher un produit…')} placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
       </View>
 
       <ScrollView contentContainerStyle={[styles.grid, lines.length > 0 && { paddingBottom: 300 }]} showsVerticalScrollIndicator={false}>
@@ -143,9 +144,9 @@ function Pos() {
           <View style={styles.empty}>
             <Package size={40} color={colors.border} />
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              {products.length === 0 ? 'Ajoutez d’abord vos produits pour vendre.' : 'Aucun résultat.'}
+              {products.length === 0 ? tr('Ajoutez d’abord vos produits pour vendre.') : tr('Aucun résultat.')}
             </Text>
-            {products.length === 0 && <Button label="Ajouter des produits" onPress={() => router.push('/sevigo/products' as any)} />}
+            {products.length === 0 && <Button label={tr('Ajouter des produits')} onPress={() => router.push('/sevigo/products' as any)} />}
           </View>
         ) : shown.map(p => {
           const inCart = cart[p.id] ?? 0;
@@ -156,7 +157,7 @@ function Pos() {
               {p.photoUrl ? <Image source={{ uri: p.photoUrl }} style={styles.tileImg} /> : <View style={[styles.tileImg, styles.tileImgEmpty]}><Package size={22} color={colors.textMuted} /></View>}
               <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{p.name}</Text>
               <Text style={[text.small, { color: colors.vert }]}>{money(p.price)}</Text>
-              <Text style={[text.label, { color: out || isLowStock(p) ? colors.terre : colors.textMuted }]}>{out ? 'ÉPUISÉ' : `Stock : ${p.stock}`}</Text>
+              <Text style={[text.label, { color: out || isLowStock(p) ? colors.terre : colors.textMuted }]}>{out ? tr('ÉPUISÉ') : tr('Stock : {stock}', { stock: p.stock })}</Text>
               {inCart > 0 && <View style={styles.badge}><Text style={[text.label, { color: colors.white }]}>{inCart}</Text></View>}
             </Pressable>
           );
@@ -178,21 +179,21 @@ function Pos() {
           </ScrollView>
           <Pressable style={styles.clientRow} onPress={() => setPickerOpen(true)}>
             <User size={16} color={colors.textMuted} />
-            <Text style={[text.small, { color: client ? colors.encre : colors.textMuted, flex: 1 }]} numberOfLines={1}>{client ? client.name : 'Client de passage'}</Text>
+            <Text style={[text.small, { color: client ? colors.encre : colors.textMuted, flex: 1 }]} numberOfLines={1}>{client ? client.name : tr('Client de passage')}</Text>
             <ChevronDown size={16} color={colors.textMuted} />
           </Pressable>
           <View style={styles.methodRow}>
             <Pressable style={[styles.method, method === 'cash' && styles.methodOn]} onPress={() => setMethod('cash')}>
               <Banknote size={16} color={method === 'cash' ? colors.white : colors.encre} />
-              <Text style={[text.small, { color: method === 'cash' ? colors.white : colors.encre }]}>Espèces</Text>
+              <Text style={[text.small, { color: method === 'cash' ? colors.white : colors.encre }]}>{tr('Espèces')}</Text>
             </Pressable>
             <Pressable style={[styles.method, method === 'mobile' && styles.methodOn]} onPress={() => setMethod('mobile')}>
               <Smartphone size={16} color={method === 'mobile' ? colors.white : colors.encre} />
-              <Text style={[text.small, { color: method === 'mobile' ? colors.white : colors.encre }]}>Mobile money</Text>
+              <Text style={[text.small, { color: method === 'mobile' ? colors.white : colors.encre }]}>{tr('Mobile money')}</Text>
             </Pressable>
           </View>
           {!!error && <Text style={styles.error}>{error}</Text>}
-          <Button label={`Encaisser ${money(total)} · ${itemCount} article${itemCount > 1 ? 's' : ''}`} onPress={checkout} loading={paying} />
+          <Button label={tr('Encaisser {total} · {itemCount} article{s2}', { total: money(total), itemCount: itemCount, s2: itemCount > 1 ? 's' : '' })} onPress={checkout} loading={paying} />
         </View>
       )}
       <ClientPicker visible={pickerOpen} onClose={() => setPickerOpen(false)} onSelect={c => { setClient(c); setPickerOpen(false); }} />

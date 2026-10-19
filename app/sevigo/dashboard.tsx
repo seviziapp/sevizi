@@ -12,13 +12,14 @@ import { planById } from '../../src/lib/sevigo/types';
 import type { SevigoInvoice, SevigoUsage } from '../../src/lib/sevigo/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 const STATUS_LABEL: Record<SevigoInvoice['status'], { label: string; color: string }> = {
-  pending_fee: { label: 'Verrouillée', color: colors.terre },
-  draft: { label: 'Brouillon', color: colors.textMuted },
-  sent: { label: 'Envoyée', color: colors.soleil },
-  paid: { label: 'Payée', color: colors.vert },
-  overdue: { label: 'En retard', color: colors.terre },
-  cancelled: { label: 'Annulée', color: colors.textMuted },
+  pending_fee: { get label() { return tr('Verrouillée'); }, color: colors.terre },
+  draft: { get label() { return tr('Brouillon'); }, color: colors.textMuted },
+  sent: { get label() { return tr('Envoyée'); }, color: colors.soleil },
+  paid: { get label() { return tr('Payée'); }, color: colors.vert },
+  overdue: { get label() { return tr('En retard'); }, color: colors.terre },
+  cancelled: { get label() { return tr('Annulée'); }, color: colors.textMuted },
 };
 
 export default function SevigoDashboard() {
@@ -57,14 +58,10 @@ export default function SevigoDashboard() {
         <Pressable style={[styles.planWrap, shadow.card]} onPress={() => router.push('/sevigo/plan')}>
           <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.planBanner}>
             <View style={{ flex: 1 }}>
-              <Text style={[text.label, { color: colors.vert }]}>FORMULE ACTUELLE</Text>
+              <Text style={[text.label, { color: colors.vert }]}>{tr('FORMULE ACTUELLE')}</Text>
               <Text style={[text.h3, { color: colors.creme, marginTop: 4 }]}>{plan.label}</Text>
               <Text style={[text.small, { color: colors.textMutedDark, marginTop: 2 }]}>
-                {plan.includedInvoices === null
-                  ? 'Factures illimitées'
-                  : plan.includedInvoices === 0
-                    ? `${plan.extraInvoiceFee.toLocaleString('fr-FR')} F / facture`
-                    : `${usage?.invoicesThisCycle ?? 0} / ${plan.includedInvoices} factures ce mois-ci`}
+                {plan.includedInvoices === null ? tr('Factures illimitées') : plan.includedInvoices === 0 ? tr('{v0} F / facture', { v0: plan.extraInvoiceFee.toLocaleString(locale()) }) : tr('{v0} / {includedInvoices} factures ce mois-ci', { v0: usage?.invoicesThisCycle ?? 0, includedInvoices: plan.includedInvoices })}
               </Text>
             </View>
             <ChevronRight size={18} color={colors.vert} />
@@ -76,37 +73,34 @@ export default function SevigoDashboard() {
           <Pressable style={[styles.statCard, shadow.card]} onPress={() => router.push('/sevigo/wallet')}>
             <Wallet size={16} color={colors.vert} />
             <Text style={[text.data, { color: colors.encre, fontSize: 18, marginTop: spacing.sm }]}>
-              {walletBalance.toLocaleString('fr-FR')} F
-            </Text>
-            <Text style={[text.label, { color: colors.textMuted }]}>PORTEFEUILLE</Text>
+              {walletBalance.toLocaleString(locale())} {tr('F')}</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('PORTEFEUILLE')}</Text>
           </Pressable>
           <View style={[styles.statCard, shadow.card]}>
             <TrendingUp size={16} color={colors.vert} />
             <Text style={[text.data, { color: colors.encre, fontSize: 18, marginTop: spacing.sm }]}>
-              {paidThisCycle.toLocaleString('fr-FR')} F
-            </Text>
-            <Text style={[text.label, { color: colors.textMuted }]}>ENCAISSÉ</Text>
+              {paidThisCycle.toLocaleString(locale())} {tr('F')}</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('ENCAISSÉ')}</Text>
           </View>
           <View style={[styles.statCard, shadow.card]}>
             <FileText size={16} color={colors.terre} />
             <Text style={[text.data, { color: colors.encre, fontSize: 18, marginTop: spacing.sm }]}>
-              {outstanding.toLocaleString('fr-FR')} F
-            </Text>
-            <Text style={[text.label, { color: colors.textMuted }]}>EN ATTENTE</Text>
+              {outstanding.toLocaleString(locale())} {tr('F')}</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('EN ATTENTE')}</Text>
           </View>
         </View>
 
         {/* New invoice CTA */}
         <Pressable style={[styles.cta, shadow.glow]} onPress={() => router.push('/sevigo/new-invoice')}>
           <Plus size={20} color={colors.white} />
-          <Text style={[text.bodyMd, { color: colors.white }]}>Nouvelle facture</Text>
+          <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Nouvelle facture')}</Text>
         </Pressable>
 
         {/* Saved clients — every plan */}
         <Pressable style={[styles.posCard, shadow.card, { flexDirection: 'row', alignItems: 'center', gap: spacing.md }]}
           onPress={() => router.push('/sevigo/clients' as any)}>
           <Users size={18} color={colors.vert} />
-          <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes clients</Text>
+          <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Mes clients')}</Text>
           <ChevronRight size={16} color={colors.textMuted} />
         </Pressable>
 
@@ -114,9 +108,9 @@ export default function SevigoDashboard() {
         <Pressable style={[styles.posCard, shadow.card, { flexDirection: 'row', alignItems: 'center', gap: spacing.md }]}
           onPress={() => router.push((plan.hasReports ? '/sevigo/reports' : '/sevigo/plan') as any)}>
           <BarChart3 size={18} color={colors.vert} />
-          <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Rapports & analyses</Text>
+          <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Rapports & analyses')}</Text>
           {!plan.hasReports && (
-            <View style={styles.lockPill}><Lock size={11} color={colors.terre} /><Text style={[text.label, { color: colors.terre, fontSize: 10 }]}>STARTER+</Text></View>
+            <View style={styles.lockPill}><Lock size={11} color={colors.terre} /><Text style={[text.label, { color: colors.terre, fontSize: 10 }]}>{tr('STARTER+')}</Text></View>
           )}
           <ChevronRight size={16} color={colors.textMuted} />
         </Pressable>
@@ -125,15 +119,15 @@ export default function SevigoDashboard() {
         <View style={[styles.posCard, shadow.card]}>
           <View style={styles.posHead}>
             <Store size={18} color={colors.vert} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Caisse & stock</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Caisse & stock')}</Text>
             {usage?.planId !== 'unlimited' && (
-              <View style={styles.lockPill}><Lock size={11} color={colors.terre} /><Text style={[text.label, { color: colors.terre, fontSize: 10 }]}>UNLIMITED</Text></View>
+              <View style={styles.lockPill}><Lock size={11} color={colors.terre} /><Text style={[text.label, { color: colors.terre, fontSize: 10 }]}>{tr('UNLIMITED')}</Text></View>
             )}
           </View>
           {[
-            { label: 'Vendre (caisse)', icon: <Store size={18} color={colors.encre} />, route: '/sevigo/pos' },
-            { label: 'Produits & stock', icon: <Package size={18} color={colors.encre} />, route: '/sevigo/products' },
-            { label: 'Historique des ventes', icon: <Receipt size={18} color={colors.encre} />, route: '/sevigo/sales' },
+            { label: tr('Vendre (caisse)'), icon: <Store size={18} color={colors.encre} />, route: '/sevigo/pos' },
+            { label: tr('Produits & stock'), icon: <Package size={18} color={colors.encre} />, route: '/sevigo/products' },
+            { label: tr('Historique des ventes'), icon: <Receipt size={18} color={colors.encre} />, route: '/sevigo/sales' },
           ].map(r => (
             <Pressable key={r.route} style={styles.posRow}
               onPress={() => router.push((usage?.planId === 'unlimited' ? r.route : '/sevigo/plan') as any)}>
@@ -146,9 +140,9 @@ export default function SevigoDashboard() {
 
         {/* Recent invoices */}
         <View style={styles.sectionHead}>
-          <Text style={[text.h3, { color: colors.encre }]}>Factures récentes</Text>
+          <Text style={[text.h3, { color: colors.encre }]}>{tr('Factures récentes')}</Text>
           <Pressable onPress={() => router.push('/sevigo/invoices')}>
-            <Text style={[text.small, { color: colors.vert }]}>Tout voir</Text>
+            <Text style={[text.small, { color: colors.vert }]}>{tr('Tout voir')}</Text>
           </Pressable>
         </View>
 
@@ -158,8 +152,7 @@ export default function SevigoDashboard() {
           <View style={styles.empty}>
             <FileText size={36} color={colors.border} />
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucune facture pour l'instant. Créez la première en un instant.
-            </Text>
+              {tr("Aucune facture pour l'instant. Créez la première en un instant.")}</Text>
           </View>
         ) : (
           <View style={{ gap: spacing.sm }}>
@@ -176,7 +169,7 @@ export default function SevigoDashboard() {
                     <Text style={[text.label, { color: colors.textMuted }]}>{inv.number}</Text>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Text style={[text.data, { color: colors.encre }]}>{inv.total.toLocaleString('fr-FR')} F</Text>
+                    <Text style={[text.data, { color: colors.encre }]}>{inv.total.toLocaleString(locale())} {tr('F')}</Text>
                     <View style={[styles.statusPill, { backgroundColor: st.color + '1A' }]}>
                       <Text style={[text.label, { color: st.color, fontSize: 10 }]}>{st.label.toUpperCase()}</Text>
                     </View>

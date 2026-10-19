@@ -12,7 +12,8 @@ import { alert } from '../../src/lib/alert';
 import { fetchClients, saveClient, deleteClient, fetchClientHistory, SevigoClient, ClientPurchase } from '../../src/lib/sevigo/clients';
 import { reportError } from '../../src/lib/reportError';
 
-const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
+import { tr, locale } from '../../src/i18n';
+const money = (n: number) => `${n.toLocaleString(locale())} F`;
 type Draft = { id?: string; name: string; phone: string; email: string; address: string; notes: string };
 const EMPTY: Draft = { name: '', phone: '', email: '', address: '', notes: '' };
 
@@ -43,18 +44,18 @@ export default function Clients() {
 
   async function submit() {
     if (!draft) return;
-    if (!draft.name.trim()) { setError('Nom requis.'); return; }
+    if (!draft.name.trim()) { setError(tr('Nom requis.')); return; }
     setSaving(true); setError('');
     try { await saveClient(draft); setDraft(null); load(); }
-    catch (e: any) { setError(e.message ?? "Échec de l'enregistrement."); }
+    catch (e: any) { setError(e.message ?? tr("Échec de l'enregistrement.")); }
     finally { setSaving(false); }
   }
 
   function confirmDelete(c: SevigoClient) {
-    alert('Supprimer ce client', `« ${c.name} » sera retiré de votre fichier. Ses ventes et factures passées sont conservées.`, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: async () => {
-        try { await deleteClient(c.id); setOpenId(null); load(); } catch (e: any) { alert('Erreur', e.message); }
+    alert(tr('Supprimer ce client'), tr('« {name} » sera retiré de votre fichier. Ses ventes et factures passées sont conservées.', { name: c.name }), [
+      { text: tr('Annuler'), style: 'cancel' },
+      { text: tr('Supprimer'), style: 'destructive', onPress: async () => {
+        try { await deleteClient(c.id); setOpenId(null); load(); } catch (e: any) { alert(tr('Erreur'), e.message); }
       } },
     ]);
   }
@@ -69,7 +70,7 @@ export default function Clients() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.back()}><ArrowLeft size={22} color={colors.encre} /></Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Clients</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Clients')}</Text>
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => { setError(''); setDraft({ ...EMPTY }); }}><Plus size={22} color={colors.encre} /></Pressable>
       </View>
 
@@ -77,29 +78,29 @@ export default function Clients() {
         {draft && (
           <View style={[styles.card, shadow.card, { gap: spacing.sm }]}>
             <View style={styles.rowBetween}>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>{draft.id ? 'Modifier le client' : 'Nouveau client'}</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{draft.id ? tr('Modifier le client') : tr('Nouveau client')}</Text>
               <Pressable onPress={() => setDraft(null)}><X size={20} color={colors.textMuted} /></Pressable>
             </View>
-            <TextInput style={styles.input} placeholder="Nom *" placeholderTextColor={colors.textMuted} value={draft.name} onChangeText={t => setDraft({ ...draft, name: t })} maxLength={80} />
-            <TextInput style={styles.input} placeholder="Téléphone" placeholderTextColor={colors.textMuted} value={draft.phone} onChangeText={t => setDraft({ ...draft, phone: t })} keyboardType="phone-pad" />
-            <TextInput style={styles.input} placeholder="Email" placeholderTextColor={colors.textMuted} value={draft.email} onChangeText={t => setDraft({ ...draft, email: t })} keyboardType="email-address" autoCapitalize="none" />
-            <TextInput style={styles.input} placeholder="Adresse" placeholderTextColor={colors.textMuted} value={draft.address} onChangeText={t => setDraft({ ...draft, address: t })} />
-            <TextInput style={[styles.input, { height: 76, paddingTop: 12 }]} placeholder="Notes (préférences, remarques…)" placeholderTextColor={colors.textMuted} value={draft.notes} onChangeText={t => setDraft({ ...draft, notes: t })} multiline textAlignVertical="top" maxLength={500} />
+            <TextInput style={styles.input} placeholder={tr('Nom *')} placeholderTextColor={colors.textMuted} value={draft.name} onChangeText={t => setDraft({ ...draft, name: t })} maxLength={80} />
+            <TextInput style={styles.input} placeholder={tr('Téléphone')} placeholderTextColor={colors.textMuted} value={draft.phone} onChangeText={t => setDraft({ ...draft, phone: t })} keyboardType="phone-pad" />
+            <TextInput style={styles.input} placeholder={tr('Email')} placeholderTextColor={colors.textMuted} value={draft.email} onChangeText={t => setDraft({ ...draft, email: t })} keyboardType="email-address" autoCapitalize="none" />
+            <TextInput style={styles.input} placeholder={tr('Adresse')} placeholderTextColor={colors.textMuted} value={draft.address} onChangeText={t => setDraft({ ...draft, address: t })} />
+            <TextInput style={[styles.input, { height: 76, paddingTop: 12 }]} placeholder={tr('Notes (préférences, remarques…)')} placeholderTextColor={colors.textMuted} value={draft.notes} onChangeText={t => setDraft({ ...draft, notes: t })} multiline textAlignVertical="top" maxLength={500} />
             {!!error && <Text style={{ color: colors.terre, fontSize: 14 }}>{error}</Text>}
-            <Button label="Enregistrer" onPress={submit} loading={saving} />
+            <Button label={tr('Enregistrer')} onPress={submit} loading={saving} />
           </View>
         )}
 
         <View style={styles.searchBox}>
           <Search size={18} color={colors.textMuted} />
-          <TextInput style={styles.searchInput} placeholder="Rechercher un client…" placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
+          <TextInput style={styles.searchInput} placeholder={tr('Rechercher un client…')} placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
         </View>
 
         {loading ? <ActivityIndicator color={colors.vert} style={{ marginTop: 30 }} /> : shown.length === 0 ? (
           <View style={styles.empty}>
             <Users size={40} color={colors.border} />
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              {clients.length === 0 ? 'Aucun client. Touchez + pour enregistrer le premier.' : 'Aucun résultat.'}
+              {clients.length === 0 ? tr('Aucun client. Touchez + pour enregistrer le premier.') : tr('Aucun résultat.')}
             </Text>
           </View>
         ) : shown.map(c => {
@@ -111,34 +112,34 @@ export default function Clients() {
                 <View style={styles.avatar}><Text style={[text.bodyMd, { color: colors.white }]}>{c.name[0]?.toUpperCase()}</Text></View>
                 <View style={{ flex: 1 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{c.name}</Text>
-                  <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={1}>{c.phone || c.email || 'Pas de contact'}</Text>
+                  <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={1}>{c.phone || c.email || tr('Pas de contact')}</Text>
                 </View>
               </Pressable>
 
               {open && (
                 <View style={styles.detail}>
                   <View style={styles.actions}>
-                    {!!c.phone && <Chip icon={<Phone size={14} color={colors.vert} />} label="Appeler" onPress={() => call(c.phone!)} />}
-                    {!!c.email && <Chip icon={<Mail size={14} color={colors.vert} />} label="Email" onPress={() => mail(c.email!)} />}
-                    {hasPos && <Chip icon={<Store size={14} color={colors.vert} />} label="Vendre" onPress={() => router.push({ pathname: '/sevigo/pos', params: { clientId: c.id } } as any)} />}
-                    <Chip icon={<FileText size={14} color={colors.vert} />} label="Facturer" onPress={() => router.push({ pathname: '/sevigo/new-invoice', params: { clientId: c.id } } as any)} />
+                    {!!c.phone && <Chip icon={<Phone size={14} color={colors.vert} />} label={tr('Appeler')} onPress={() => call(c.phone!)} />}
+                    {!!c.email && <Chip icon={<Mail size={14} color={colors.vert} />} label={tr('Email')} onPress={() => mail(c.email!)} />}
+                    {hasPos && <Chip icon={<Store size={14} color={colors.vert} />} label={tr('Vendre')} onPress={() => router.push({ pathname: '/sevigo/pos', params: { clientId: c.id } } as any)} />}
+                    <Chip icon={<FileText size={14} color={colors.vert} />} label={tr('Facturer')} onPress={() => router.push({ pathname: '/sevigo/new-invoice', params: { clientId: c.id } } as any)} />
                   </View>
                   {!!c.address && <Line icon={<MapPin size={14} color={colors.textMuted} />} t={c.address} />}
                   {!!c.notes && <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.sm }]}>{c.notes}</Text>}
 
                   <View style={styles.totalBox}>
-                    <Text style={[text.label, { color: colors.textMuted }]}>TOTAL DÉPENSÉ</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>{tr('TOTAL DÉPENSÉ')}</Text>
                     <Text style={[text.data, { color: colors.encre, fontSize: 22 }]}>{history ? money(spent) : '…'}</Text>
-                    <Text style={[text.label, { color: colors.textMuted }]}>Ventes terminées + factures payées</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>{tr('Ventes terminées + factures payées')}</Text>
                   </View>
 
                   {history === null ? <ActivityIndicator color={colors.vert} /> : history.length === 0 ? (
-                    <Text style={[text.small, { color: colors.textMuted }]}>Aucun achat enregistré pour ce client.</Text>
+                    <Text style={[text.small, { color: colors.textMuted }]}>{tr('Aucun achat enregistré pour ce client.')}</Text>
                   ) : history.slice(0, 10).map(h => (
                     <Pressable key={h.kind + h.id} style={styles.histRow}
                       onPress={() => h.kind === 'invoice' && router.push({ pathname: '/sevigo/invoice/[id]', params: { id: h.id } })}>
                       <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-                        {h.kind === 'sale' ? 'Vente' : 'Facture'} {h.label} · {new Date(h.createdAt).toLocaleDateString('fr-FR')}
+                        {h.kind === 'sale' ? tr('Vente') : tr('Facture')} {h.label} · {new Date(h.createdAt).toLocaleDateString(locale())}
                       </Text>
                       <Text style={[text.small, { color: h.counted ? colors.vert : colors.textMuted }]}>{money(h.total)}</Text>
                     </Pressable>
@@ -146,10 +147,10 @@ export default function Clients() {
 
                   <View style={styles.footerActions}>
                     <Pressable style={styles.linkBtn} onPress={() => { setError(''); setDraft({ id: c.id, name: c.name, phone: c.phone ?? '', email: c.email ?? '', address: c.address ?? '', notes: c.notes ?? '' }); }}>
-                      <Pencil size={14} color={colors.encre} /><Text style={[text.small, { color: colors.encre }]}>Modifier</Text>
+                      <Pencil size={14} color={colors.encre} /><Text style={[text.small, { color: colors.encre }]}>{tr('Modifier')}</Text>
                     </Pressable>
                     <Pressable style={styles.linkBtn} onPress={() => confirmDelete(c)}>
-                      <Trash2 size={14} color={colors.terre} /><Text style={[text.small, { color: colors.terre }]}>Supprimer</Text>
+                      <Trash2 size={14} color={colors.terre} /><Text style={[text.small, { color: colors.terre }]}>{tr('Supprimer')}</Text>
                     </Pressable>
                   </View>
                 </View>

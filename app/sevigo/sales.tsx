@@ -15,11 +15,12 @@ import { fetchSevigoBusinessProfile } from '../../src/lib/sevigo/api';
 import type { SevigoBusinessProfile } from '../../src/lib/sevigo/types';
 import type { SevigoDocument } from '../../src/lib/sevigo/document';
 
-const money = (n: number) => `${n.toLocaleString('fr-FR')} F`;
+import { tr, locale } from '../../src/i18n';
+const money = (n: number) => `${n.toLocaleString(locale())} F`;
 const sameDay = (a: Date, b: Date) => a.toDateString() === b.toDateString();
 
 export default function SalesScreen() {
-  return <PosGate title="Ventes"><Sales /></PosGate>;
+  return <PosGate title={tr('Ventes')}><Sales /></PosGate>;
 }
 
 function Sales() {
@@ -55,10 +56,10 @@ function Sales() {
   const todayCash = today.filter(s => s.paymentMethod === 'cash').reduce((t, s) => t + s.total, 0);
 
   function confirmVoid(s: SevigoSale) {
-    alert('Annuler cette vente', `${s.number} (${money(s.total)}) sera annulée et les produits remis en stock.`, [
-      { text: 'Garder', style: 'cancel' },
-      { text: 'Annuler la vente', style: 'destructive', onPress: async () => {
-        try { await voidSale(s.id); load(); } catch (e: any) { alert('Erreur', e.message); }
+    alert(tr('Annuler cette vente'), tr('{number} ({total}) sera annulée et les produits remis en stock.', { number: s.number, total: money(s.total) }), [
+      { text: tr('Garder'), style: 'cancel' },
+      { text: tr('Annuler la vente'), style: 'destructive', onPress: async () => {
+        try { await voidSale(s.id); load(); } catch (e: any) { alert(tr('Erreur'), e.message); }
       } },
     ]);
   }
@@ -69,24 +70,23 @@ function Sales() {
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Ventes</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Ventes')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       {loading ? <ActivityIndicator color={colors.vert} style={{ marginTop: 40 }} /> : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={[styles.summary, shadow.card]}>
-            <Text style={[text.label, { color: colors.textMuted }]}>AUJOURD'HUI</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr("AUJOURD'HUI")}</Text>
             <Text style={[text.data, { color: colors.encre, fontSize: 30, marginTop: 2 }]}>{money(todayTotal)}</Text>
             <Text style={[text.small, { color: colors.textMuted }]}>
-              {today.length} vente{today.length > 1 ? 's' : ''} · dont {money(todayCash)} en espèces
-            </Text>
+              {today.length} {tr('vente')}{today.length > 1 ? 's' : ''} {tr('· dont')} {money(todayCash)} {tr('en espèces')}</Text>
           </View>
 
           {sales.length === 0 ? (
             <View style={styles.empty}>
               <Receipt size={40} color={colors.border} />
-              <Text style={[text.small, { color: colors.textMuted }]}>Aucune vente pour l'instant.</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr("Aucune vente pour l'instant.")}</Text>
             </View>
           ) : sales.map(s => {
             const voided = s.status === 'voided';
@@ -96,9 +96,9 @@ function Sales() {
                 <Pressable style={styles.row} onPress={() => setOpen(isOpen ? null : s.id)}>
                   {s.paymentMethod === 'cash' ? <Banknote size={20} color={colors.vert} /> : <Smartphone size={20} color={colors.vert} />}
                   <View style={{ flex: 1 }}>
-                    <Text style={[text.bodyMd, { color: colors.encre }]}>{s.number}{voided ? ' · ANNULÉE' : ''}{s.clientName ? ` · ${s.clientName}` : ''}</Text>
+                    <Text style={[text.bodyMd, { color: colors.encre }]}>{s.number}{voided ? tr(' · ANNULÉE') : ''}{s.clientName ? ` · ${s.clientName}` : ''}</Text>
                     <Text style={[text.label, { color: colors.textMuted }]}>
-                      {new Date(s.createdAt).toLocaleString('fr-FR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(s.createdAt).toLocaleString(locale(), { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   </View>
                   <Text style={[text.bodyMd, { color: colors.encre, textDecorationLine: voided ? 'line-through' : 'none' }]}>{money(s.total)}</Text>
@@ -108,14 +108,14 @@ function Sales() {
                   <View style={styles.detail}>
                     {(s.items ?? []).map((i, idx) => (
                       <View key={idx} style={styles.itemRow}>
-                        <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{i.qty} × {i.name}</Text>
+                        <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{i.qty} {tr('×')} {i.name}</Text>
                         <Text style={[text.small, { color: colors.encre }]}>{money(i.lineTotal)}</Text>
                       </View>
                     ))}
                     {!voided && <View style={{ marginTop: spacing.md }}><DocumentActions doc={toDocument(s)} /></View>}
                     {!voided && (
                       <Pressable style={styles.voidBtn} onPress={() => confirmVoid(s)}>
-                        <Text style={[text.small, { color: colors.terre }]}>Annuler cette vente</Text>
+                        <Text style={[text.small, { color: colors.terre }]}>{tr('Annuler cette vente')}</Text>
                       </Pressable>
                     )}
                   </View>
