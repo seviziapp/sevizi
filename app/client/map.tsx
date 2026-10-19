@@ -9,6 +9,7 @@ import { getCurrentPosition } from '../../src/lib/geolocation';
 import { MarkersMap, type MapMarker } from '../../src/components/MarkersMap';
 import { CATEGORIES, type Provider, type GeoPoint } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 type DistanceFilter = 'all' | 'near' | 'top';
 
 export default function MapScreen() {
@@ -83,7 +84,7 @@ export default function MapScreen() {
             <Search size={18} color={colors.textMuted} />
             <TextInput
               style={styles.searchField}
-              placeholder="Rechercher un prestataire ou une catégorie…"
+              placeholder={tr('Rechercher un prestataire ou une catégorie…')}
               placeholderTextColor={colors.textMuted}
               value={search}
               onChangeText={setSearch}
@@ -97,8 +98,8 @@ export default function MapScreen() {
         {/* Filter chips */}
         <View style={styles.filterChips}>
           {([
-            { key: 'all', label: 'Tous' },
-            { key: 'near', label: '< 2 km' },
+            { key: 'all', label: tr('Tous') },
+            { key: 'near', label: tr('< 2 km') },
             { key: 'top', label: '4★+' },
           ] as { key: DistanceFilter; label: string }[]).map((f) => (
             <Pressable
@@ -117,15 +118,14 @@ export default function MapScreen() {
         <View style={styles.handle} />
         <View style={styles.sheetHead}>
           <Text style={[text.h3, { color: colors.encre }]}>
-            {loading ? 'Recherche…' : `${filtered.length} prestataire${filtered.length > 1 ? 's' : ''} autour`}
+            {loading ? tr('Recherche…') : tr('{length} prestataire{s1} autour', { length: filtered.length, s1: filtered.length > 1 ? 's' : '' })}
           </Text>
         </View>
         {loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.lg }} />
         ) : filtered.length === 0 ? (
           <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.lg }]}>
-            Aucun prestataire trouvé dans cette zone.
-          </Text>
+            {tr('Aucun prestataire trouvé dans cette zone.')}</Text>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingBottom: spacing.lg }}>
             {filtered.map((p, i) => (
@@ -139,7 +139,7 @@ export default function MapScreen() {
                   <View style={styles.metaRow}>
                     <Star size={12} color={colors.soleil} fill={colors.soleil} />
                     <Text style={[text.label, { color: colors.textMuted }]}>{p.rating.toFixed(1)}</Text>
-                    <Text style={[text.label, { color: colors.textMuted }]}>· {p.distanceKm.toFixed(1)} km</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>· {p.distanceKm.toFixed(1)} {tr('km')}</Text>
                   </View>
                 </View>
                 <View style={styles.navBtn}><Navigation size={18} color={colors.vert} /></View>

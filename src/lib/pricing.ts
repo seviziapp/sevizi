@@ -1,5 +1,6 @@
 import type { ProviderTier } from './types';
 
+import { locale, tr } from '../i18n';
 // Sèvizi's commission model — single source of truth.
 //
 // Suggested launch rate: 10%, deducted from the provider's payout (the client
@@ -43,7 +44,7 @@ export function isCommissionFreePeriod(now: Date = new Date()): boolean {
 function formatPromoEndDate(): string {
   // Explicit UTC timeZone — otherwise a local timezone behind UTC (most of
   // the Americas) rolls midnight back to the previous calendar day.
-  return COMMISSION_FREE_UNTIL.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  return COMMISSION_FREE_UNTIL.toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
 }
 
 // A provider's own admin-granted discount (via a redeemed 'commission' code)
@@ -78,16 +79,16 @@ export function formatCommissionPct(tier?: ProviderTier, discount?: CommissionDi
 // Commission line for the free-tier feature list — reflects the promo while
 // it's running, the standard rate once it ends.
 export function freeTierCommissionLabel(): string {
-  if (isCommissionFreePeriod()) return `Commission 0% jusqu'au ${formatPromoEndDate()}, puis ${pctLabel(COMMISSION_RATE_INTRO)} pendant 3 mois`;
-  if (isCommissionIntroPeriod()) return `Commission de lancement ${pctLabel(COMMISSION_RATE_INTRO)} (puis ${pctLabel(COMMISSION_RATE)} dès le 4 avril 2027)`;
-  return `Commission standard (${pctLabel(COMMISSION_RATE)})`;
+  if (isCommissionFreePeriod()) return tr("Commission 0% jusqu'au {date}, puis {pct} pendant 3 mois", { date: formatPromoEndDate(), pct: pctLabel(COMMISSION_RATE_INTRO) });
+  if (isCommissionIntroPeriod()) return tr('Commission de lancement {intro} (puis {std} dès le 4 avril 2027)', { intro: pctLabel(COMMISSION_RATE_INTRO), std: pctLabel(COMMISSION_RATE) });
+  return tr('Commission standard ({pct})', { pct: pctLabel(COMMISSION_RATE) });
 }
 
 // Same for the Pro pitch line.
 export function proTierCommissionLabel(): string {
-  if (isCommissionFreePeriod()) return `Commission 0% pour tous jusqu'au ${formatPromoEndDate()}, puis ${pctLabel(COMMISSION_RATE_PRO_INTRO)} au lieu de ${pctLabel(COMMISSION_RATE_INTRO)} avec Sèvizi Pro`;
-  if (isCommissionIntroPeriod()) return `Commission réduite (${pctLabel(COMMISSION_RATE_PRO_INTRO)} au lieu de ${pctLabel(COMMISSION_RATE_INTRO)})`;
-  return `Commission réduite (${pctLabel(COMMISSION_RATE_PRO)} au lieu de ${pctLabel(COMMISSION_RATE)})`;
+  if (isCommissionFreePeriod()) return tr("Commission 0% pour tous jusqu'au {date}, puis {pro} au lieu de {intro} avec Sèvizi Pro", { date: formatPromoEndDate(), pro: pctLabel(COMMISSION_RATE_PRO_INTRO), intro: pctLabel(COMMISSION_RATE_INTRO) });
+  if (isCommissionIntroPeriod()) return tr('Commission réduite ({pro} au lieu de {std})', { pro: pctLabel(COMMISSION_RATE_PRO_INTRO), std: pctLabel(COMMISSION_RATE_INTRO) });
+  return tr('Commission réduite ({pro} au lieu de {std})', { pro: pctLabel(COMMISSION_RATE_PRO), std: pctLabel(COMMISSION_RATE) });
 }
 
 // ---- Sèvizi Pro subscription ----
@@ -99,12 +100,12 @@ export const GALLERY_CAP_FREE = 3;   // gallery photos allowed on the free tier 
 // across the promo boundary without an app restart.
 export function getProFeatures(): string[] {
   return [
-    'Badge « Vérifié » — vetté par Sèvizi',
+    tr('Badge « Vérifié » — vetté par Sèvizi'),
     proTierCommissionLabel(),
-    'Placement prioritaire dans les recherches à proximité',
-    'Voir les offres des autres prestataires sur une même demande',
-    'Statistiques avancées (tendances, meilleure catégorie, clients fidèles)',
-    'Proposer plusieurs services (ex. plomberie + électricité + mécanique)',
-    'Galerie de travaux illimitée (contre 3 photos en gratuit)',
+    tr('Placement prioritaire dans les recherches à proximité'),
+    tr('Voir les offres des autres prestataires sur une même demande'),
+    tr('Statistiques avancées (tendances, meilleure catégorie, clients fidèles)'),
+    tr('Proposer plusieurs services (ex. plomberie + électricité + mécanique)'),
+    tr('Galerie de travaux illimitée (contre 3 photos en gratuit)'),
   ];
 }

@@ -9,6 +9,7 @@ import { Button } from '../../src/components/Button';
 import { createJobPaymentInvoice, fetchJobPaymentStatus } from '../../src/lib/api';
 import { formatCommissionPct } from '../../src/lib/pricing';
 
+import { tr, locale } from '../../src/i18n';
 function buildRedirectUrl(jobId: string, status: 'return' | 'cancel'): string {
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
     return `${window.location.origin}/client/payment?jobId=${jobId}&payment=${status}`;
@@ -41,7 +42,7 @@ export default function Payment() {
         router.replace('/client/job-status');
       } else if (status === 'failed' || attempts >= 10) {
         setVerifying(false);
-        if (status === 'failed') setError("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous.");
+        if (status === 'failed') setError(tr("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous."));
         if (pollRef.current) clearInterval(pollRef.current);
       }
     }, 3000);
@@ -62,7 +63,7 @@ export default function Payment() {
         await Linking.openURL(invoiceUrl);
       }
     } catch (e: any) {
-      setError(e.message ?? 'Échec du démarrage du paiement.');
+      setError(e.message ?? tr('Échec du démarrage du paiement.'));
     } finally {
       setStartingCheckout(false);
     }
@@ -74,7 +75,7 @@ export default function Payment() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Paiement</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Paiement')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -82,33 +83,28 @@ export default function Payment() {
         <View style={styles.verifyingWrap}>
           <ActivityIndicator color={colors.vert} />
           <Text style={[text.h3, { color: colors.encre, textAlign: 'center', marginTop: spacing.md }]}>
-            Vérification du paiement…
-          </Text>
+            {tr('Vérification du paiement…')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            PayDunya confirme votre paiement — cela prend quelques secondes.
-          </Text>
+            {tr('PayDunya confirme votre paiement — cela prend quelques secondes.')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {/* Summary */}
           <View style={[styles.summary, shadow.lg]}>
-            <Text style={[text.label, { color: colors.textMuted }]}>MONTANT À RÉGLER</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('MONTANT À RÉGLER')}</Text>
             <Text style={[text.display, { color: colors.encre, fontSize: 40 }]}>
-              {amountNum.toLocaleString('fr-FR')} F
-            </Text>
+              {amountNum.toLocaleString(locale())} {tr('F')}</Text>
             <Text style={[text.small, { color: colors.textMuted }]}>
-              {providerName ?? 'Prestataire'}
+              {providerName ?? tr('Prestataire')}
             </Text>
             <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs, textAlign: 'center' }]}>
-              Ce prix inclut les frais de service Sèvizi (jusqu'à {formatCommissionPct()}, prélevés sur le prestataire).
-            </Text>
+              {tr("Ce prix inclut les frais de service Sèvizi (jusqu'à")} {formatCommissionPct()}{tr(', prélevés sur le prestataire).')}</Text>
           </View>
 
           <View style={styles.noteRow}>
             <ShieldCheck size={14} color={colors.textMuted} />
             <Text style={[text.label, { color: colors.textMuted, flex: 1 }]}>
-              Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte bancaire.
-            </Text>
+              {tr('Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte bancaire.')}</Text>
           </View>
 
           {!!error && <Text style={styles.error}>{error}</Text>}
@@ -118,7 +114,7 @@ export default function Payment() {
       {!verifying && (
         <View style={styles.footer}>
           <Button
-            label={`Payer ${amountNum.toLocaleString('fr-FR')} F`}
+            label={tr('Payer {v0} F', { v0: amountNum.toLocaleString(locale()) })}
             onPress={pay}
             loading={startingCheckout}
             disabled={!jobId}

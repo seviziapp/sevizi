@@ -9,6 +9,7 @@ import { pickFile } from '../../src/lib/pickFile';
 import { fetchMyServices, saveService, deleteService, uploadDocument } from '../../src/lib/api';
 import type { ProviderService } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 export default function ProviderServices() {
   const router = useRouter();
   const [services, setServices] = useState<ProviderService[]>([]);
@@ -50,13 +51,13 @@ export default function ProviderServices() {
   async function addPhoto() {
     setFormError('');
     const file = await pickFile();
-    if (!file) { setFormError('Sélection de photo indisponible sur cet appareil.'); return; }
+    if (!file) { setFormError(tr('Sélection de photo indisponible sur cet appareil.')); return; }
     setUploadingPhoto(true);
     try {
       const url = await uploadDocument(file.blob, 'services', file.name);
       setPhotoUrl(url);
     } catch (e: any) {
-      setFormError(e.message ?? 'Échec du téléversement.');
+      setFormError(e.message ?? tr('Échec du téléversement.'));
     } finally {
       setUploadingPhoto(false);
     }
@@ -64,7 +65,7 @@ export default function ProviderServices() {
 
   async function onSave() {
     if (!name.trim() || !duration || !price) {
-      setFormError('Renseignez le nom, la durée et le prix.');
+      setFormError(tr('Renseignez le nom, la durée et le prix.'));
       return;
     }
     setFormError('');
@@ -81,7 +82,7 @@ export default function ProviderServices() {
       setShowForm(false);
       load();
     } catch (e: any) {
-      setFormError(e.message ?? "Échec de l'enregistrement.");
+      setFormError(e.message ?? tr("Échec de l'enregistrement."));
     } finally {
       setSaving(false);
     }
@@ -97,7 +98,7 @@ export default function ProviderServices() {
         await deleteService(s.id);
         load();
       } catch (e: any) {
-        setListError(e.message ?? 'Échec de la suppression.');
+        setListError(e.message ?? tr('Échec de la suppression.'));
       }
     }
     if (Platform.OS === 'web') {
@@ -105,9 +106,9 @@ export default function ProviderServices() {
       return;
     }
     const { Alert } = require('react-native');
-    Alert.alert('Supprimer ce service ?', s.name, [
-      { text: 'Annuler', style: 'cancel' },
-      { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+    Alert.alert(tr('Supprimer ce service ?'), s.name, [
+      { text: tr('Annuler'), style: 'cancel' },
+      { text: tr('Supprimer'), style: 'destructive', onPress: doDelete },
     ]);
   }
 
@@ -117,7 +118,7 @@ export default function ProviderServices() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes services & tarifs</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes services & tarifs')}</Text>
         <Pressable style={styles.back} onPress={openNew}>
           <Plus size={22} color={colors.vert} />
         </Pressable>
@@ -131,8 +132,7 @@ export default function ProviderServices() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {services.length === 0 && (
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: 40 }]}>
-              Aucun service pour l'instant. Ajoutez votre premier service (ex : "Coupe homme", 30 min, 2500 F).
-            </Text>
+              {tr('Aucun service pour l\'instant. Ajoutez votre premier service (ex : "Coupe homme", 30 min, 2500 F).')}</Text>
           )}
           {services.map(s => (
             <View key={s.id} style={[styles.card, shadow.card]}>
@@ -146,7 +146,7 @@ export default function ProviderServices() {
               <View style={{ flex: 1 }}>
                 <Text style={[text.bodyMd, { color: colors.encre }]}>{s.name}</Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>
-                  {s.durationMinutes} min · {s.price.toLocaleString()} F{s.depositAmount > 0 ? ` · Acompte ${s.depositAmount.toLocaleString()} F` : ''}
+                  {s.durationMinutes} {tr('min ·')} {s.price.toLocaleString()} {tr('F')}{s.depositAmount > 0 ? tr(' · Acompte {v0} F', { v0: s.depositAmount.toLocaleString() }) : ''}
                 </Text>
               </View>
               <Pressable style={styles.iconBtn} onPress={() => openEdit(s)}>
@@ -164,10 +164,10 @@ export default function ProviderServices() {
         <View style={styles.modalOverlay}>
           <View style={[styles.modal, shadow.card]}>
             <View style={styles.modalHead}>
-              <Text style={[text.h3, { color: colors.encre }]}>{editing ? 'Modifier le service' : 'Nouveau service'}</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{editing ? tr('Modifier le service') : tr('Nouveau service')}</Text>
               <Pressable onPress={() => setShowForm(false)}><X size={22} color={colors.encre} /></Pressable>
             </View>
-            <Text style={[text.label, { color: colors.textMuted }]}>PHOTO (OPTIONNELLE)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('PHOTO (OPTIONNELLE)')}</Text>
             <Pressable style={styles.photoPicker} onPress={addPhoto} disabled={uploadingPhoto}>
               {uploadingPhoto ? (
                 <ActivityIndicator color={colors.vert} />
@@ -176,29 +176,28 @@ export default function ProviderServices() {
               ) : (
                 <>
                   <ImagePlus size={22} color={colors.textMuted} />
-                  <Text style={[text.small, { color: colors.textMuted }]}>Ajouter une photo</Text>
+                  <Text style={[text.small, { color: colors.textMuted }]}>{tr('Ajouter une photo')}</Text>
                 </>
               )}
             </Pressable>
             {!!photoUrl && !uploadingPhoto && (
               <Pressable onPress={() => setPhotoUrl(undefined)}>
-                <Text style={[text.small, { color: colors.terre, marginBottom: spacing.md }]}>Retirer la photo</Text>
+                <Text style={[text.small, { color: colors.terre, marginBottom: spacing.md }]}>{tr('Retirer la photo')}</Text>
               </Pressable>
             )}
 
-            <Text style={[text.label, { color: colors.textMuted }]}>NOM DU SERVICE</Text>
-            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Coupe homme" placeholderTextColor={colors.textMuted} />
-            <Text style={[text.label, { color: colors.textMuted }]}>DURÉE (MINUTES)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('NOM DU SERVICE')}</Text>
+            <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={tr('Coupe homme')} placeholderTextColor={colors.textMuted} />
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('DURÉE (MINUTES)')}</Text>
             <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="number-pad" placeholder="30" placeholderTextColor={colors.textMuted} />
-            <Text style={[text.label, { color: colors.textMuted }]}>PRIX (FCFA)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('PRIX (FCFA)')}</Text>
             <TextInput style={styles.input} value={price} onChangeText={setPrice} keyboardType="number-pad" placeholder="2500" placeholderTextColor={colors.textMuted} />
-            <Text style={[text.label, { color: colors.textMuted }]}>ACOMPTE À LA RÉSERVATION (FCFA, OPTIONNEL)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('ACOMPTE À LA RÉSERVATION (FCFA, OPTIONNEL)')}</Text>
             <TextInput style={styles.input} value={deposit} onChangeText={setDeposit} keyboardType="number-pad" placeholder="0" placeholderTextColor={colors.textMuted} />
             <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.md }]}>
-              Un acompte réduit les rendez-vous manqués — le client le paie en ligne pour confirmer, et il est déduit du prix final.
-            </Text>
+              {tr('Un acompte réduit les rendez-vous manqués — le client le paie en ligne pour confirmer, et il est déduit du prix final.')}</Text>
             {!!formError && <Text style={styles.error}>{formError}</Text>}
-            <Button label={saving ? 'Enregistrement…' : 'Enregistrer'} onPress={onSave} loading={saving} />
+            <Button label={saving ? tr('Enregistrement…') : tr('Enregistrer')} onPress={onSave} loading={saving} />
           </View>
         </View>
       )}

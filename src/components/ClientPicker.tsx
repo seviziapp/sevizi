@@ -9,6 +9,7 @@ import { Button } from './Button';
 import { fetchClients, saveClient, SevigoClient } from '../lib/sevigo/clients';
 import { reportError } from '../lib/reportError';
 
+import { tr } from '../i18n';
 export function ClientPicker({ visible, onClose, onSelect }: {
   visible: boolean; onClose: () => void; onSelect: (c: SevigoClient | null) => void;
 }) {
@@ -31,13 +32,13 @@ export function ClientPicker({ visible, onClose, onSelect }: {
   const shown = clients.filter(c => c.name.toLowerCase().includes(q) || (c.phone ?? '').includes(q));
 
   async function addClient() {
-    if (!name.trim()) { setError('Nom requis.'); return; }
+    if (!name.trim()) { setError(tr('Nom requis.')); return; }
     setSaving(true); setError('');
     try {
       const c = await saveClient({ name, phone });
       setName(''); setPhone('');
       onSelect(c);
-    } catch (e: any) { setError(e.message ?? "Impossible d'enregistrer le client."); }
+    } catch (e: any) { setError(e.message ?? tr("Impossible d'enregistrer le client.")); }
     finally { setSaving(false); }
   }
 
@@ -45,29 +46,29 @@ export function ClientPicker({ visible, onClose, onSelect }: {
     <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.header}>
-          <Text style={[text.h2, { color: colors.encre }]}>Choisir un client</Text>
+          <Text style={[text.h2, { color: colors.encre }]}>{tr('Choisir un client')}</Text>
           <Pressable onPress={onClose} style={styles.close}><X size={22} color={colors.encre} /></Pressable>
         </View>
         <View style={styles.searchBox}>
           <Search size={18} color={colors.textMuted} />
-          <TextInput style={styles.searchInput} placeholder="Nom ou téléphone…" placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
+          <TextInput style={styles.searchInput} placeholder={tr('Nom ou téléphone…')} placeholderTextColor={colors.textMuted} value={search} onChangeText={setSearch} />
         </View>
         <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
           <Pressable style={styles.row} onPress={() => onSelect(null)}>
             <User size={18} color={colors.textMuted} />
-            <Text style={[text.body, { color: colors.textMuted, flex: 1 }]}>Client de passage (non enregistré)</Text>
+            <Text style={[text.body, { color: colors.textMuted, flex: 1 }]}>{tr('Client de passage (non enregistré)')}</Text>
           </Pressable>
           {adding ? (
             <View style={styles.addBox}>
-              <TextInput style={styles.input} placeholder="Nom du client" placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
-              <TextInput style={styles.input} placeholder="Téléphone (facultatif)" placeholderTextColor={colors.textMuted} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+              <TextInput style={styles.input} placeholder={tr('Nom du client')} placeholderTextColor={colors.textMuted} value={name} onChangeText={setName} />
+              <TextInput style={styles.input} placeholder={tr('Téléphone (facultatif)')} placeholderTextColor={colors.textMuted} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
               {!!error && <Text style={{ color: colors.terre, fontSize: 14 }}>{error}</Text>}
-              <Button label="Enregistrer et choisir" onPress={addClient} loading={saving} />
+              <Button label={tr('Enregistrer et choisir')} onPress={addClient} loading={saving} />
             </View>
           ) : (
             <Pressable style={[styles.row, styles.rowAdd]} onPress={() => setAdding(true)}>
               <UserPlus size={18} color={colors.vert} />
-              <Text style={[text.bodyMd, { color: colors.vert, flex: 1 }]}>Nouveau client</Text>
+              <Text style={[text.bodyMd, { color: colors.vert, flex: 1 }]}>{tr('Nouveau client')}</Text>
             </Pressable>
           )}
           {loading ? <ActivityIndicator color={colors.vert} style={{ marginTop: 24 }} /> : shown.map(c => (
@@ -80,7 +81,7 @@ export function ClientPicker({ visible, onClose, onSelect }: {
             </Pressable>
           ))}
           {!loading && clients.length === 0 && !adding && (
-            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.lg }]}>Aucun client enregistré pour l'instant.</Text>
+            <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.lg }]}>{tr("Aucun client enregistré pour l'instant.")}</Text>
           )}
         </ScrollView>
       </SafeAreaView>

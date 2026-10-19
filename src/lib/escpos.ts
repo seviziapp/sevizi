@@ -14,6 +14,7 @@
 import { documentTitle } from './sevigo/document';
 import type { SevigoDocument } from './sevigo/document';
 
+import { tr, locale } from '../i18n';
 const ESC = 0x1b;
 const GS = 0x1d;
 const PAPER_KEY = 'sevigo_paper_cols';
@@ -42,7 +43,7 @@ function toPrinterAscii(s: string): string {
     .replace(/[^\x20-\x7e\n]/g, '?');
 }
 
-const fmt = (n: number) => `${n.toLocaleString('fr-FR').replace(/[  ]/g, ' ')} F`;
+const fmt = (n: number) => `${n.toLocaleString(locale()).replace(/[  ]/g, ' ')} F`;
 
 function row(left: string, right: string, cols: number): string {
   const space = cols - right.length;
@@ -116,8 +117,8 @@ export function buildDocumentBytes(d: SevigoDocument, cols: PaperCols = getPaper
   if (d.business.address) for (const l of wrap(d.business.address, cols)) line(l);
   line(rule);
   cmd(ESC, 0x61, 0x00);                 // left
-  line(row(`${documentTitle(d).replace('REÇU', 'RECU')} ${d.number}`, d.date.toLocaleDateString('fr-FR'), cols));
-  line(row('Client', d.client?.name || 'Client de passage', cols));
+  line(row(`${documentTitle(d).replace('REÇU', 'RECU')} ${d.number}`, d.date.toLocaleDateString(locale()), cols));
+  line(row(tr('Client'), d.client?.name || tr('Client de passage'), cols));
   line(rule);
   for (const l of d.lines) {
     const left = l.qty > 1 ? `${l.qty} x ${l.description}` : l.description;
@@ -128,17 +129,17 @@ export function buildDocumentBytes(d: SevigoDocument, cols: PaperCols = getPaper
   }
   line(rule);
   if (d.adjustments.length) {
-    line(row('Sous-total', fmt(d.subtotal), cols));
+    line(row(tr('Sous-total'), fmt(d.subtotal), cols));
     for (const a of d.adjustments) line(row(a.label, `-${fmt(Math.abs(a.amount))}`, cols));
   }
   cmd(ESC, 0x45, 0x01); cmd(GS, 0x21, 0x01); // bold + double height
-  line(row('TOTAL', fmt(d.total), cols));
+  line(row(tr('TOTAL'), fmt(d.total), cols));
   cmd(GS, 0x21, 0x00); cmd(ESC, 0x45, 0x00);
-  if (d.paymentLabel) line(row('Paiement', d.paymentLabel, cols));
+  if (d.paymentLabel) line(row(tr('Paiement'), d.paymentLabel, cols));
   cmd(ESC, 0x61, 0x01);
   line();
-  cmd(ESC, 0x45, 0x01); line('Merci !'); cmd(ESC, 0x45, 0x00);
-  line('Genere avec Sevi Go - go.sevizi.app');
+  cmd(ESC, 0x45, 0x01); line(tr('Merci !')); cmd(ESC, 0x45, 0x00);
+  line(tr('Genere avec Sevi Go - go.sevizi.app'));
   cmd(ESC, 0x64, 0x04);                 // feed 4 lines
   cmd(GS, 0x56, 0x00);                  // cut (ignored by printers without a cutter)
   return new Uint8Array(bytes);
@@ -152,7 +153,7 @@ function isPrinterLike(dev: any): boolean {
 export async function printEscPos(data: Uint8Array): Promise<void> {
   const usb = (navigator as any).usb;
   if (!isUsbPrintingSupported()) {
-    throw new Error("L'impression USB n'est disponible que dans Chrome sur sevizi.app (pas dans l'application Android).");
+    throw new Error(tr("L'impression USB n'est disponible que dans Chrome sur sevizi.app (pas dans l'application Android)."));
   }
   try {
     // A printer already authorised earlier is reused; otherwise Chrome shows
@@ -171,7 +172,7 @@ export async function printEscPos(data: Uint8Array): Promise<void> {
           if (out && (!ep || a.interfaceClass === 7)) { iface = i; alt = a; ep = out; }
         }
       }
-      if (!ep) throw new Error("Cette imprimante n'a pas de sortie USB utilisable.");
+      if (!ep) throw new Error(tr("Cette imprimante n'a pas de sortie USB utilisable."));
       await dev.claimInterface(iface.interfaceNumber);
       if (alt.alternateSetting !== 0) await dev.selectAlternateInterface(iface.interfaceNumber, alt.alternateSetting);
       for (let i = 0; i < data.length; i += 4096) {
@@ -182,9 +183,9 @@ export async function printEscPos(data: Uint8Array): Promise<void> {
       await dev.close().catch(() => {});
     }
   } catch (e: any) {
-    if (e?.name === 'NotFoundError') throw new Error('Aucune imprimante sélectionnée.');
+    if (e?.name === 'NotFoundError') throw new Error(tr('Aucune imprimante sélectionnée.'));
     if (e?.name === 'SecurityError' || e?.name === 'NetworkError' || /claim|access denied/i.test(e?.message ?? '')) {
-      throw new Error("Impossible d'accéder à l'imprimante. Débranchez-la puis rebranchez-la, fermez les autres programmes qui l'utilisent. Sous Windows, elle doit utiliser le pilote WinUSB.");
+      throw new Error(tr("Impossible d'accéder à l'imprimante. Débranchez-la puis rebranchez-la, fermez les autres programmes qui l'utilisent. Sous Windows, elle doit utiliser le pilote WinUSB."));
     }
     throw e;
   }

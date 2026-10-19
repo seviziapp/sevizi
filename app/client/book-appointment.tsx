@@ -10,6 +10,7 @@ import { Button } from '../../src/components/Button';
 import { fetchProviderServices, fetchAvailableSlots, createAppointmentInvoice, fetchAppointmentDepositStatus } from '../../src/lib/api';
 import type { ProviderService } from '../../src/lib/types';
 
+import { tr, locale } from '../../src/i18n';
 function nextDays(n: number): Date[] {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date();
@@ -78,7 +79,7 @@ export default function BookAppointment() {
         if (pollRef.current) clearInterval(pollRef.current);
       } else if (status === 'failed' || attempts >= 10) {
         setVerifying(false);
-        if (status === 'failed') setError("Le paiement de l'acompte n'a pas abouti. Choisissez à nouveau un créneau.");
+        if (status === 'failed') setError(tr("Le paiement de l'acompte n'a pas abouti. Choisissez à nouveau un créneau."));
         if (pollRef.current) clearInterval(pollRef.current);
       }
     }, 3000);
@@ -109,7 +110,7 @@ export default function BookAppointment() {
         }
       }
     } catch (e: any) {
-      setError(e.message ?? 'Échec de la réservation.');
+      setError(e.message ?? tr('Échec de la réservation.'));
     } finally {
       setBooking(false);
     }
@@ -124,11 +125,10 @@ export default function BookAppointment() {
               <Check size={36} color={colors.white} />
             </LinearGradient>
           </View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Rendez-vous confirmé !</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Rendez-vous confirmé !')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Vous recevrez une notification de rappel avant votre rendez-vous.
-          </Text>
-          <Button label="Voir mes rendez-vous" onPress={() => router.replace('/client/appointments')} style={{ marginTop: spacing.lg }} />
+            {tr('Vous recevrez une notification de rappel avant votre rendez-vous.')}</Text>
+          <Button label={tr('Voir mes rendez-vous')} onPress={() => router.replace('/client/appointments')} style={{ marginTop: spacing.lg }} />
         </View>
       </SafeAreaView>
     );
@@ -140,7 +140,7 @@ export default function BookAppointment() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]} numberOfLines={1}>{providerName ?? 'Rendez-vous'}</Text>
+        <Text style={[text.h2, { color: colors.encre }]} numberOfLines={1}>{providerName ?? tr('Rendez-vous')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -149,11 +149,11 @@ export default function BookAppointment() {
       ) : verifying ? (
         <View style={styles.confirmedWrap}>
           <ActivityIndicator color={colors.vert} />
-          <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.md }]}>Vérification du paiement de l'acompte…</Text>
+          <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.md }]}>{tr("Vérification du paiement de l'acompte…")}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={[text.label, { color: colors.textMuted }]}>1. CHOISISSEZ UN SERVICE</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>{tr('1. CHOISISSEZ UN SERVICE')}</Text>
           <View style={{ gap: spacing.sm }}>
             {services.map(s => (
               <Pressable
@@ -163,36 +163,36 @@ export default function BookAppointment() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]}>{s.name}</Text>
-                  <Text style={[text.small, { color: colors.textMuted }]}>{s.durationMinutes} min · {s.price.toLocaleString()} F{s.depositAmount > 0 ? ` · Acompte ${s.depositAmount.toLocaleString()} F` : ''}</Text>
+                  <Text style={[text.small, { color: colors.textMuted }]}>{s.durationMinutes} {tr('min ·')} {s.price.toLocaleString()} {tr('F')}{s.depositAmount > 0 ? tr(' · Acompte {v0} F', { v0: s.depositAmount.toLocaleString() }) : ''}</Text>
                 </View>
                 {selectedService?.id === s.id && <Check size={18} color={colors.vert} />}
               </Pressable>
             ))}
             {services.length === 0 && (
-              <Text style={[text.body, { color: colors.textMuted }]}>Ce prestataire n'a pas encore de services en ligne.</Text>
+              <Text style={[text.body, { color: colors.textMuted }]}>{tr("Ce prestataire n'a pas encore de services en ligne.")}</Text>
             )}
           </View>
 
           {selectedService && (
             <>
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>2. CHOISISSEZ UNE DATE</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('2. CHOISISSEZ UNE DATE')}</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
                 {days.map(d => {
                   const active = toDateKey(d) === toDateKey(selectedDate);
                   return (
                     <Pressable key={toDateKey(d)} style={[styles.dayChip, active && styles.dayChipActive]} onPress={() => setSelectedDate(d)}>
-                      <Text style={[text.small, { color: active ? colors.white : colors.textMuted }]}>{d.toLocaleDateString('fr-FR', { weekday: 'short' })}</Text>
+                      <Text style={[text.small, { color: active ? colors.white : colors.textMuted }]}>{d.toLocaleDateString(locale(), { weekday: 'short' })}</Text>
                       <Text style={[text.bodyMd, { color: active ? colors.white : colors.encre }]}>{d.getDate()}</Text>
                     </Pressable>
                   );
                 })}
               </ScrollView>
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>3. CHOISISSEZ UN CRÉNEAU</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('3. CHOISISSEZ UN CRÉNEAU')}</Text>
               {loadingSlots ? (
                 <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.md }} />
               ) : slots.length === 0 ? (
-                <Text style={[text.body, { color: colors.textMuted }]}>Aucun créneau disponible ce jour-là.</Text>
+                <Text style={[text.body, { color: colors.textMuted }]}>{tr('Aucun créneau disponible ce jour-là.')}</Text>
               ) : (
                 <View style={styles.slotGrid}>
                   {slots.map(iso => {
@@ -201,7 +201,7 @@ export default function BookAppointment() {
                       <Pressable key={iso} style={[styles.slot, active && styles.slotActive]} onPress={() => setSelectedSlot(iso)}>
                         <Clock size={13} color={active ? colors.white : colors.vert} />
                         <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>
-                          {new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                          {new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' })}
                         </Text>
                       </Pressable>
                     );
@@ -215,9 +215,7 @@ export default function BookAppointment() {
 
           {selectedService && selectedSlot && (
             <Button
-              label={booking ? 'Réservation…' : selectedService.depositAmount > 0
-                ? `Confirmer et payer l'acompte (${selectedService.depositAmount.toLocaleString()} F)`
-                : 'Confirmer le rendez-vous'}
+              label={booking ? tr('Réservation…') : selectedService.depositAmount > 0 ? tr("Confirmer et payer l'acompte ({v0} F)", { v0: selectedService.depositAmount.toLocaleString() }) : tr('Confirmer le rendez-vous')}
               onPress={onConfirm}
               loading={booking}
               style={{ marginTop: spacing.xl }}

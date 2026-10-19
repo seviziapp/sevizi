@@ -7,6 +7,7 @@ import { Linking, Platform } from 'react-native';
 import { computeLineTotal } from './types';
 import type { SevigoBusinessProfile, SevigoInvoice } from './types';
 
+import { locale, tr } from '../../i18n';
 export type SevigoDocument = {
   kind: 'invoice' | 'sale';
   number: string;
@@ -20,18 +21,18 @@ export type SevigoDocument = {
   paymentLabel?: string;
 };
 
-const fr = (n: number) => `${n.toLocaleString('fr-FR')} F`;
-export const documentTitle = (d: SevigoDocument) => (d.kind === 'invoice' ? 'FACTURE' : 'REÇU');
+const fr = (n: number) => `${n.toLocaleString(locale())} F`;
+export const documentTitle = (d: SevigoDocument) => (d.kind === 'invoice' ? tr('FACTURE') : tr('REÇU'));
 
 export function invoiceToDocument(inv: SevigoInvoice, biz: SevigoBusinessProfile | null): SevigoDocument {
   const adjustments: SevigoDocument['adjustments'] = [];
-  if (inv.discountPct) adjustments.push({ label: `Réduction (${inv.discountPct}%)`, amount: -Math.round(inv.subtotal * inv.discountPct / 100) });
-  if (inv.discountFlat) adjustments.push({ label: 'Réduction', amount: -inv.discountFlat });
-  const status: Record<string, string> = { paid: 'Payée', sent: 'En attente de paiement', overdue: 'En retard', draft: 'À régler' };
+  if (inv.discountPct) adjustments.push({ label: tr('Réduction ({pct}%)', { pct: inv.discountPct }), amount: -Math.round(inv.subtotal * inv.discountPct / 100) });
+  if (inv.discountFlat) adjustments.push({ label: tr('Réduction'), amount: -inv.discountFlat });
+  const status: Record<string, string> = { paid: tr('Payée'), sent: tr('En attente de paiement'), overdue: tr('En retard'), draft: tr('À régler') };
   return {
     kind: 'invoice', number: inv.number, date: new Date(inv.createdAt),
     business: {
-      name: biz?.businessName || 'Mon entreprise', logoUrl: biz?.logoUrl, email: biz?.contactEmail,
+      name: biz?.businessName || tr('Mon entreprise'), logoUrl: biz?.logoUrl, email: biz?.contactEmail,
       phone: biz?.contactPhone, address: biz?.address, accent: biz?.brandColor || undefined,
     },
     client: { name: inv.clientName, email: inv.clientEmail, phone: inv.clientContact },
@@ -43,23 +44,23 @@ export function invoiceToDocument(inv: SevigoInvoice, biz: SevigoBusinessProfile
 export function documentText(d: SevigoDocument): string {
   return [
     d.business.name,
-    `${d.kind === 'invoice' ? 'Facture' : 'Reçu'} ${d.number} — ${d.date.toLocaleDateString('fr-FR')}`,
-    ...(d.client ? [`Client : ${d.client.name}`] : []),
+    `${d.kind === 'invoice' ? tr('Facture') : tr('Reçu')} ${d.number} — ${d.date.toLocaleDateString(locale())}`,
+    ...(d.client ? [tr('Client : {name}', { name: d.client.name })] : []),
     '',
     ...d.lines.map(l => `${l.qty} × ${l.description} — ${fr(l.total)}`),
     '',
     ...d.adjustments.map(a => `${a.label} : ${fr(a.amount)}`),
-    `TOTAL : ${fr(d.total)}`,
-    ...(d.paymentLabel ? [`Paiement : ${d.paymentLabel}`] : []),
+    tr('TOTAL : {amount}', { amount: fr(d.total) }),
+    ...(d.paymentLabel ? [tr('Paiement : {label}', { label: d.paymentLabel })] : []),
     '',
-    'Merci !',
-    'Document généré avec Sèvi Go — go.sevizi.app',
+    tr('Merci !'),
+    tr('Document généré avec Sèvi Go — go.sevizi.app'),
   ].join('\n');
 }
 
 // mailto: link with the document in the body; opens the seller's mail app.
 export function documentMailto(d: SevigoDocument, to?: string): string {
-  const subject = `${d.kind === 'invoice' ? 'Facture' : 'Reçu'} ${d.number} — ${d.business.name}`;
+  const subject = `${d.kind === 'invoice' ? tr('Facture') : tr('Reçu')} ${d.number} — ${d.business.name}`;
   return `mailto:${encodeURIComponent(to ?? '')}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(documentText(d))}`;
 }
 export function openMailto(url: string): void {
@@ -81,7 +82,7 @@ const lockup = (markPx: number, textPx: number) =>
 export function documentHtml(d: SevigoDocument, format: 'a4' | 'receipt'): string {
   const accent = d.business.accent || '#0FA76A';
   const title = documentTitle(d);
-  const date = d.date.toLocaleDateString('fr-FR');
+  const date = d.date.toLocaleDateString(locale());
   const adj = d.adjustments.map(a => ({ ...a, txt: `-${fr(Math.abs(a.amount))}` }));
   const page = format === 'a4' ? '@page { size: A4; margin: 16mm; }' : '@page { size: 80mm auto; margin: 3mm; }';
 
@@ -93,7 +94,7 @@ export function documentHtml(d: SevigoDocument, format: 'a4' | 'receipt'): strin
     <div class="rule" style="background:${accent}"></div>
     <div class="two">
       <div>
-        <div class="label">${d.kind === 'invoice' ? 'ÉMETTEUR' : 'VENDEUR'}</div>
+        <div class="label">${d.kind === 'invoice' ? tr('ÉMETTEUR') : tr('VENDEUR')}</div>
         <div class="bizRow">
           ${d.business.logoUrl ? `<img src="${esc(d.business.logoUrl)}" class="blogo"/>` : ''}
           <div>
@@ -105,23 +106,23 @@ export function documentHtml(d: SevigoDocument, format: 'a4' | 'receipt'): strin
         </div>
       </div>
       <div>
-        <div class="label">${d.kind === 'invoice' ? 'FACTURÉ À' : 'CLIENT'}</div>
-        <div class="biz">${esc(d.client?.name || 'Client de passage')}</div>
+        <div class="label">${d.kind === 'invoice' ? tr('FACTURÉ À') : tr('CLIENT')}</div>
+        <div class="biz">${esc(d.client?.name || tr('Client de passage'))}</div>
         ${d.client?.email ? `<div class="muted">${esc(d.client.email)}</div>` : ''}
         ${d.client?.phone ? `<div class="muted">${esc(d.client.phone)}</div>` : ''}
       </div>
     </div>
     <table>
-      <thead><tr style="color:${accent}"><th>Description</th><th class="c">Qté</th><th class="r">Prix unitaire</th><th class="r">Total</th></tr></thead>
+      <thead><tr style="color:${accent}"><th>${tr('Description')}</th><th class="c">${tr('Qté')}</th><th class="r">${tr('Prix unitaire')}</th><th class="r">${tr('Total')}</th></tr></thead>
       <tbody>${d.lines.map(l => `<tr><td>${esc(l.description)}</td><td class="c">${l.qty}</td><td class="r">${fr(l.unitPrice)}</td><td class="r">${fr(l.total)}</td></tr>`).join('')}</tbody>
     </table>
     <div class="totals">
-      <div class="trow"><span>Sous-total</span><span>${fr(d.subtotal)}</span></div>
+      <div class="trow"><span>${tr('Sous-total')}</span><span>${fr(d.subtotal)}</span></div>
       ${adj.map(a => `<div class="trow"><span>${esc(a.label)}</span><span>${a.txt}</span></div>`).join('')}
-      <div class="trow grand" style="color:${accent}"><span>Total</span><span>${fr(d.total)}</span></div>
-      ${d.paymentLabel ? `<div class="trow"><span>Paiement</span><span>${esc(d.paymentLabel)}</span></div>` : ''}
+      <div class="trow grand" style="color:${accent}"><span>${tr('Total')}</span><span>${fr(d.total)}</span></div>
+      ${d.paymentLabel ? `<div class="trow"><span>${tr('Paiement')}</span><span>${esc(d.paymentLabel)}</span></div>` : ''}
     </div>
-    <div class="foot">${lockup(18, 14)}<span class="muted">Document généré avec Sèvi Go · go.sevizi.app</span></div>
+    <div class="foot">${lockup(18, 14)}<span class="muted">${tr('Document généré avec Sèvi Go · go.sevizi.app')}</span></div>
   `;
 
   const receipt = `
@@ -135,16 +136,16 @@ export function documentHtml(d: SevigoDocument, format: 'a4' | 'receipt'): strin
     </div>
     <div class="dash"></div>
     <div class="rrow"><span class="bold">${title} ${esc(d.number)}</span><span>${date}</span></div>
-    <div class="rrow"><span>Client</span><span class="bold">${esc(d.client?.name || 'Client de passage')}</span></div>
+    <div class="rrow"><span>${tr('Client')}</span><span class="bold">${esc(d.client?.name || tr('Client de passage'))}</span></div>
     <div class="dash"></div>
     ${d.lines.map(l => `<div class="rrow"><span>${esc(l.description)}${l.qty > 1 ? ` ×${l.qty}` : ''}</span><span>${fr(l.total)}</span></div>${l.qty > 1 ? `<div class="muted sub">${l.qty} × ${fr(l.unitPrice)}</div>` : ''}`).join('')}
     <div class="dash"></div>
-    ${adj.length ? `<div class="rrow"><span>Sous-total</span><span>${fr(d.subtotal)}</span></div>${adj.map(a => `<div class="rrow"><span>${esc(a.label)}</span><span>${a.txt}</span></div>`).join('')}` : ''}
-    <div class="rrow bold grandR"><span>TOTAL</span><span>${fr(d.total)}</span></div>
-    ${d.paymentLabel ? `<div class="rrow"><span>Paiement</span><span>${esc(d.paymentLabel)}</span></div>` : ''}
+    ${adj.length ? `<div class="rrow"><span>${tr('Sous-total')}</span><span>${fr(d.subtotal)}</span></div>${adj.map(a => `<div class="rrow"><span>${esc(a.label)}</span><span>${a.txt}</span></div>`).join('')}` : ''}
+    <div class="rrow bold grandR"><span>${tr('TOTAL')}</span><span>${fr(d.total)}</span></div>
+    ${d.paymentLabel ? `<div class="rrow"><span>${tr('Paiement')}</span><span>${esc(d.paymentLabel)}</span></div>` : ''}
     <div class="dash"></div>
-    <div class="center bold">Merci !</div>
-    <div class="center muted" style="margin-top:4px">Généré avec Sèvi Go · sevizi.app</div>
+    <div class="center bold">${tr('Merci !')}</div>
+    <div class="center muted" style="margin-top:4px">${tr('Généré avec Sèvi Go · go.sevizi.app')}</div>
   `;
 
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(title)} ${esc(d.number)}</title>

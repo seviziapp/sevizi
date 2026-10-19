@@ -16,6 +16,7 @@ import { printDocument, getPaperCols, setPaperCols, PaperCols } from '../lib/esc
 import { fetchThermalAccess } from '../lib/sevigo/thermal';
 import { reportError } from '../lib/reportError';
 
+import { tr } from '../i18n';
 export function DocumentActions({ doc, onEmailed }: { doc: SevigoDocument; onEmailed?: () => void }) {
   const isWeb = Platform.OS === 'web';
   const [thermal, setThermal] = useState(false);
@@ -33,49 +34,49 @@ export function DocumentActions({ doc, onEmailed }: { doc: SevigoDocument; onEma
   function printWeb(format: 'a4' | 'receipt') {
     setMsg(null);
     if (!printHtmlDocument(documentHtml(doc, format))) {
-      setMsg({ ok: false, t: "Le navigateur a bloqué la fenêtre d'impression. Autorisez les pop-ups pour ce site." });
+      setMsg({ ok: false, t: tr("Le navigateur a bloqué la fenêtre d'impression. Autorisez les pop-ups pour ce site.") });
     }
   }
 
   async function printUsb() {
     setMsg(null); setBusy(true);
-    try { setPaperCols(cols); await printDocument(doc); setMsg({ ok: true, t: "Ticket envoyé à l'imprimante." }); }
-    catch (e: any) { setMsg({ ok: false, t: e?.message ?? "Échec de l'impression." }); }
+    try { setPaperCols(cols); await printDocument(doc); setMsg({ ok: true, t: tr("Ticket envoyé à l'imprimante.") }); }
+    catch (e: any) { setMsg({ ok: false, t: e?.message ?? tr("Échec de l'impression.") }); }
     finally { setBusy(false); }
   }
 
   function sendEmail() {
     const to = email.trim();
-    if (!to.includes('@')) { setEmailOpen(true); setMsg({ ok: false, t: "Saisissez l'adresse e-mail du client." }); return; }
+    if (!to.includes('@')) { setEmailOpen(true); setMsg({ ok: false, t: tr("Saisissez l'adresse e-mail du client.") }); return; }
     openMailto(documentMailto(doc, to));
-    setEmailOpen(false); setMsg({ ok: true, t: 'Votre application e-mail va s’ouvrir avec le message prêt à envoyer.' });
+    setEmailOpen(false); setMsg({ ok: true, t: tr('Votre application e-mail va s’ouvrir avec le message prêt à envoyer.') });
     onEmailed?.();
   }
 
   async function shareOrCopy() {
     if (isWeb && typeof navigator !== 'undefined' && navigator.clipboard) {
-      await navigator.clipboard.writeText(documentText(doc)); setMsg({ ok: true, t: 'Copié dans le presse-papiers.' });
+      await navigator.clipboard.writeText(documentText(doc)); setMsg({ ok: true, t: tr('Copié dans le presse-papiers.') });
     } else { await Share.share({ message: documentText(doc) }); }
   }
 
   return (
     <View style={styles.wrap}>
       <View style={styles.grid}>
-        {isWeb && <Btn icon={<FileText size={16} color={colors.encre} />} label="Imprimer A4" onPress={() => printWeb('a4')} />}
-        {isWeb && <Btn icon={<Receipt size={16} color={colors.encre} />} label="Ticket 80 mm" onPress={() => printWeb('receipt')} />}
+        {isWeb && <Btn icon={<FileText size={16} color={colors.encre} />} label={tr('Imprimer A4')} onPress={() => printWeb('a4')} />}
+        {isWeb && <Btn icon={<Receipt size={16} color={colors.encre} />} label={tr('Ticket 80 mm')} onPress={() => printWeb('receipt')} />}
         {thermal && (
-          <Btn primary busy={busy} icon={<Printer size={16} color={colors.vert} />} label="Imprimante thermique (USB)" onPress={printUsb} />
+          <Btn primary busy={busy} icon={<Printer size={16} color={colors.vert} />} label={tr('Imprimante thermique (USB)')} onPress={printUsb} />
         )}
-        <Btn icon={<Mail size={16} color={colors.encre} />} label="E-mail au client" onPress={() => (emailOpen ? sendEmail() : (doc.client?.email ? sendEmail() : setEmailOpen(true)))} />
-        <Btn icon={isWeb ? <Copy size={16} color={colors.encre} /> : <Share2 size={16} color={colors.encre} />} label={isWeb ? 'Copier' : 'Partager'} onPress={shareOrCopy} />
+        <Btn icon={<Mail size={16} color={colors.encre} />} label={tr('E-mail au client')} onPress={() => (emailOpen ? sendEmail() : (doc.client?.email ? sendEmail() : setEmailOpen(true)))} />
+        <Btn icon={isWeb ? <Copy size={16} color={colors.encre} /> : <Share2 size={16} color={colors.encre} />} label={isWeb ? tr('Copier') : tr('Partager')} onPress={shareOrCopy} />
       </View>
 
       {thermal && (
         <View style={styles.paperRow}>
-          <Text style={[text.label, { color: colors.textMuted }]}>PAPIER THERMIQUE</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>{tr('PAPIER THERMIQUE')}</Text>
           {([32, 48] as PaperCols[]).map(c => (
             <Pressable key={c} style={[styles.chip, cols === c && styles.chipOn]} onPress={() => setCols(c)}>
-              <Text style={[text.label, { color: cols === c ? colors.white : colors.encre }]}>{c === 32 ? '58 mm' : '80 mm'}</Text>
+              <Text style={[text.label, { color: cols === c ? colors.white : colors.encre }]}>{c === 32 ? tr('58 mm') : tr('80 mm')}</Text>
             </Pressable>
           ))}
         </View>
@@ -83,9 +84,9 @@ export function DocumentActions({ doc, onEmailed }: { doc: SevigoDocument; onEma
 
       {emailOpen && (
         <View style={styles.emailRow}>
-          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder="E-mail du client" placeholderTextColor={colors.textMuted}
+          <TextInput style={styles.input} value={email} onChangeText={setEmail} placeholder={tr('E-mail du client')} placeholderTextColor={colors.textMuted}
             keyboardType="email-address" autoCapitalize="none" autoCorrect={false} />
-          <Pressable style={styles.sendBtn} onPress={sendEmail}><Text style={[text.small, { color: colors.white }]}>Envoyer</Text></Pressable>
+          <Pressable style={styles.sendBtn} onPress={sendEmail}><Text style={[text.small, { color: colors.white }]}>{tr('Envoyer')}</Text></Pressable>
         </View>
       )}
 

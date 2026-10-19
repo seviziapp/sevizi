@@ -1,3 +1,4 @@
+import { agoText } from '../../src/lib/format';
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,22 +9,16 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchMyRequestsWithOffers } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 type Req = ServiceRequest & { offersCount: number };
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
-  ouverte:  { label: 'Ouverte',     color: colors.vert },
-  en_cours: { label: 'En cours',    color: colors.soleil },
-  terminee: { label: 'Terminée',    color: colors.textMuted },
-  annulee:  { label: 'Annulée',     color: colors.terre },
+  ouverte:  { get label() { return tr('Ouverte'); },     color: colors.vert },
+  en_cours: { get label() { return tr('En cours'); },    color: colors.soleil },
+  terminee: { get label() { return tr('Terminée'); },    color: colors.textMuted },
+  annulee:  { get label() { return tr('Annulée'); },     color: colors.terre },
 };
 
-function timeAgo(iso: string) {
-  const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
-  if (mins < 60) return `il y a ${mins} min`;
-  const h = Math.floor(mins / 60);
-  if (h < 24) return `il y a ${h}h`;
-  return `il y a ${Math.floor(h / 24)}j`;
-}
 
 export default function MyRequests() {
   const router = useRouter();
@@ -50,7 +45,7 @@ export default function MyRequests() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.replace('/client/home')}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes demandes</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes demandes')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -60,11 +55,10 @@ export default function MyRequests() {
         <View style={styles.empty}>
           <Inbox size={48} color={colors.border} />
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Vous n'avez pas encore publié de demande.
-          </Text>
+            {tr("Vous n'avez pas encore publié de demande.")}</Text>
           <Pressable style={styles.cta} onPress={() => router.push('/client/new-request')}>
             <Plus size={18} color={colors.white} />
-            <Text style={[text.bodyMd, { color: colors.white }]}>Nouvelle demande</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Nouvelle demande')}</Text>
           </Pressable>
         </View>
       ) : (
@@ -88,7 +82,7 @@ export default function MyRequests() {
                 <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{r.description}</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {cat?.label} · {timeAgo(r.createdAt)}
+                    {cat?.label} · {agoText(r.createdAt)}
                   </Text>
                   <View style={styles.badges}>
                     <View style={[styles.statusBadge, { borderColor: st.color }]}>
@@ -97,7 +91,7 @@ export default function MyRequests() {
                     {r.status === 'ouverte' && (
                       <View style={[styles.offersBadge, r.offersCount > 0 && styles.offersBadgeActive]}>
                         <Text style={[text.label, { color: r.offersCount > 0 ? colors.white : colors.textMuted }]}>
-                          {r.offersCount} offre{r.offersCount > 1 ? 's' : ''}
+                          {r.offersCount} {tr('offre')}{r.offersCount > 1 ? 's' : ''}
                         </Text>
                       </View>
                     )}

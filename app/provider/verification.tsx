@@ -9,6 +9,7 @@ import { pickFile } from '../../src/lib/pickFile';
 import { uploadDocument, submitProviderVerification, fetchMyVerificationStatus, fetchMyProviderProfile } from '../../src/lib/api';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function ProviderVerification() {
   const router = useRouter();
   const [status, setStatus] = useState<'none' | 'pending' | 'approved' | 'rejected'>('none');
@@ -32,21 +33,21 @@ export default function ProviderVerification() {
   async function upload(which: 'trade' | 'id') {
     setError('');
     const file = await pickFile();
-    if (!file) { setError('Sélection de fichier indisponible sur cet appareil.'); return; }
+    if (!file) { setError(tr('Sélection de fichier indisponible sur cet appareil.')); return; }
     setUploading(which);
     try {
       const url = await uploadDocument(file.blob, which === 'trade' ? 'trade-docs' : 'id-docs', file.name);
       if (which === 'trade') setTradeDoc({ name: file.name, url });
       else setIdDoc({ name: file.name, url });
     } catch (e: any) {
-      setError(e.message ?? 'Échec du téléversement.');
+      setError(e.message ?? tr('Échec du téléversement.'));
     } finally {
       setUploading(null);
     }
   }
 
   async function submit() {
-    if (!tradeDoc && !idDoc) { setError('Téléversez votre pièce d\'identité ou votre carte CFE : l\'équipe doit vérifier qu\'elle correspond à votre nom.'); return; }
+    if (!tradeDoc && !idDoc) { setError(tr("Téléversez votre pièce d'identité ou votre carte CFE : l'équipe doit vérifier qu'elle correspond à votre nom.")); return; }
     setError('');
     setSubmitting(true);
     try {
@@ -57,7 +58,7 @@ export default function ProviderVerification() {
       });
       setStatus('pending');
     } catch (e: any) {
-      setError(e.message ?? 'Échec de l\'envoi.');
+      setError(e.message ?? tr("Échec de l'envoi."));
     } finally {
       setSubmitting(false);
     }
@@ -69,7 +70,7 @@ export default function ProviderVerification() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Vérification</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Vérification')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -79,33 +80,32 @@ export default function ProviderVerification() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {alreadyVerified ? (
             <StatusCard color={colors.vert} icon={<ShieldCheck size={28} color={colors.vert} />}
-              title="Entreprise vérifiée" body="Votre profil affiche le badge vérifié auprès des clients." />
+              title={tr('Entreprise vérifiée')} body={tr('Votre profil affiche le badge vérifié auprès des clients.')} />
           ) : status === 'pending' ? (
             <StatusCard color={colors.soleil} icon={<Clock size={28} color={colors.soleil} />}
-              title="Vérification en cours" body="Notre équipe examine vos documents. Vous pouvez continuer à utiliser Sèvizi entre-temps." />
+              title={tr('Vérification en cours')} body={tr('Notre équipe examine vos documents. Vous pouvez continuer à utiliser Sèvizi entre-temps.')} />
           ) : status === 'rejected' ? (
             <StatusCard color={colors.terre} icon={<FileText size={28} color={colors.terre} />}
-              title="Demande refusée" body="Vos documents n'ont pas pu être validés. Vous pouvez soumettre à nouveau ci-dessous." />
+              title={tr('Demande refusée')} body={tr("Vos documents n'ont pas pu être validés. Vous pouvez soumettre à nouveau ci-dessous.")} />
           ) : (
             <StatusCard color={colors.encre} icon={<ShieldCheck size={28} color={colors.vert} />}
-              title="Devenez prestataire vérifié" body="Le badge vérifié rassure les clients et augmente vos chances d'être choisi. Facultatif." />
+              title={tr('Devenez prestataire vérifié')} body={tr("Le badge vérifié rassure les clients et augmente vos chances d'être choisi. Facultatif.")} />
           )}
 
           {!alreadyVerified && !isPro && status !== 'pending' && (
             <Pressable style={styles.upsell} onPress={() => router.push('/provider/upgrade')}>
               <Crown size={14} color={colors.soleil} fill={colors.soleil} />
               <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-                Passez à Sèvizi Pro pour un badge vérifié immédiat, sans attendre l'examen des documents.
-              </Text>
+                {tr("Passez à Sèvizi Pro pour un badge vérifié immédiat, sans attendre l'examen des documents.")}</Text>
             </Pressable>
           )}
 
           {!alreadyVerified && status !== 'pending' && (
             <>
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>INFORMATIONS DE L'ENTREPRISE</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr("INFORMATIONS DE L'ENTREPRISE")}</Text>
               <TextInput
                 style={styles.textarea}
-                placeholder="Numéro de registre du commerce, adresse, années d'activité…"
+                placeholder={tr("Numéro de registre du commerce, adresse, années d'activité…")}
                 placeholderTextColor={colors.textMuted}
                 value={companyInfo}
                 onChangeText={setCompanyInfo}
@@ -114,19 +114,18 @@ export default function ProviderVerification() {
               />
 
               <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.lg }]}>
-                Téléversez au moins un des deux documents ci-dessous. Le nom qui y figure doit correspondre à celui de votre compte.
-              </Text>
+                {tr('Téléversez au moins un des deux documents ci-dessous. Le nom qui y figure doit correspondre à celui de votre compte.')}</Text>
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.md }]}>CARTE CFE / LICENCE</Text>
-              <UploadRow label={tradeDoc?.name ?? 'Téléverser la carte CFE ou la licence'} done={!!tradeDoc} busy={uploading === 'trade'} onPress={() => upload('trade')} />
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.md }]}>{tr('CARTE CFE / LICENCE')}</Text>
+              <UploadRow label={tradeDoc?.name ?? tr('Téléverser la carte CFE ou la licence')} done={!!tradeDoc} busy={uploading === 'trade'} onPress={() => upload('trade')} />
 
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>PIÈCE D'IDENTITÉ</Text>
-              <UploadRow label={idDoc?.name ?? 'Téléverser une pièce d\'identité'} done={!!idDoc} busy={uploading === 'id'} onPress={() => upload('id')} />
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr("PIÈCE D'IDENTITÉ")}</Text>
+              <UploadRow label={idDoc?.name ?? tr("Téléverser une pièce d'identité")} done={!!idDoc} busy={uploading === 'id'} onPress={() => upload('id')} />
 
               {!!error && <Text style={styles.error}>{error}</Text>}
 
               <View style={{ height: spacing.xl }} />
-              <Button label="Envoyer pour vérification" onPress={submit} loading={submitting} />
+              <Button label={tr('Envoyer pour vérification')} onPress={submit} loading={submitting} />
             </>
           )}
         </ScrollView>

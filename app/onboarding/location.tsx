@@ -9,6 +9,7 @@ import { saveMyAddress } from '../../src/lib/api';
 import { getCurrentPosition } from '../../src/lib/geolocation';
 import type { GeoPoint } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 // Approximate centers for each quartier — good enough for "nearby" matching
 // when a user picks a named area instead of sharing live GPS.
 const QUARTIER_COORDS: Record<string, GeoPoint> = {
@@ -42,7 +43,7 @@ export default function LocationScreen() {
     const point = await getCurrentPosition();
     setLocating(false);
     if (!point) {
-      setError('Localisation indisponible. Autorisez l\'accès à votre position ou choisissez un quartier.');
+      setError(tr("Localisation indisponible. Autorisez l'accès à votre position ou choisissez un quartier."));
       return;
     }
     setGpsPoint(point);
@@ -67,16 +68,15 @@ export default function LocationScreen() {
           <MapPin size={32} color={colors.vert} />
         </View>
 
-        <Text style={[text.h1, { color: colors.encre }]}>Votre quartier</Text>
+        <Text style={[text.h1, { color: colors.encre }]}>{tr('Votre quartier')}</Text>
         <Text style={[text.body, { color: colors.textMuted }]}>
-          Pour trouver des prestataires proches, indiquez votre zone dans Lomé.
-        </Text>
+          {tr('Pour trouver des prestataires proches, indiquez votre zone dans Lomé.')}</Text>
 
         <View style={styles.searchBox}>
           <Search size={18} color={colors.textMuted} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher un quartier…"
+            placeholder={tr('Rechercher un quartier…')}
             placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={setSearch}
@@ -90,8 +90,8 @@ export default function LocationScreen() {
             {locating ? <ActivityIndicator size="small" color={colors.vert} /> : <Navigation size={18} color={colors.vert} />}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={[text.bodyMd, { color: colors.encre }]}>Utiliser ma position GPS</Text>
-            <Text style={[text.small, { color: colors.textMuted }]}>Localisation précise en temps réel</Text>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Utiliser ma position GPS')}</Text>
+            <Text style={[text.small, { color: colors.textMuted }]}>{tr('Localisation précise en temps réel')}</Text>
           </View>
           {selected === 'Ma position GPS' && !locating && (
             <View style={styles.check}><Check size={16} color={colors.vert} /></View>
@@ -109,7 +109,7 @@ export default function LocationScreen() {
                 onPress={() => { setSelected(q); setError(''); }}
               >
                 <MapPin size={16} color={selected === q ? colors.vert : colors.textMuted} />
-                <Text style={[text.body, { color: colors.encre, flex: 1 }]}>{q}, Lomé</Text>
+                <Text style={[text.body, { color: colors.encre, flex: 1 }]}>{q}{tr(', Lomé')}</Text>
                 {selected === q && <Check size={15} color={colors.vert} />}
               </Pressable>
             ))}
@@ -117,7 +117,7 @@ export default function LocationScreen() {
         </ScrollView>
 
         <Button
-          label="Confirmer"
+          label={tr('Confirmer')}
           icon={<ArrowRight size={20} color={colors.white} />}
           onPress={confirm}
           loading={saving}

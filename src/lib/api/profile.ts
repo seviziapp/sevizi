@@ -8,6 +8,7 @@ import { getCurrentPosition } from '../geolocation';
 import { LOME, hasSupabase, currentUser } from './shared';
 import { redeemReferralCode } from './referral';
 
+import { tr } from '../../i18n';
 // ---- PROFILE ----
 
 export type MyProfile = {
@@ -98,7 +99,7 @@ const MIME_BY_EXT: Record<string, string> = {
 
 export async function uploadDocument(blob: Blob, folder: string, filename: string): Promise<string> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const ext = (filename.split('.').pop() || 'jpg').toLowerCase();
   const path = `${folder}/${user.id}-${Date.now()}.${ext}`;
   const contentType = MIME_BY_EXT[ext] ?? (blob as Blob).type ?? 'application/octet-stream';
@@ -116,7 +117,7 @@ export async function uploadDocument(blob: Blob, folder: string, filename: strin
 // Client finishes signup: first/last name, phone, email, optional referral code.
 export async function saveClientDetails(input: { firstName: string; lastName: string; phone: string; email: string; referralCode?: string }): Promise<void> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const fullName = `${input.firstName} ${input.lastName}`.trim();
   // Try the full column set; if the extended columns aren't present yet
   // (migration not run), fall back to the base columns so signup still saves.
@@ -145,7 +146,7 @@ export async function saveProviderDetails(input: {
   referralCode?: string;
 }): Promise<void> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const fullName = `${input.firstName} ${input.lastName}`.trim();
 
   // 1) Business row FIRST — uses only base columns, so onboarding completes
@@ -184,7 +185,7 @@ export async function saveProviderDetails(input: {
 // Client submits ID for verification.
 export async function submitClientVerification(idDocUrl: string): Promise<void> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
   await supabase.from('profiles').update({ id_doc_url: idDocUrl }).eq('id', user.id);
   const { error } = await supabase.from('verification_requests').insert({
@@ -200,9 +201,9 @@ export async function submitClientVerification(idDocUrl: string): Promise<void> 
 // Provider submits company info + owner's license for verification.
 export async function submitProviderVerification(input: { companyInfo: string; tradeDocUrl?: string; idDocUrl?: string }): Promise<void> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: provider } = await supabase.from('providers').select('id, name').eq('user_id', user.id).single();
-  if (!provider) throw new Error('Profil prestataire introuvable');
+  if (!provider) throw new Error(tr('Profil prestataire introuvable'));
   const { error } = await supabase.from('verification_requests').insert({
     user_id: user.id,
     provider_id: provider.id,
@@ -257,7 +258,7 @@ export async function fetchMyProviderProfile(): Promise<Provider | null> {
 export async function updateProviderProfile(input: { name?: string; bio?: string; gallery?: string[]; category?: ServiceCategory; categories?: ServiceCategory[]; yearsActive?: number }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const patch: any = {};
   if (input.name !== undefined) patch.name = input.name;
   if (input.bio !== undefined) patch.bio = input.bio;
@@ -289,15 +290,15 @@ export async function isUsernameAvailable(username: string): Promise<boolean> {
 export async function updateProviderUsername(username: string): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   if (!isValidUsername(username)) {
-    throw new Error('3 à 30 caractères : lettres minuscules, chiffres et tirets uniquement.');
+    throw new Error(tr('3 à 30 caractères : lettres minuscules, chiffres et tirets uniquement.'));
   }
   const { error } = await supabase.from('providers').update({ username }).eq('user_id', user.id);
   if (error) {
     // Postgres unique_violation — someone claimed it between the availability
     // check and this save.
-    if ((error as any).code === '23505') throw new Error('Ce nom est déjà pris. Essayez-en un autre.');
+    if ((error as any).code === '23505') throw new Error(tr('Ce nom est déjà pris. Essayez-en un autre.'));
     throw error;
   }
 }

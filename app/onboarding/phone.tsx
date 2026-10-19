@@ -9,6 +9,7 @@ import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { Button } from '../../src/components/Button';
 
+import { tr } from '../../src/i18n';
 const COUNTRY_CODES = [
   { iso: 'TG', code: '+228', country: 'Togo' },
   { iso: 'BJ', code: '+229', country: 'Bénin' },
@@ -39,10 +40,9 @@ export default function PhoneScreen() {
           <Logo size={52} />
 
           <View style={{ marginTop: spacing.xxl }}>
-            <Text style={[text.h1, { color: colors.encre }]}>Votre numéro{'\n'}de téléphone</Text>
+            <Text style={[text.h1, { color: colors.encre }]}>{tr('Votre numéro')}{'\n'}{tr('de téléphone')}</Text>
             <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.sm }]}>
-              Nous vous envoyons un code par SMS pour vérifier votre identité.
-            </Text>
+              {tr('Nous vous envoyons un code par SMS pour vérifier votre identité.')}</Text>
           </View>
 
           <View style={styles.field}>
@@ -71,14 +71,14 @@ export default function PhoneScreen() {
           </View>
 
           <Text style={[text.small, { color: colors.textMuted }]}>
-            En continuant, vous acceptez nos{' '}
-            <Text style={{ color: colors.vert }}>Conditions d'utilisation</Text>.
+            {tr('En continuant, vous acceptez nos')}{' '}
+            <Text style={{ color: colors.vert }}>{tr("Conditions d'utilisation")}</Text>.
           </Text>
 
           <View style={{ flex: 1 }} />
 
           <Button
-            label="Recevoir le code"
+            label={tr('Recevoir le code')}
             icon={<ArrowRight size={20} color={colors.white} />}
             onPress={sendOTP}
             loading={loading}

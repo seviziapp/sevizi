@@ -9,13 +9,14 @@ import type { Job, JobStatus } from '../../src/lib/types';
 import { LOME } from '../../src/lib/api';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
 const STEPS: { key: JobStatus; label: string; desc: string; Icon: StepIcon }[] = [
-  { key: 'accepte',  label: 'Accepté',     desc: 'Le prestataire a accepté votre demande',    Icon: Handshake },
-  { key: 'en_route', label: 'En route',    desc: 'Le prestataire est en chemin vers vous',    Icon: Car },
-  { key: 'arrive',   label: 'Arrivé',      desc: 'Le prestataire est arrivé à votre adresse', Icon: MapPin },
-  { key: 'en_cours', label: 'En cours',    desc: 'La mission est en cours de réalisation',    Icon: Wrench },
-  { key: 'termine',  label: 'Terminé',     desc: 'Mission accomplie !',                       Icon: Flag },
+  { key: 'accepte',  get label() { return tr('Accepté'); },     get desc() { return tr('Le prestataire a accepté votre demande'); },    Icon: Handshake },
+  { key: 'en_route', get label() { return tr('En route'); },    get desc() { return tr('Le prestataire est en chemin vers vous'); },    Icon: Car },
+  { key: 'arrive',   get label() { return tr('Arrivé'); },      get desc() { return tr('Le prestataire est arrivé à votre adresse'); }, Icon: MapPin },
+  { key: 'en_cours', get label() { return tr('En cours'); },    get desc() { return tr('La mission est en cours de réalisation'); },    Icon: Wrench },
+  { key: 'termine',  get label() { return tr('Terminé'); },     get desc() { return tr('Mission accomplie !'); },                       Icon: Flag },
 ];
 
 export default function JobStatus() {
@@ -42,7 +43,7 @@ export default function JobStatus() {
       const msg = e?.message ?? '';
       // duplicate review (unique constraint) — treat as already done
       if (/duplicate|unique/i.test(msg)) { router.replace('/client/home'); return; }
-      setReviewError(msg || "Impossible d'envoyer l'avis. Réessayez.");
+      setReviewError(msg || tr("Impossible d'envoyer l'avis. Réessayez."));
       setSubmitting(false);
     }
   }
@@ -54,9 +55,9 @@ export default function JobStatus() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md }}>
           <Search size={44} color={colors.border} />
-          <Text style={[text.body, { color: colors.textMuted }]}>Aucune mission en cours.</Text>
+          <Text style={[text.body, { color: colors.textMuted }]}>{tr('Aucune mission en cours.')}</Text>
           <Pressable style={styles.backBtn} onPress={() => router.replace('/client/home')}>
-            <Text style={[text.bodyMd, { color: colors.vert }]}>Retour à l'accueil</Text>
+            <Text style={[text.bodyMd, { color: colors.vert }]}>{tr("Retour à l'accueil")}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -80,9 +81,9 @@ export default function JobStatus() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.reviewScreen}>
           <Star size={52} color={colors.soleil} fill={colors.soleil} />
-          <Text style={[text.h1, { color: colors.encre, textAlign: 'center' }]}>Mission terminée !</Text>
+          <Text style={[text.h1, { color: colors.encre, textAlign: 'center' }]}>{tr('Mission terminée !')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Notez votre expérience avec {providerName}
+            {tr('Notez votre expérience avec')} {providerName}
           </Text>
           <View style={styles.starsRow}>
             {[1, 2, 3, 4, 5].map(i => (
@@ -93,7 +94,7 @@ export default function JobStatus() {
           </View>
           <TextInput
             style={styles.reviewInput}
-            placeholder="Ajoutez un commentaire (facultatif)…"
+            placeholder={tr('Ajoutez un commentaire (facultatif)…')}
             placeholderTextColor={colors.textMuted}
             value={comment}
             onChangeText={setComment}
@@ -108,10 +109,10 @@ export default function JobStatus() {
           >
             {submitting
               ? <ActivityIndicator color={colors.white} />
-              : <Text style={[text.bodyMd, { color: colors.white }]}>Envoyer mon avis</Text>}
+              : <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Envoyer mon avis')}</Text>}
           </Pressable>
           <Pressable onPress={() => router.replace('/client/home')} disabled={submitting}>
-            <Text style={[text.small, { color: colors.textMuted }]}>Passer</Text>
+            <Text style={[text.small, { color: colors.textMuted }]}>{tr('Passer')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -124,7 +125,7 @@ export default function JobStatus() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Suivi de mission</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Suivi de mission')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -132,7 +133,7 @@ export default function JobStatus() {
         {/* Provider card */}
         <View style={styles.providerCard}>
           <View style={styles.providerAvatar}>
-            <Text style={[text.h2, { color: colors.creme }]}>{providerName[0]?.toUpperCase() ?? 'P'}</Text>
+            <Text style={[text.h2, { color: colors.creme }]}>{providerName[0]?.toUpperCase() ?? tr('P')}</Text>
           </View>
           <View style={{ flex: 1 }}>
             <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName}</Text>
@@ -152,14 +153,13 @@ export default function JobStatus() {
         <View style={styles.safetyBanner}>
           <ShieldAlert size={14} color={colors.vertDark} />
           <Text style={[text.label, { color: colors.vertDark, flex: 1 }]}>
-            Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le prestataire.
-          </Text>
+            {tr('Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le prestataire.')}</Text>
         </View>
 
         {/* Price & payment */}
         <View style={styles.priceRow}>
-          <Text style={[text.body, { color: colors.textMuted }]}>Montant convenu</Text>
-          <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{job.price.toLocaleString('fr-FR')} F CFA</Text>
+          <Text style={[text.body, { color: colors.textMuted }]}>{tr('Montant convenu')}</Text>
+          <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{job.price.toLocaleString(locale())} {tr('F CFA')}</Text>
         </View>
 
         {/* Map placeholder */}
@@ -168,12 +168,11 @@ export default function JobStatus() {
           <View style={styles.mapCoord}>
             <Navigation size={12} color={colors.creme} />
             <Text style={[text.label, { color: colors.creme }]}>
-              {LOME.lat.toFixed(4)}° N · {LOME.lng.toFixed(4)}° E
-            </Text>
+              {LOME.lat.toFixed(4)}{tr('° N ·')} {LOME.lng.toFixed(4)}{tr('° E')}</Text>
           </View>
           <Pressable style={styles.navBtn} onPress={navigate}>
             <Navigation size={16} color={colors.white} />
-            <Text style={[text.small, { color: colors.white }]}>Naviguer</Text>
+            <Text style={[text.small, { color: colors.white }]}>{tr('Naviguer')}</Text>
           </Pressable>
         </View>
 
@@ -206,20 +205,19 @@ export default function JobStatus() {
         {job.status === 'termine' ? (
           <Pressable style={styles.reviewBtn} onPress={() => setShowReview(true)}>
             <Star size={18} color={colors.white} />
-            <Text style={[text.bodyMd, { color: colors.white }]}>Laisser un avis</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Laisser un avis')}</Text>
           </Pressable>
         ) : (
           <View style={styles.bottomNote}>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Le prestataire mettra à jour le statut en temps réel.
-            </Text>
+              {tr('Le prestataire mettra à jour le statut en temps réel.')}</Text>
           </View>
         )}
 
         {/* Signal a problem → admin */}
         <Pressable style={styles.reportBtn} onPress={() => router.push({ pathname: '/shared/report-problem', params: { jobId: job.id } })}>
           <AlertTriangle size={16} color={colors.terre} />
-          <Text style={[text.bodyMd, { color: colors.terre }]}>Signaler un problème</Text>
+          <Text style={[text.bodyMd, { color: colors.terre }]}>{tr('Signaler un problème')}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

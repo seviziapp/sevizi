@@ -13,6 +13,7 @@ import { computeCommission, formatCommissionPct } from '../../src/lib/pricing';
 import { CATEGORIES } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 const ETA_CHIPS = ['Sous 30 min', 'Sous 1h', 'Sous 2h', 'Aujourd\'hui', 'Demain matin'];
 
 export default function SendOffer() {
@@ -51,10 +52,8 @@ export default function SendOffer() {
       router.back();
     } catch (e: any) {
       const msg = e?.message ?? '';
-      if (msg === 'Non connecté') { router.replace('/onboarding/auth'); return; }
-      setError(msg === 'Profil prestataire introuvable'
-        ? 'Complétez votre profil prestataire avant d\'envoyer une offre.'
-        : (msg || "Impossible d'envoyer l'offre. Réessayez."));
+      if (msg === tr('Non connecté')) { router.replace('/onboarding/auth'); return; }
+      setError(msg === 'Profil prestataire introuvable' ? tr("Complétez votre profil prestataire avant d'envoyer une offre.") : (msg || tr("Impossible d'envoyer l'offre. Réessayez.")));
     } finally {
       setLoading(false);
     }
@@ -66,7 +65,7 @@ export default function SendOffer() {
         <Pressable style={styles.close} onPress={() => router.back()}>
           <X size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Envoyer une offre</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Envoyer une offre')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -78,7 +77,7 @@ export default function SendOffer() {
             <View style={{ flex: 1 }}>
               <Text style={[text.bodyMd, { color: colors.encre }]}>{cat?.label}</Text>
               <Text style={[text.small, { color: colors.textMuted }]} numberOfLines={2}>
-                {description ?? 'Fuite sous l\'évier de la cuisine.'}
+                {description ?? tr("Fuite sous l'évier de la cuisine.")}
               </Text>
             </View>
           </View>
@@ -91,16 +90,14 @@ export default function SendOffer() {
               <View style={styles.bidsBox}>
                 <Crown size={14} color={colors.soleil} fill={colors.soleil} />
                 <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-                  {bidStats.count} autre{bidStats.count > 1 ? 's' : ''} offre{bidStats.count > 1 ? 's' : ''} déjà envoyée{bidStats.count > 1 ? 's' : ''} · min {bidStats.min.toLocaleString('fr-FR')} F · moy {bidStats.avg.toLocaleString('fr-FR')} F · max {bidStats.max.toLocaleString('fr-FR')} F
-                </Text>
+                  {bidStats.count} {tr('autre')}{bidStats.count > 1 ? 's' : ''} {tr('offre')}{bidStats.count > 1 ? 's' : ''} {tr('déjà envoyée')}{bidStats.count > 1 ? 's' : ''} {tr('· min')} {bidStats.min.toLocaleString(locale())} {tr('F · moy')} {bidStats.avg.toLocaleString(locale())} {tr('F · max')} {bidStats.max.toLocaleString(locale())} {tr('F')}</Text>
               </View>
             )
           ) : (
             <Pressable style={styles.bidsBoxLocked} onPress={() => router.push('/provider/upgrade')}>
               <Lock size={14} color={colors.textMuted} />
               <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
-                Passez à Sèvizi Pro pour voir les offres des autres prestataires sur cette demande.
-              </Text>
+                {tr('Passez à Sèvizi Pro pour voir les offres des autres prestataires sur cette demande.')}</Text>
             </Pressable>
           )}
 
@@ -110,17 +107,16 @@ export default function SendOffer() {
               {visitRequired && <MapPin size={12} color={colors.white} />}
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>Visite sur place nécessaire</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Visite sur place nécessaire')}</Text>
               <Text style={[text.small, { color: colors.textMuted }]}>
-                Je ne peux pas donner de prix ferme sans voir le chantier — j'envoie une estimation.
-              </Text>
+                {tr("Je ne peux pas donner de prix ferme sans voir le chantier — j'envoie une estimation.")}</Text>
             </View>
           </Pressable>
 
           {/* Price */}
           <View style={styles.field}>
             <Text style={[text.label, { color: colors.textMuted }]}>
-              {visitRequired ? 'ESTIMATION — À PARTIR DE (FCFA)' : 'VOTRE PRIX (FCFA)'}
+              {visitRequired ? tr('ESTIMATION — À PARTIR DE (FCFA)') : tr('VOTRE PRIX (FCFA)')}
             </Text>
             <View style={styles.priceRow}>
               <TextInput
@@ -132,13 +128,13 @@ export default function SendOffer() {
                 onChangeText={setPrice}
                 autoFocus
               />
-              <Text style={[text.h3, { color: colors.textMuted }]}>F CFA</Text>
+              <Text style={[text.h3, { color: colors.textMuted }]}>{tr('F CFA')}</Text>
             </View>
           </View>
 
           {visitRequired && (
             <View style={styles.field}>
-              <Text style={[text.label, { color: colors.textMuted }]}>JUSQU'À (FCFA, OPTIONNEL)</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{tr("JUSQU'À (FCFA, OPTIONNEL)")}</Text>
               <View style={styles.priceRow}>
                 <TextInput
                   style={styles.priceInput}
@@ -148,7 +144,7 @@ export default function SendOffer() {
                   value={priceMax}
                   onChangeText={setPriceMax}
                 />
-                <Text style={[text.h3, { color: colors.textMuted }]}>F CFA</Text>
+                <Text style={[text.h3, { color: colors.textMuted }]}>{tr('F CFA')}</Text>
               </View>
             </View>
           )}
@@ -158,7 +154,7 @@ export default function SendOffer() {
             <View style={styles.fieldLabel}>
               <Clock size={14} color={colors.textMuted} />
               <Text style={[text.label, { color: colors.textMuted }]}>
-                {visitRequired ? 'DISPONIBILITÉ POUR LA VISITE' : 'DISPONIBILITÉ'}
+                {visitRequired ? tr('DISPONIBILITÉ POUR LA VISITE') : tr('DISPONIBILITÉ')}
               </Text>
             </View>
             <View style={styles.chips}>
@@ -176,10 +172,10 @@ export default function SendOffer() {
 
           {/* Optional note */}
           <View style={styles.field}>
-            <Text style={[text.label, { color: colors.textMuted }]}>NOTE (OPTIONNEL)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('NOTE (OPTIONNEL)')}</Text>
             <TextInput
               style={styles.textarea}
-              placeholder="Présentez-vous brièvement ou précisez votre offre…"
+              placeholder={tr('Présentez-vous brièvement ou précisez votre offre…')}
               placeholderTextColor={colors.textMuted}
               multiline
               value={note}
@@ -192,35 +188,30 @@ export default function SendOffer() {
           {price ? (
             <View style={styles.preview}>
               <Text style={[text.label, { color: colors.textMuted }]}>
-                {visitRequired ? 'APERÇU DE VOTRE ESTIMATION' : 'APERÇU DE VOTRE OFFRE'}
+                {visitRequired ? tr('APERÇU DE VOTRE ESTIMATION') : tr('APERÇU DE VOTRE OFFRE')}
               </Text>
               <View style={styles.previewCard}>
                 <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>
-                  {visitRequired
-                    ? `À partir de ${parseInt(price || '0', 10).toLocaleString('fr-FR')} F${priceMax ? ` – ${parseInt(priceMax, 10).toLocaleString('fr-FR')} F` : ''}`
-                    : `${parseInt(price || '0', 10).toLocaleString('fr-FR')} F`}
+                  {visitRequired ? tr('À partir de {v0} F', { v0: parseInt(price || '0', 10).toLocaleString(locale()) }) + (priceMax ? ` – ${parseInt(priceMax, 10).toLocaleString(locale())} F` : '') : tr('{v0} F', { v0: parseInt(price || '0', 10).toLocaleString(locale()) })}
                 </Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>{eta}</Text>
                 {note ? <Text style={[text.small, { color: colors.textMuted, fontStyle: 'italic' }]}>« {note} »</Text> : null}
                 {visitRequired ? (
                   <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.xs }]}>
-                    Le client devra d'abord accepter une visite avant tout paiement — la commission ne s'applique qu'au devis ferme envoyé ensuite.
-                  </Text>
+                    {tr("Le client devra d'abord accepter une visite avant tout paiement — la commission ne s'applique qu'au devis ferme envoyé ensuite.")}</Text>
                 ) : (
                   <>
                     <View style={styles.commissionRow}>
                       <Text style={[text.label, { color: colors.textMuted }]}>
-                        Commission Sèvizi ({formatCommissionPct(isPro ? 'pro' : 'free')})
+                        {tr('Commission Sèvizi (')}{formatCommissionPct(isPro ? 'pro' : 'free')})
                       </Text>
                       <Text style={[text.label, { color: colors.textMuted }]}>
-                        − {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').commission.toLocaleString('fr-FR')} F
-                      </Text>
+                        − {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').commission.toLocaleString(locale())} {tr('F')}</Text>
                     </View>
                     <View style={styles.commissionRow}>
-                      <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>Vous recevrez</Text>
+                      <Text style={[text.small, { color: colors.encre, fontFamily: text.bodyMd.fontFamily }]}>{tr('Vous recevrez')}</Text>
                       <Text style={[text.small, { color: colors.vertDark, fontFamily: text.bodyMd.fontFamily }]}>
-                        {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').net.toLocaleString('fr-FR')} F
-                      </Text>
+                        {computeCommission(parseInt(price || '0', 10), isPro ? 'pro' : 'free').net.toLocaleString(locale())} {tr('F')}</Text>
                     </View>
                   </>
                 )}
@@ -232,7 +223,7 @@ export default function SendOffer() {
         <View style={styles.footer}>
           {!!error && <Text style={styles.error}>{error}</Text>}
           <Button
-            label={visitRequired ? "Envoyer l'estimation" : "Envoyer l'offre Express"}
+            label={visitRequired ? tr("Envoyer l'estimation") : tr("Envoyer l'offre Express")}
             icon={<Send size={18} color={colors.white} />}
             onPress={submit}
             loading={loading}

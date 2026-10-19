@@ -12,6 +12,7 @@ import { Button } from '../../src/components/Button';
 import { alert } from '../../src/lib/alert';
 import { fetchClientAccessStatus, formatOpeningDate, joinClientWaitlist } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 export default function ClientClosedScreen() {
   const router = useRouter();
   const [opensAt, setOpensAt] = useState<string | null>(null);
@@ -24,10 +25,10 @@ export default function ClientClosedScreen() {
   useEffect(() => { fetchClientAccessStatus().then(s => setOpensAt(s.opensAt)); }, []);
 
   async function submit() {
-    if (!phone.trim() && !email.trim()) { alert('Contact manquant', 'Indiquez un numéro de téléphone ou une adresse e-mail.'); return; }
+    if (!phone.trim() && !email.trim()) { alert(tr('Contact manquant'), tr('Indiquez un numéro de téléphone ou une adresse e-mail.')); return; }
     setBusy(true);
     try { setDone(await joinClientWaitlist(phone, email, service)); }
-    catch (e: any) { alert('Erreur', e.message ?? "Impossible de vous inscrire pour l'instant."); }
+    catch (e: any) { alert(tr('Erreur'), e.message ?? tr("Impossible de vous inscrire pour l'instant.")); }
     finally { setBusy(false); }
   }
 
@@ -41,40 +42,37 @@ export default function ClientClosedScreen() {
 
           <View style={styles.badge}>
             <CalendarClock size={18} color={colors.vert} />
-            <Text style={[text.bodyMd, { color: colors.vertDark }]}>Ouverture aux clients le {date}</Text>
+            <Text style={[text.bodyMd, { color: colors.vertDark }]}>{tr('Ouverture aux clients le')} {date}</Text>
           </View>
 
-          <Text style={[text.h1, { color: colors.encre }]}>On prépare le terrain</Text>
+          <Text style={[text.h1, { color: colors.encre }]}>{tr('On prépare le terrain')}</Text>
           <Text style={[text.body, { color: colors.textMuted }]}>
-            Pour l'instant, Sèvizi accueille les prestataires : nous voulons que, le jour où vous demandez un service,
-            plusieurs artisans de confiance vous répondent vite. Laissez-nous votre contact, nous vous prévenons dès l'ouverture.
-          </Text>
+            {tr("Pour l'instant, Sèvizi accueille les prestataires : nous voulons que, le jour où vous demandez un service, plusieurs artisans de confiance vous répondent vite. Laissez-nous votre contact, nous vous prévenons dès l'ouverture.")}</Text>
 
           {done ? (
             <View style={styles.doneCard}>
               <CheckCircle2 size={28} color={colors.vert} />
               <Text style={[text.h3, { color: colors.encre }]}>
-                {done === 'already' ? 'Vous êtes déjà sur la liste' : 'Vous êtes sur la liste'}
+                {done === 'already' ? tr('Vous êtes déjà sur la liste') : tr('Vous êtes sur la liste')}
               </Text>
               <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-                Nous vous écrirons le {date}. Merci de votre patience !
-              </Text>
+                {tr('Nous vous écrirons le')} {date}{tr('. Merci de votre patience !')}</Text>
             </View>
           ) : (
             <View style={{ gap: spacing.sm }}>
-              <TextInput style={styles.input} placeholder="Téléphone (ex. 90 12 34 56)" keyboardType="phone-pad"
+              <TextInput style={styles.input} placeholder={tr('Téléphone (ex. 90 12 34 56)')} keyboardType="phone-pad"
                 value={phone} onChangeText={setPhone} placeholderTextColor={colors.textMuted} />
-              <TextInput style={styles.input} placeholder="E-mail (facultatif)" keyboardType="email-address" autoCapitalize="none"
+              <TextInput style={styles.input} placeholder={tr('E-mail (facultatif)')} keyboardType="email-address" autoCapitalize="none"
                 value={email} onChangeText={setEmail} placeholderTextColor={colors.textMuted} />
-              <TextInput style={styles.input} placeholder="Quel service cherchez-vous ? (facultatif)"
+              <TextInput style={styles.input} placeholder={tr('Quel service cherchez-vous ? (facultatif)')}
                 value={service} onChangeText={setService} maxLength={200} placeholderTextColor={colors.textMuted} />
-              <Button label="Me prévenir à l'ouverture" onPress={submit} loading={busy} />
+              <Button label={tr("Me prévenir à l'ouverture")} onPress={submit} loading={busy} />
             </View>
           )}
 
           <Pressable style={styles.providerLink} onPress={() => router.replace('/onboarding/role' as any)}>
             <Wrench size={16} color={colors.vert} />
-            <Text style={[text.bodyMd, { color: colors.vert }]}>Je suis prestataire : m'inscrire maintenant</Text>
+            <Text style={[text.bodyMd, { color: colors.vert }]}>{tr("Je suis prestataire : m'inscrire maintenant")}</Text>
           </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>

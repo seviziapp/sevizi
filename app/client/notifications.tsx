@@ -1,3 +1,4 @@
+import { agoText } from '../../src/lib/format';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -8,6 +9,7 @@ import { fetchNotifications, markAllNotificationsRead } from '../../src/lib/api'
 import type { Notification } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 type NotifIcon = React.ComponentType<{ size?: number; color?: string }>;
 const ICONS: Record<string, NotifIcon> = {
   offer: MessageCircle,
@@ -18,14 +20,6 @@ const ICONS: Record<string, NotifIcon> = {
   system: Bell,
 };
 
-function timeAgo(iso: string) {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 60) return `Il y a ${mins} min`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `Il y a ${hours}h`;
-  return `Il y a ${Math.floor(hours / 24)}j`;
-}
 
 export default function Notifications() {
   const router = useRouter();
@@ -57,7 +51,7 @@ export default function Notifications() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Notifications</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Notifications')}</Text>
         {unreadCount > 0 ? (
           <Pressable style={styles.readAll} onPress={readAll}>
             <CheckCheck size={18} color={colors.vert} />
@@ -70,7 +64,7 @@ export default function Notifications() {
       {unreadCount > 0 && (
         <View style={styles.unreadBanner}>
           <Bell size={14} color={colors.vertDark} />
-          <Text style={[text.small, { color: colors.vertDark }]}>{unreadCount} non lue{unreadCount > 1 ? 's' : ''}</Text>
+          <Text style={[text.small, { color: colors.vertDark }]}>{unreadCount} {tr('non lue')}{unreadCount > 1 ? 's' : ''}</Text>
         </View>
       )}
 
@@ -78,7 +72,7 @@ export default function Notifications() {
         {notifs.length === 0 && (
           <View style={styles.empty}>
             <Bell size={40} color={colors.border} />
-            <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>Aucune notification pour l'instant.</Text>
+            <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>{tr("Aucune notification pour l'instant.")}</Text>
           </View>
         )}
         {notifs.map(n => (
@@ -93,7 +87,7 @@ export default function Notifications() {
             <View style={{ flex: 1, gap: 2 }}>
               <Text style={[text.bodyMd, { color: colors.encre }]}>{n.title}</Text>
               <Text style={[text.small, { color: colors.textMuted }]}>{n.body}</Text>
-              <Text style={[text.label, { color: colors.textMuted }]}>{timeAgo(n.createdAt)}</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{agoText(n.createdAt)}</Text>
             </View>
             {!n.read && <View style={styles.dot} />}
           </Pressable>

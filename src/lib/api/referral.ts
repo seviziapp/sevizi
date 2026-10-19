@@ -8,6 +8,7 @@ import { supabase } from '../supabase';
 import { hasSupabase, currentUser } from './shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 export type ReferralOverview = {
   code: string | null;
   balance: number;
@@ -35,14 +36,14 @@ export function isValidReferralCode(code: string): boolean {
 export async function chooseReferralCode(code: string): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const normalized = code.trim().toUpperCase();
   if (!isValidReferralCode(normalized)) {
-    throw new Error('3 à 20 caractères : lettres, chiffres et tirets uniquement.');
+    throw new Error(tr('3 à 20 caractères : lettres, chiffres et tirets uniquement.'));
   }
   const { error } = await supabase.from('referral_codes').insert({ user_id: user.id, code: normalized });
   if (error) {
-    if ((error as any).code === '23505') throw new Error('Ce code est déjà pris, ou vous en avez déjà un.');
+    if ((error as any).code === '23505') throw new Error(tr('Ce code est déjà pris, ou vous en avez déjà un.'));
     throw error;
   }
 }

@@ -6,6 +6,7 @@ import { supabase } from '../supabase';
 import { hasSupabase, currentUser } from '../api/shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 export type SevigoClient = {
   id: string;
   name: string;
@@ -44,7 +45,7 @@ export async function saveClient(input: {
   id?: string; name: string; phone?: string; email?: string; address?: string; notes?: string;
 }): Promise<SevigoClient> {
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const row = {
     name: input.name.trim(), phone: input.phone?.trim() || null, email: input.email?.trim() || null,
     address: input.address?.trim() || null, notes: input.notes?.trim() || null,

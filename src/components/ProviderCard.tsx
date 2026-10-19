@@ -6,6 +6,7 @@ import { Provider } from '../lib/types';
 import { isFavorite, addFavorite, removeFavorite } from '../lib/api';
 import { reportError } from '../lib/reportError';
 
+import { tr, locale } from '../i18n';
 export function ProviderCard({
   provider, price, subtitle, onPress, highlighted, showFavorite = true, onFavoriteChange,
 }: {
@@ -58,8 +59,7 @@ export function ProviderCard({
           </View>
           {price != null && (
             <Text style={[text.data, { color: colors.encre }]}>
-              {price.toLocaleString('fr-FR')} F
-            </Text>
+              {price.toLocaleString(locale())} {tr('F')}</Text>
           )}
         </View>
 
@@ -73,8 +73,7 @@ export function ProviderCard({
           <View style={styles.meta}>
             <MapPin size={13} color={colors.textMuted} />
             <Text style={[text.label, { color: colors.textMuted }]}>
-              {provider.distanceKm.toFixed(1)} km
-            </Text>
+              {provider.distanceKm.toFixed(1)} {tr('km')}</Text>
           </View>
           <View style={styles.meta}>
             <Star size={13} color={colors.soleil} fill={colors.soleil} />
@@ -85,7 +84,7 @@ export function ProviderCard({
           {provider.verified && (
             <View style={styles.meta}>
               <ShieldCheck size={13} color={colors.vert} />
-              <Text style={[text.label, { color: colors.vert }]}>Vérifié</Text>
+              <Text style={[text.label, { color: colors.vert }]}>{tr('Vérifié')}</Text>
             </View>
           )}
         </View>

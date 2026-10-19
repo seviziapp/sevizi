@@ -17,6 +17,7 @@ import { CATEGORIES } from '../../src/lib/types';
 import type { Provider, Review } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function ProviderProfile() {
   const router = useRouter();
   const [provider, setProvider] = useState<Provider | null>(null);
@@ -49,11 +50,11 @@ export default function ProviderProfile() {
 
   function confirmDeleteAccount() {
     alert(
-      'Supprimer le compte',
-      'Cette action est irréversible. Votre profil, votre galerie, vos messages et vos documents de vérification seront définitivement supprimés. Votre historique de missions terminées reste visible pour vos clients (anonymisé).',
+      tr('Supprimer le compte'),
+      tr('Cette action est irréversible. Votre profil, votre galerie, vos messages et vos documents de vérification seront définitivement supprimés. Votre historique de missions terminées reste visible pour vos clients (anonymisé).'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: doDeleteAccount },
+        { text: tr('Annuler'), style: 'cancel' },
+        { text: tr('Supprimer'), style: 'destructive', onPress: doDeleteAccount },
       ],
     );
   }
@@ -66,7 +67,7 @@ export default function ProviderProfile() {
       router.replace('/onboarding/auth');
     } catch (e: any) {
       setDeleting(false);
-      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert(tr('Erreur'), e.message ?? tr('Échec de la suppression du compte.'));
     }
   }
 
@@ -77,7 +78,7 @@ export default function ProviderProfile() {
       await toggleBookable(next);
     } catch (e: any) {
       setBookable(!next);
-      alert('Erreur', e.message ?? "Échec de l'enregistrement.");
+      alert(tr('Erreur'), e.message ?? tr("Échec de l'enregistrement."));
     } finally {
       setSavingBookable(false);
     }
@@ -101,16 +102,15 @@ export default function ProviderProfile() {
           <View style={styles.emptyIcon}>
             <UserCircle size={40} color={colors.vert} />
           </View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Complétez votre profil</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Complétez votre profil')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Renseignez le nom de votre entreprise et votre catégorie pour commencer à recevoir des demandes.
-          </Text>
+            {tr('Renseignez le nom de votre entreprise et votre catégorie pour commencer à recevoir des demandes.')}</Text>
           <Pressable style={styles.emptyCta} onPress={() => router.push('/onboarding/provider-details')}>
-            <Text style={[text.bodyMd, { color: colors.white }]}>Compléter mon profil</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Compléter mon profil')}</Text>
           </Pressable>
           <Pressable style={styles.emptyLogout} onPress={logout}>
             <LogOut size={18} color={colors.terre} />
-            <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>
+            <Text style={[text.bodyMd, { color: colors.terre }]}>{tr('Se déconnecter')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -133,19 +133,18 @@ export default function ProviderProfile() {
             {provider?.tier === 'pro' && <Crown size={18} color={colors.soleil} fill={colors.soleil} />}
           </View>
           <Text style={[text.body, { color: colors.textMuted }]}>
-            {[cat?.label, ...(provider?.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')} · Lomé
-          </Text>
+            {[cat?.label, ...(provider?.categories ?? []).map(c => CATEGORIES.find(x => x.key === c)?.label)].filter(Boolean).join(' · ')} {tr('· Lomé')}</Text>
           <View style={styles.badgeRow}>
             {provider?.verified && (
               <View style={styles.verifiedBadge}>
                 <ShieldCheck size={14} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>PROFIL VÉRIFIÉ</Text>
+                <Text style={[text.label, { color: colors.vert }]}>{tr('PROFIL VÉRIFIÉ')}</Text>
               </View>
             )}
             {provider?.tier === 'pro' && (
               <View style={styles.proBadge}>
                 <Crown size={14} color={colors.encre} fill={colors.soleil} />
-                <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
+                <Text style={[text.label, { color: colors.encre }]}>{tr('SÈVIZI PRO')}</Text>
               </View>
             )}
           </View>
@@ -153,19 +152,19 @@ export default function ProviderProfile() {
 
         {/* Stats row */}
         <View style={styles.statsRow}>
-          <Stat value={provider ? provider.rating.toFixed(1) : '—'} label="Note" icon={<Star size={16} color={colors.soleil} fill={colors.soleil} />} />
+          <Stat value={provider ? provider.rating.toFixed(1) : '—'} label={tr('Note')} icon={<Star size={16} color={colors.soleil} fill={colors.soleil} />} />
           <View style={styles.statDiv} />
-          <Stat value={provider ? String(provider.missions ?? 0) : '—'} label="Missions" icon={<Briefcase size={16} color={colors.vert} />} />
+          <Stat value={provider ? String(provider.missions ?? 0) : '—'} label={tr('Missions')} icon={<Briefcase size={16} color={colors.vert} />} />
           <View style={styles.statDiv} />
-          <Stat value={provider ? `${provider.yearsActive ?? 0} ans` : '—'} label="Expérience" icon={<Clock size={16} color={colors.vert} />} />
+          <Stat value={provider ? tr('{v0} ans', { v0: provider.yearsActive ?? 0 }) : '—'} label={tr('Expérience')} icon={<Clock size={16} color={colors.vert} />} />
           <View style={styles.statDiv} />
-          <Stat value={provider ? `${provider.responseRate ?? 0}%` : '—'} label="Réponse" icon={<TrendingUp size={16} color={colors.vert} />} />
+          <Stat value={provider ? `${provider.responseRate ?? 0}%` : '—'} label={tr('Réponse')} icon={<TrendingUp size={16} color={colors.vert} />} />
         </View>
 
         {/* Bio */}
         {provider?.bio ? (
           <View style={styles.section}>
-            <Text style={[text.label, { color: colors.textMuted }]}>À PROPOS</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('À PROPOS')}</Text>
             <Text style={[text.body, { color: colors.encre, marginTop: spacing.sm }]}>{provider.bio}</Text>
           </View>
         ) : null}
@@ -173,9 +172,9 @@ export default function ProviderProfile() {
         {/* Gallery placeholder */}
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Text style={[text.label, { color: colors.textMuted }]}>GALERIE DE TRAVAUX</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('GALERIE DE TRAVAUX')}</Text>
             <Pressable onPress={() => router.push('/provider/edit-profile')}>
-              <Text style={[text.small, { color: colors.vert }]}>Ajouter</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Ajouter')}</Text>
             </Pressable>
           </View>
           <View style={styles.gallery}>
@@ -191,12 +190,11 @@ export default function ProviderProfile() {
         {/* Reviews */}
         <View style={styles.section}>
           <View style={styles.sectionHead}>
-            <Text style={[text.label, { color: colors.textMuted }]}>AVIS ({provider?.reviews ?? 0})</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('AVIS (')}{provider?.reviews ?? 0})</Text>
           </View>
           {reviews.length === 0 ? (
             <Text style={[text.small, { color: colors.textMuted, marginTop: spacing.sm }]}>
-              Aucun avis pour l'instant.
-            </Text>
+              {tr("Aucun avis pour l'instant.")}</Text>
           ) : (
             <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
               {reviews.slice(0, 3).map(rv => (
@@ -220,18 +218,18 @@ export default function ProviderProfile() {
         <View style={styles.settingsList}>
           <Pressable style={styles.settingRow}>
             <Bell size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Notifications</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Notifications')}</Text>
             <Switch value={notifs} onValueChange={setNotifs} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/client/home')}>
             <ArrowLeftRight size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Utiliser Sèvizi comme client</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Utiliser Sèvizi comme client')}</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/upgrade')}>
             <Crown size={20} color={provider?.tier === 'pro' ? colors.soleil : colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
-              {provider?.tier === 'pro' ? 'Abonnement Sèvizi Pro actif' : 'Passer à Sèvizi Pro'}
+              {provider?.tier === 'pro' ? tr('Abonnement Sèvizi Pro actif') : tr('Passer à Sèvizi Pro')}
             </Text>
             {provider?.tier === 'pro'
               ? <Check size={18} color={colors.vert} />
@@ -239,34 +237,34 @@ export default function ProviderProfile() {
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/sevigo/dashboard')}>
             <SevigoMark size={20} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Sèvi Go — Factures & paiements</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Sèvi Go — Factures & paiements')}</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/referral' as any)}>
             <Gift size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Programme de parrainage</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Programme de parrainage')}</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} disabled={savingBookable} onPress={() => onToggleBookable(!bookable)}>
             <CalendarDays size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Rendez-vous en ligne</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Rendez-vous en ligne')}</Text>
             <Switch value={bookable} onValueChange={onToggleBookable} disabled={savingBookable} trackColor={{ false: colors.border, true: colors.vert }} thumbColor={colors.white} />
           </Pressable>
           {bookable && (
             <>
               <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/services')}>
                 <ListChecks size={20} color={colors.encre} />
-                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes services & tarifs</Text>
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Mes services & tarifs')}</Text>
                 <ChevronRight size={18} color={colors.textMuted} />
               </Pressable>
               <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/hours')}>
                 <Clock size={20} color={colors.encre} />
-                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mes horaires</Text>
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Mes horaires')}</Text>
                 <ChevronRight size={18} color={colors.textMuted} />
               </Pressable>
               <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/agenda')}>
                 <CalendarClock size={20} color={colors.encre} />
-                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Mon agenda</Text>
+                <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Mon agenda')}</Text>
                 <ChevronRight size={18} color={colors.textMuted} />
               </Pressable>
             </>
@@ -274,7 +272,7 @@ export default function ProviderProfile() {
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/verification')}>
             <ShieldCheck size={20} color={provider?.verified ? colors.vert : colors.encre} />
             <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
-              {provider?.verified ? 'Entreprise vérifiée' : 'Vérifier mon entreprise'}
+              {provider?.verified ? tr('Entreprise vérifiée') : tr('Vérifier mon entreprise')}
             </Text>
             {provider?.verified
               ? <Check size={18} color={colors.vert} />
@@ -282,25 +280,25 @@ export default function ProviderProfile() {
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/provider/edit-profile')}>
             <Settings size={20} color={colors.encre} />
-            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Modifier mon profil</Text>
+            <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Modifier mon profil')}</Text>
             <ChevronRight size={18} color={colors.textMuted} />
           </Pressable>
           {isAdmin && (
             <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={() => router.push('/admin/dashboard')}>
               <LayoutDashboard size={20} color={colors.encre} />
-              <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>Espace admin</Text>
+              <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>{tr('Espace admin')}</Text>
               <ChevronRight size={18} color={colors.textMuted} />
             </Pressable>
           )}
           <View style={[styles.settingRow, styles.settingBorder]}><LanguageSwitch /></View>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={logout}>
             <LogOut size={20} color={colors.terre} />
-            <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>Se déconnecter</Text>
+            <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>{tr('Se déconnecter')}</Text>
           </Pressable>
           <Pressable style={[styles.settingRow, styles.settingBorder]} onPress={confirmDeleteAccount} disabled={deleting}>
             {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={20} color={colors.terre} />}
             <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>
-              {deleting ? 'Suppression en cours…' : 'Supprimer mon compte'}
+              {deleting ? tr('Suppression en cours…') : tr('Supprimer mon compte')}
             </Text>
           </Pressable>
         </View>

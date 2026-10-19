@@ -9,6 +9,7 @@ import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
 import { fetchClientAccessStatus, formatOpeningDate, ClientAccessStatus } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 type Role = 'client' | 'prestataire';
 
 export default function RoleScreen() {
@@ -32,18 +33,16 @@ export default function RoleScreen() {
         <Logo size={56} />
 
         <View style={{ marginTop: spacing.xxl }}>
-          <Text style={[text.h1, { color: colors.encre }]}>Bienvenue sur{'\n'}Sèvizi</Text>
+          <Text style={[text.h1, { color: colors.encre }]}>{tr('Bienvenue sur')}{'\n'}{tr('Sèvizi')}</Text>
           <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.sm }]}>
-            Pour commencer, dites-nous ce que vous venez faire.
-          </Text>
+            {tr('Pour commencer, dites-nous ce que vous venez faire.')}</Text>
         </View>
 
         {clientsClosed && (
           <View style={styles.notice}>
             <CalendarClock size={18} color={colors.vert} />
             <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
-              Sèvizi ouvre aux clients le {formatOpeningDate(access?.opensAt ?? null)}. Les prestataires peuvent s'inscrire dès maintenant.
-            </Text>
+              {tr('Sèvizi ouvre aux clients le')} {formatOpeningDate(access?.opensAt ?? null)}{tr(". Les prestataires peuvent s'inscrire dès maintenant.")}</Text>
           </View>
         )}
 
@@ -52,22 +51,22 @@ export default function RoleScreen() {
             active={role === 'client'}
             onPress={() => setRole('client')}
             icon={<Search size={22} color={colors.vert} />}
-            title="Je cherche un service"
-            subtitle={clientsClosed ? `Ouverture le ${formatOpeningDate(access?.opensAt ?? null)}` : 'Trouver un prestataire près de moi'}
+            title={tr('Je cherche un service')}
+            subtitle={clientsClosed ? tr('Ouverture le {null}', { null: formatOpeningDate(access?.opensAt ?? null) }) : tr('Trouver un prestataire près de moi')}
           />
           <RoleCard
             active={role === 'prestataire'}
             onPress={() => setRole('prestataire')}
             icon={<Wrench size={22} color={colors.vert} />}
-            title="Je propose mes services"
-            subtitle="Recevoir des demandes & répondre"
+            title={tr('Je propose mes services')}
+            subtitle={tr('Recevoir des demandes & répondre')}
           />
         </View>
 
         <View style={{ flex: 1 }} />
 
         <Button
-          label="Continuer"
+          label={tr('Continuer')}
           loading={loading}
           icon={<ArrowRight size={20} color={colors.white} />}
           onPress={async () => {

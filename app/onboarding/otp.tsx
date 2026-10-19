@@ -8,6 +8,7 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 
+import { tr } from '../../src/i18n';
 const CODE_LENGTH = 6;
 
 export default function OTPScreen() {
@@ -60,9 +61,9 @@ export default function OTPScreen() {
             <ShieldCheck size={32} color={colors.vert} />
           </View>
 
-          <Text style={[text.h1, { color: colors.encre }]}>Code de{'\n'}vérification</Text>
+          <Text style={[text.h1, { color: colors.encre }]}>{tr('Code de')}{'\n'}{tr('vérification')}</Text>
           <Text style={[text.body, { color: colors.textMuted }]}>
-            Entrez le code à 6 chiffres envoyé au{'\n'}
+            {tr('Entrez le code à 6 chiffres envoyé au')}{'\n'}
             <Text style={{ color: colors.encre, fontFamily: text.bodyMd.fontFamily }}>{phone ?? '+228 ••••••'}</Text>
           </Text>
 
@@ -86,16 +87,16 @@ export default function OTPScreen() {
 
           {countdown > 0 ? (
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Renvoyer dans <Text style={{ color: colors.encre }}>{countdown}s</Text>
+              {tr('Renvoyer dans')} <Text style={{ color: colors.encre }}>{countdown}{tr('s')}</Text>
             </Text>
           ) : (
             <Pressable onPress={() => setCountdown(30)} style={{ alignSelf: 'center' }}>
-              <Text style={[text.small, { color: colors.vert }]}>Renvoyer le code</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Renvoyer le code')}</Text>
             </Pressable>
           )}
 
           <View style={{ flex: 1 }} />
-          <Button label="Vérifier" onPress={verify} loading={loading} disabled={!filled} />
+          <Button label={tr('Vérifier')} onPress={verify} loading={loading} disabled={!filled} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

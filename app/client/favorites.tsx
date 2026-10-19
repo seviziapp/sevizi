@@ -9,6 +9,7 @@ import { ProviderCard } from '../../src/components/ProviderCard';
 import { CATEGORIES, type Provider } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function Favorites() {
   const router = useRouter();
   const [favorites, setFavorites] = useState<Provider[]>([]);
@@ -23,7 +24,7 @@ export default function Favorites() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes favoris</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes favoris')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -32,8 +33,7 @@ export default function Favorites() {
           <View style={styles.empty}>
             <Heart size={48} color={colors.border} />
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Vous n'avez pas encore de prestataires favoris.
-            </Text>
+              {tr("Vous n'avez pas encore de prestataires favoris.")}</Text>
           </View>
         )}
         {favorites.map(p => (
@@ -58,7 +58,7 @@ export default function Favorites() {
               })}
             >
               <RotateCcw size={16} color={colors.vert} />
-              <Text style={[text.small, { color: colors.vert }]}>Recontacter</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Recontacter')}</Text>
             </Pressable>
           </View>
         ))}

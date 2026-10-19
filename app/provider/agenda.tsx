@@ -8,11 +8,12 @@ import { alert } from '../../src/lib/alert';
 import { fetchProviderAppointments, markAppointmentStatus, cancelAppointment } from '../../src/lib/api';
 import type { Appointment } from '../../src/lib/types';
 
+import { tr, locale } from '../../src/i18n';
 function fmtDay(d: Date) {
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return d.toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' });
 }
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 export default function ProviderAgenda() {
@@ -43,9 +44,9 @@ export default function ProviderAgenda() {
     load();
   }
   function onCancel(a: Appointment) {
-    alert('Annuler ce rendez-vous ?', a.clientName ?? '', [
-      { text: 'Non', style: 'cancel' },
-      { text: 'Oui, annuler', style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
+    alert(tr('Annuler ce rendez-vous ?'), a.clientName ?? '', [
+      { text: tr('Non'), style: 'cancel' },
+      { text: tr('Oui, annuler'), style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
     ]);
   }
 
@@ -55,7 +56,7 @@ export default function ProviderAgenda() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mon agenda</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mon agenda')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -65,8 +66,7 @@ export default function ProviderAgenda() {
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           {days.length === 0 && (
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center', marginTop: 40 }]}>
-              Aucun rendez-vous à venir.
-            </Text>
+              {tr('Aucun rendez-vous à venir.')}</Text>
           )}
           {days.map(([key, items]) => (
             <View key={key} style={{ gap: spacing.sm }}>
@@ -81,26 +81,26 @@ export default function ProviderAgenda() {
                     <Text style={[text.bodyMd, { color: colors.encre }]}>{a.serviceName}</Text>
                     <View style={styles.metaRow}>
                       <User size={12} color={colors.textMuted} />
-                      <Text style={[text.small, { color: colors.textMuted }]}>{a.clientName ?? 'Client'} · {a.durationMinutes} min · {a.price.toLocaleString()} F</Text>
+                      <Text style={[text.small, { color: colors.textMuted }]}>{a.clientName ?? tr('Client')} · {a.durationMinutes} {tr('min ·')} {a.price.toLocaleString()} {tr('F')}</Text>
                     </View>
                     {a.status === 'confirmed' && (
                       <View style={styles.actionsRow}>
                         <Pressable style={[styles.pill, { backgroundColor: colors.surface }]} onPress={() => onComplete(a)}>
                           <Check size={13} color={colors.vert} />
-                          <Text style={[text.small, { color: colors.vert }]}>Terminé</Text>
+                          <Text style={[text.small, { color: colors.vert }]}>{tr('Terminé')}</Text>
                         </Pressable>
                         <Pressable style={[styles.pill, { backgroundColor: '#FCEFC7' }]} onPress={() => onNoShow(a)}>
-                          <Text style={[text.small, { color: colors.encre }]}>Absent</Text>
+                          <Text style={[text.small, { color: colors.encre }]}>{tr('Absent')}</Text>
                         </Pressable>
                         <Pressable style={styles.pill} onPress={() => onCancel(a)}>
                           <XIcon size={13} color={colors.terre} />
-                          <Text style={[text.small, { color: colors.terre }]}>Annuler</Text>
+                          <Text style={[text.small, { color: colors.terre }]}>{tr('Annuler')}</Text>
                         </Pressable>
                       </View>
                     )}
                     {a.status !== 'confirmed' && (
                       <Text style={[text.small, { color: colors.textMuted, marginTop: 4 }]}>
-                        {a.status === 'completed' ? 'Terminé' : a.status === 'no_show' ? 'Client absent' : 'Annulé'}
+                        {a.status === 'completed' ? tr('Terminé') : a.status === 'no_show' ? tr('Client absent') : tr('Annulé')}
                       </Text>
                     )}
                   </View>

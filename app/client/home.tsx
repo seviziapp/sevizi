@@ -13,6 +13,7 @@ import { fetchNearbyProviders, fetchCurrentJob, fetchMyProfile, fetchMyProviderP
 import type { Provider, Job, ServiceRequest } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 const VISIBLE_CATS = CATEGORIES.slice(0, 7);
 type OpenReq = ServiceRequest & { offersCount: number };
 
@@ -57,11 +58,11 @@ export default function Home() {
           <View style={styles.headerLeft}>
             <Logo size={32} />
             <View>
-              <Text style={[text.small, { color: colors.textMuted }]}>Bonjour{userName ? `, ${userName}` : ''}</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr('Bonjour')}{userName ? `, ${userName}` : ''}</Text>
               <Pressable style={styles.location} onPress={() => router.push('/onboarding/location')}>
                 <MapPin size={14} color={colors.vert} />
                 <Text style={[text.bodyMd, { color: address ? colors.encre : colors.textMuted }]}>
-                  {address || 'Définir mon adresse'}
+                  {address || tr('Définir mon adresse')}
                 </Text>
                 <ChevronDown size={14} color={colors.encre} />
               </Pressable>
@@ -71,7 +72,7 @@ export default function Home() {
             {hasProvider && (
               <Pressable style={[styles.switchPill, shadow.sm]} onPress={() => router.push('/provider/dashboard')}>
                 <ArrowLeftRight size={14} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>Espace pro</Text>
+                <Text style={[text.label, { color: colors.vert }]}>{tr('Espace pro')}</Text>
               </Pressable>
             )}
             <Pressable style={[styles.bell, shadow.sm]} onPress={() => router.push('/client/notifications')}>
@@ -84,7 +85,7 @@ export default function Home() {
         {/* Search */}
         <Pressable style={[styles.search, shadow.sm]} onPress={() => router.push('/client/categories')}>
           <Search size={18} color={colors.textMuted} />
-          <Text style={[text.body, { color: colors.textMuted }]}>Rechercher un service…</Text>
+          <Text style={[text.body, { color: colors.textMuted }]}>{tr('Rechercher un service…')}</Text>
         </Pressable>
 
         {/* Active job banner — only shown when there's an active job */}
@@ -93,12 +94,12 @@ export default function Home() {
             <LinearGradient colors={gradients.forest} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.jobBanner}>
               <View style={styles.jobDot} />
               <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
+                <Text style={[text.bodyMd, { color: colors.creme }]}>{tr('Mission en cours')}</Text>
                 <Text style={[text.small, { color: colors.textMutedDark }]}>
-                  {activeJob.provider?.name ?? 'Prestataire'} · {activeJob.status === 'en_route' ? 'En route' : activeJob.status === 'arrive' ? 'Arrivé' : activeJob.status === 'en_cours' ? 'En cours' : 'Accepté'}
+                  {activeJob.provider?.name ?? tr('Prestataire')} · {activeJob.status === 'en_route' ? tr('En route') : activeJob.status === 'arrive' ? tr('Arrivé') : activeJob.status === 'en_cours' ? tr('En cours') : tr('Accepté')}
                 </Text>
               </View>
-              <Text style={[text.small, { color: colors.vert }]}>Suivre →</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Suivre →')}</Text>
             </LinearGradient>
           </Pressable>
         )}
@@ -107,9 +108,9 @@ export default function Home() {
         {openRequests.length > 0 && (
           <View style={{ gap: spacing.sm }}>
             <View style={styles.sectionHead}>
-              <Text style={[text.h3, { color: colors.encre }]}>Mes demandes</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{tr('Mes demandes')}</Text>
               <Pressable onPress={() => router.push('/client/requests')}>
-                <Text style={[text.small, { color: colors.vert }]}>Tout voir</Text>
+                <Text style={[text.small, { color: colors.vert }]}>{tr('Tout voir')}</Text>
               </Pressable>
             </View>
             {openRequests.slice(0, 3).map(r => {
@@ -123,11 +124,11 @@ export default function Home() {
                   <View style={styles.reqIcon}><CategoryIcon category={r.category} size={18} /></View>
                   <View style={{ flex: 1 }}>
                     <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{r.description}</Text>
-                    <Text style={[text.label, { color: colors.textMuted }]}>{cat?.label} · Ouverte</Text>
+                    <Text style={[text.label, { color: colors.textMuted }]}>{cat?.label} {tr('· Ouverte')}</Text>
                   </View>
                   <View style={[styles.offersPill, r.offersCount > 0 && styles.offersPillActive]}>
                     <Text style={[text.label, { color: r.offersCount > 0 ? colors.white : colors.textMuted }]}>
-                      {r.offersCount} offre{r.offersCount > 1 ? 's' : ''}
+                      {r.offersCount} {tr('offre')}{r.offersCount > 1 ? 's' : ''}
                     </Text>
                   </View>
                   <ChevronRight size={18} color={colors.textMuted} />
@@ -139,8 +140,8 @@ export default function Home() {
 
         {/* Categories grid */}
         <View style={styles.sectionHead}>
-          <Text style={[text.h3, { color: colors.encre }]}>Catégories</Text>
-          <Pressable onPress={() => router.push('/client/categories')}><Text style={[text.small, { color: colors.vert }]}>Tout voir</Text></Pressable>
+          <Text style={[text.h3, { color: colors.encre }]}>{tr('Catégories')}</Text>
+          <Pressable onPress={() => router.push('/client/categories')}><Text style={[text.small, { color: colors.vert }]}>{tr('Tout voir')}</Text></Pressable>
         </View>
         <View style={styles.catGrid}>
           {VISIBLE_CATS.map((c) => (
@@ -159,7 +160,7 @@ export default function Home() {
             <View style={[styles.catIcon, shadow.sm]}>
               <MoreHorizontal size={22} color={colors.vert} />
             </View>
-            <Text style={[text.label, { color: colors.encre, fontSize: 11 }]}>Plus</Text>
+            <Text style={[text.label, { color: colors.encre, fontSize: 11 }]}>{tr('Plus')}</Text>
           </Pressable>
         </View>
 
@@ -167,23 +168,22 @@ export default function Home() {
         <Pressable style={[styles.bannerWrap, shadow.glow]} onPress={() => router.push('/client/new-request')}>
           <LinearGradient colors={gradients.mint} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.banner}>
             <View style={{ flex: 1 }}>
-              <Text style={[text.h3, { color: colors.white }]}>Un besoin précis ?</Text>
+              <Text style={[text.h3, { color: colors.white }]}>{tr('Un besoin précis ?')}</Text>
               <Text style={[text.small, { color: 'rgba(255,255,255,0.85)', marginTop: 2 }]}>
-                Publiez-le, recevez des offres en minutes.
-              </Text>
+                {tr('Publiez-le, recevez des offres en minutes.')}</Text>
             </View>
             <View style={styles.bannerBtn}>
               <Plus size={16} color={colors.vert} />
-              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>Demander</Text>
+              <Text style={[text.small, { color: colors.vert, fontWeight: '600' }]}>{tr('Demander')}</Text>
             </View>
           </LinearGradient>
         </Pressable>
 
         {/* Nearby providers */}
         <View style={styles.sectionHead}>
-          <Text style={[text.h3, { color: colors.encre }]}>Prestataires proches</Text>
+          <Text style={[text.h3, { color: colors.encre }]}>{tr('Prestataires proches')}</Text>
           <Pressable onPress={() => router.push('/client/map')}>
-            <Text style={[text.small, { color: colors.vert }]}>Carte →</Text>
+            <Text style={[text.small, { color: colors.vert }]}>{tr('Carte →')}</Text>
           </Pressable>
         </View>
         <View style={{ gap: spacing.md }}>
@@ -197,8 +197,7 @@ export default function Home() {
           ))}
           {providers.filter(p => p.online).length === 0 && (
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.xl }]}>
-              Aucun prestataire disponible en ce moment.
-            </Text>
+              {tr('Aucun prestataire disponible en ce moment.')}</Text>
           )}
         </View>
       </ScrollView>

@@ -15,6 +15,7 @@ import { Image } from 'react-native';
 import { CATEGORIES, type Provider, type Review } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function ProviderProfileView() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
@@ -81,20 +82,20 @@ export default function ProviderProfileView() {
               {provider.verified && (
                 <View style={styles.verifiedBadge}>
                   <ShieldCheck size={14} color={colors.vert} />
-                  <Text style={[text.label, { color: colors.vert }]}>PRESTATAIRE VÉRIFIÉ</Text>
+                  <Text style={[text.label, { color: colors.vert }]}>{tr('PRESTATAIRE VÉRIFIÉ')}</Text>
                 </View>
               )}
               {provider.tier === 'pro' && (
                 <View style={styles.proBadge}>
                   <Crown size={14} color={colors.encre} fill={colors.soleil} />
-                  <Text style={[text.label, { color: colors.encre }]}>SÈVIZI PRO</Text>
+                  <Text style={[text.label, { color: colors.encre }]}>{tr('SÈVIZI PRO')}</Text>
                 </View>
               )}
             </View>
             <View style={[styles.onlineRow, provider.online && styles.onlineRowActive]}>
               <View style={[styles.onlineDot, provider.online && styles.onlineDotActive]} />
               <Text style={[text.small, { color: provider.online ? colors.vert : colors.textMutedDark }]}>
-                {provider.online ? 'Disponible maintenant' : 'Hors ligne'}
+                {provider.online ? tr('Disponible maintenant') : tr('Hors ligne')}
               </Text>
             </View>
           </LinearGradient>
@@ -102,13 +103,13 @@ export default function ProviderProfileView() {
 
         {/* Stats */}
         <View style={[styles.statsRow, shadow.card]}>
-          <Stat value={provider.rating.toFixed(1)} label="Note" icon={<Star size={14} color={colors.soleil} fill={colors.soleil} />} />
+          <Stat value={provider.rating.toFixed(1)} label={tr('Note')} icon={<Star size={14} color={colors.soleil} fill={colors.soleil} />} />
           <View style={styles.div} />
-          <Stat value={String(provider.reviews)} label="Avis" icon={<Star size={14} color={colors.soleil} />} />
+          <Stat value={String(provider.reviews)} label={tr('Avis')} icon={<Star size={14} color={colors.soleil} />} />
           <View style={styles.div} />
-          <Stat value={String(completed || provider.missions || 0)} label="Missions" icon={<Briefcase size={14} color={colors.vert} />} />
+          <Stat value={String(completed || provider.missions || 0)} label={tr('Missions')} icon={<Briefcase size={14} color={colors.vert} />} />
           <View style={styles.div} />
-          <Stat value={`${provider.yearsActive ?? 1} ans`} label="Exp." icon={<Clock size={14} color={colors.vert} />} />
+          <Stat value={tr('{v0} ans', { v0: provider.yearsActive ?? 1 })} label={tr('Exp.')} icon={<Clock size={14} color={colors.vert} />} />
         </View>
 
         {/* Response rate */}
@@ -116,7 +117,7 @@ export default function ProviderProfileView() {
           <View style={styles.responseRow}>
             <TrendingUp size={16} color={colors.vert} />
             <Text style={[text.small, { color: colors.vertDark }]}>
-              Taux de réponse : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{provider.responseRate}%</Text>
+              {tr('Taux de réponse :')} <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{provider.responseRate}%</Text>
             </Text>
           </View>
         )}
@@ -124,7 +125,7 @@ export default function ProviderProfileView() {
         {/* Bio */}
         {provider.bio && (
           <View style={styles.section}>
-            <Text style={[text.label, { color: colors.textMuted }]}>À PROPOS</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('À PROPOS')}</Text>
             <Text style={[text.body, { color: colors.encre, marginTop: spacing.sm }]}>{provider.bio}</Text>
           </View>
         )}
@@ -132,7 +133,7 @@ export default function ProviderProfileView() {
         {/* Gallery */}
         {provider.gallery && provider.gallery.length > 0 && (
           <View style={styles.section}>
-            <Text style={[text.label, { color: colors.textMuted }]}>GALERIE</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('GALERIE')}</Text>
             <View style={styles.gallery}>
               {provider.gallery.slice(0, 6).map((url, i) => (
                 <Image key={i} source={{ uri: url }} style={styles.galleryItem} resizeMode="cover" />
@@ -143,7 +144,7 @@ export default function ProviderProfileView() {
 
         {/* Reviews */}
         <View style={styles.section}>
-          <Text style={[text.label, { color: colors.textMuted }]}>AVIS ({provider.reviews})</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>{tr('AVIS (')}{provider.reviews})</Text>
           <View style={{ gap: spacing.md, marginTop: spacing.sm }}>
             {reviews.map(rv => (
               <View key={rv.id} style={[styles.reviewCard, shadow.card]}>
@@ -170,7 +171,7 @@ export default function ProviderProfileView() {
         </Pressable>
         {provider.bookable ? (
           <Button
-            label="Prendre rendez-vous"
+            label={tr('Prendre rendez-vous')}
             onPress={() => router.push({
               pathname: '/client/book-appointment',
               params: { providerId: provider.id, providerName: provider.name },
@@ -180,7 +181,7 @@ export default function ProviderProfileView() {
           />
         ) : (
           <Button
-            label="Demander ce prestataire"
+            label={tr('Demander ce prestataire')}
             onPress={() => router.push({
               pathname: '/client/new-request',
               params: {

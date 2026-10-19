@@ -14,6 +14,7 @@ import {
   ReferralOverview, ReferralCreditEntry,
 } from '../src/lib/api';
 
+import { tr, locale } from '../src/i18n';
 const KIND_LABEL: Record<string, string> = {
   bonus_referrer: 'Filleul inscrit',
   bonus_referee: 'Bonus de bienvenue',
@@ -49,7 +50,7 @@ export default function ReferralScreen() {
       setCodeInput('');
       load();
     } catch (e: any) {
-      setError(e.message ?? 'Échec de la création du code.');
+      setError(e.message ?? tr('Échec de la création du code.'));
     } finally {
       setSaving(false);
     }
@@ -69,7 +70,7 @@ export default function ReferralScreen() {
   async function shareCode() {
     if (!overview?.code) return;
     await Share.share({
-      message: `Rejoins Sèvizi avec mon code de parrainage "${overview.code}" — on reçoit chacun 300 F à utiliser sur Sèvizi Pro ou Sèvi Go ! sevizi.app`,
+      message: tr('Rejoins Sèvizi avec mon code de parrainage "{code}" — on reçoit chacun 300 F à utiliser sur Sèvizi Pro ou Sèvi Go ! sevizi.app', { code: overview.code }),
     });
   }
 
@@ -79,7 +80,7 @@ export default function ReferralScreen() {
         <Pressable style={[styles.iconBtn, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Parrainage</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Parrainage')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -92,34 +93,32 @@ export default function ReferralScreen() {
               <Gift size={24} color={colors.vert} />
             </View>
             <Text style={[text.bodyMd, { color: colors.encre, textAlign: 'center' }]}>
-              300 F pour vous, 300 F pour votre filleul
-            </Text>
+              {tr('300 F pour vous, 300 F pour votre filleul')}</Text>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs }]}>
-              Dès qu'une personne s'inscrit avec votre code, vous recevez tous les deux 300 F à utiliser sur l'abonnement Sèvizi Pro ou une formule Sèvi Go. Ce crédit n'est pas retirable et ne peut pas servir à payer un prestataire.
-            </Text>
+              {tr("Dès qu'une personne s'inscrit avec votre code, vous recevez tous les deux 300 F à utiliser sur l'abonnement Sèvizi Pro ou une formule Sèvi Go. Ce crédit n'est pas retirable et ne peut pas servir à payer un prestataire.")}</Text>
           </View>
 
           {overview?.code ? (
             <View style={[styles.card, shadow.card]}>
-              <Text style={[text.label, { color: colors.textMuted }]}>VOTRE CODE</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{tr('VOTRE CODE')}</Text>
               <Text style={[text.h1, { color: colors.vert, letterSpacing: 2, marginTop: spacing.xs }]}>{overview.code}</Text>
               <View style={styles.shareRow}>
                 <Pressable style={styles.shareBtn} onPress={copyCode}>
                   {copied ? <Check size={16} color={colors.vert} /> : <Copy size={16} color={colors.encre} />}
-                  <Text style={[text.small, { color: colors.encre }]}>{copied ? 'Copié' : 'Copier'}</Text>
+                  <Text style={[text.small, { color: colors.encre }]}>{copied ? tr('Copié') : tr('Copier')}</Text>
                 </Pressable>
                 <Pressable style={[styles.shareBtn, styles.shareBtnPrimary]} onPress={shareCode}>
                   <Share2 size={16} color={colors.white} />
-                  <Text style={[text.small, { color: colors.white }]}>Partager</Text>
+                  <Text style={[text.small, { color: colors.white }]}>{tr('Partager')}</Text>
                 </Pressable>
               </View>
             </View>
           ) : (
             <View style={[styles.card, shadow.card]}>
-              <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>CHOISISSEZ VOTRE CODE</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>{tr('CHOISISSEZ VOTRE CODE')}</Text>
               <TextInput
                 style={styles.input}
-                placeholder="Ex. : WEAREAURUM"
+                placeholder={tr('Ex. : WEAREAURUM')}
                 placeholderTextColor={colors.textMuted}
                 value={codeInput}
                 onChangeText={t => setCodeInput(t.toUpperCase())}
@@ -127,36 +126,34 @@ export default function ReferralScreen() {
                 maxLength={20}
               />
               <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xs }]}>
-                3 à 20 caractères : lettres, chiffres et tirets.
-              </Text>
+                {tr('3 à 20 caractères : lettres, chiffres et tirets.')}</Text>
               {!!error && <Text style={styles.error}>{error}</Text>}
               <View style={{ height: spacing.md }} />
-              <Button label="Confirmer mon code" onPress={submitCode} loading={saving} disabled={!codeInput.trim()} />
+              <Button label={tr('Confirmer mon code')} onPress={submitCode} loading={saving} disabled={!codeInput.trim()} />
             </View>
           )}
 
           <View style={styles.statsRow}>
             <View style={[styles.statCard, shadow.card]}>
               <Wallet size={18} color={colors.vert} />
-              <Text style={[text.h3, { color: colors.encre, marginTop: spacing.xs }]}>{(overview?.balance ?? 0).toLocaleString('fr-FR')} F</Text>
-              <Text style={[text.label, { color: colors.textMuted }]}>Crédit disponible</Text>
+              <Text style={[text.h3, { color: colors.encre, marginTop: spacing.xs }]}>{(overview?.balance ?? 0).toLocaleString(locale())} {tr('F')}</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{tr('Crédit disponible')}</Text>
             </View>
             <View style={[styles.statCard, shadow.card]}>
               <Users size={18} color={colors.vert} />
               <Text style={[text.h3, { color: colors.encre, marginTop: spacing.xs }]}>{overview?.referredCount ?? 0}</Text>
-              <Text style={[text.label, { color: colors.textMuted }]}>Filleuls inscrits</Text>
+              <Text style={[text.label, { color: colors.textMuted }]}>{tr('Filleuls inscrits')}</Text>
             </View>
           </View>
 
           {history.length > 0 && (
             <View style={[styles.card, shadow.card]}>
-              <Text style={[text.bodyMd, { color: colors.encre, marginBottom: spacing.sm }]}>Historique</Text>
+              <Text style={[text.bodyMd, { color: colors.encre, marginBottom: spacing.sm }]}>{tr('Historique')}</Text>
               {history.map(h => (
                 <View key={h.id} style={styles.historyRow}>
-                  <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{KIND_LABEL[h.kind] ?? h.note ?? h.kind}</Text>
+                  <Text style={[text.small, { color: colors.encre, flex: 1 }]}>{KIND_LABEL[h.kind] ? tr(KIND_LABEL[h.kind]) : (h.note ?? h.kind)}</Text>
                   <Text style={[text.small, { color: h.amount >= 0 ? colors.vert : colors.terre }]}>
-                    {h.amount >= 0 ? '+' : ''}{h.amount.toLocaleString('fr-FR')} F
-                  </Text>
+                    {h.amount >= 0 ? '+' : ''}{h.amount.toLocaleString(locale())} {tr('F')}</Text>
                 </View>
               ))}
             </View>

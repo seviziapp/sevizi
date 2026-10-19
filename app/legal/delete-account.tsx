@@ -9,6 +9,7 @@ import { supabase } from '../../src/lib/supabase';
 import { alert } from '../../src/lib/alert';
 import { deleteMyAccount } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 function Row({ ok, children }: { ok: boolean; children: React.ReactNode }) {
   return (
     <View style={styles.row}>
@@ -34,11 +35,11 @@ export default function DeleteAccount() {
 
   function confirmDelete() {
     alert(
-      'Supprimer le compte',
-      'Cette action est immédiate et irréversible. Voulez-vous continuer ?',
+      tr('Supprimer le compte'),
+      tr('Cette action est immédiate et irréversible. Voulez-vous continuer ?'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: doDelete },
+        { text: tr('Annuler'), style: 'cancel' },
+        { text: tr('Supprimer'), style: 'destructive', onPress: doDelete },
       ],
     );
   }
@@ -50,7 +51,7 @@ export default function DeleteAccount() {
       await supabase.auth.signOut();
       setDone(true);
     } catch (e: any) {
-      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert(tr('Erreur'), e.message ?? tr('Échec de la suppression du compte.'));
     } finally {
       setDeleting(false);
     }
@@ -62,41 +63,32 @@ export default function DeleteAccount() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Supprimer mon compte</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Supprimer mon compte')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={[text.label, { color: colors.textMuted }]}>SÈVIZI — DERNIÈRE MISE À JOUR : JUILLET 2026</Text>
+        <Text style={[text.label, { color: colors.textMuted }]}>{tr('SÈVIZI — DERNIÈRE MISE À JOUR : JUILLET 2026')}</Text>
 
         <Text style={[text.body, { color: colors.encre }]}>
-          Vous pouvez demander la suppression définitive de votre compte Sèvizi et des données associées
-          à tout moment, directement depuis cette page ou depuis l'application (Profil → Sécurité &
-          confiance).
-        </Text>
+          {tr("Vous pouvez demander la suppression définitive de votre compte Sèvizi et des données associées à tout moment, directement depuis cette page ou depuis l'application (Profil → Sécurité & confiance).")}</Text>
 
         <View style={[styles.card, shadow.card]}>
           <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-            CE QUI EST SUPPRIMÉ IMMÉDIATEMENT
-          </Text>
-          <Row ok>Votre profil (nom, e-mail, téléphone, position)</Row>
-          <Row ok>Votre fiche prestataire et votre galerie de travaux, le cas échéant</Row>
-          <Row ok>Vos messages, favoris et notifications</Row>
-          <Row ok>Vos documents de vérification (pièce d'identité, licence)</Row>
+            {tr('CE QUI EST SUPPRIMÉ IMMÉDIATEMENT')}</Text>
+          <Row ok>{tr('Votre profil (nom, e-mail, téléphone, position)')}</Row>
+          <Row ok>{tr('Votre fiche prestataire et votre galerie de travaux, le cas échéant')}</Row>
+          <Row ok>{tr('Vos messages, favoris et notifications')}</Row>
+          <Row ok>{tr("Vos documents de vérification (pièce d'identité, licence)")}</Row>
         </View>
 
         <View style={[styles.card, shadow.card]}>
           <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>
-            CE QUI EST CONSERVÉ (ANONYMISÉ)
-          </Text>
+            {tr('CE QUI EST CONSERVÉ (ANONYMISÉ)')}</Text>
           <Row ok={false}>
-            L'historique des missions et paiements déjà effectués, sans lien avec votre identité — pour
-            préserver l'historique de revenus et d'avis de l'autre partie, et nos obligations comptables
-          </Row>
+            {tr("L'historique des missions et paiements déjà effectués, sans lien avec votre identité — pour préserver l'historique de revenus et d'avis de l'autre partie, et nos obligations comptables")}</Row>
           <Row ok={false}>
-            Les avis que vous avez laissés restent visibles (auteur anonymisé) — ils font partie de la
-            note publique d'un prestataire
-          </Row>
+            {tr("Les avis que vous avez laissés restent visibles (auteur anonymisé) — ils font partie de la note publique d'un prestataire")}</Row>
         </View>
 
         {checking ? (
@@ -105,16 +97,15 @@ export default function DeleteAccount() {
           <View style={styles.doneBox}>
             <Check size={20} color={colors.vert} />
             <Text style={[text.body, { color: colors.vertDark, flex: 1 }]}>
-              Votre compte a été supprimé.
-            </Text>
+              {tr('Votre compte a été supprimé.')}</Text>
           </View>
         ) : email ? (
           <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
             <Text style={[text.small, { color: colors.textMuted }]}>
-              Connecté en tant que {email}.
+              {tr('Connecté en tant que')} {email}.
             </Text>
             <Button
-              label="Supprimer définitivement mon compte"
+              label={tr('Supprimer définitivement mon compte')}
               icon={<Trash2 size={18} color={colors.white} />}
               onPress={confirmDelete}
               loading={deleting}
@@ -123,18 +114,15 @@ export default function DeleteAccount() {
         ) : (
           <View style={{ gap: spacing.md, marginTop: spacing.lg }}>
             <Text style={[text.small, { color: colors.textMuted }]}>
-              Connectez-vous pour supprimer votre compte directement depuis cette page.
-            </Text>
+              {tr('Connectez-vous pour supprimer votre compte directement depuis cette page.')}</Text>
             <Button
-              label="Se connecter"
+              label={tr('Se connecter')}
               icon={<LogIn size={18} color={colors.white} />}
               onPress={() => router.push('/onboarding/auth')}
             />
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Vous ne pouvez pas vous connecter ? Écrivez à{' '}
-              <Text style={{ color: colors.vert }}>support@sevizi.app</Text> avec l'adresse e-mail de
-              votre compte pour demander la suppression.
-            </Text>
+              {tr('Vous ne pouvez pas vous connecter ? Écrivez à')}{' '}
+              <Text style={{ color: colors.vert }}>{tr('support@sevizi.app')}</Text> {tr("avec l'adresse e-mail de votre compte pour demander la suppression.")}</Text>
           </View>
         )}
       </ScrollView>

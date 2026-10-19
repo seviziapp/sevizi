@@ -13,6 +13,7 @@ import { GALLERY_CAP_FREE } from '../../src/lib/pricing';
 import { slugify } from '../../src/lib/format';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 const BOOKING_LINK_ORIGIN = 'https://sevizi.app';
 type UsernameStatus = 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
 
@@ -83,23 +84,23 @@ export default function EditProviderProfile() {
   }
 
   async function shareLink() {
-    await Share.share({ message: `Réservez directement avec ${name} sur Sèvizi : ${bookingUrl}` });
+    await Share.share({ message: tr('Réservez directement avec {name} sur Sèvizi : {bookingUrl}', { name: name, bookingUrl: bookingUrl }) });
   }
 
   async function addPhoto() {
     setError('');
     if (gallery.length >= galleryCap) {
-      setError(`Limite de ${GALLERY_CAP_FREE} photos atteinte. Passez à Sèvizi Pro pour une galerie illimitée.`);
+      setError(tr('Limite de {GALLERY_CAP_FREE} photos atteinte. Passez à Sèvizi Pro pour une galerie illimitée.', { GALLERY_CAP_FREE: GALLERY_CAP_FREE }));
       return;
     }
     const file = await pickFile();
-    if (!file) { setError('Sélection de photo indisponible sur cet appareil.'); return; }
+    if (!file) { setError(tr('Sélection de photo indisponible sur cet appareil.')); return; }
     setUploading(true);
     try {
       const url = await uploadDocument(file.blob, 'gallery', file.name);
       setGallery(g => [...g, url]);
     } catch (e: any) {
-      setError(e.message ?? 'Échec du téléversement.');
+      setError(e.message ?? tr('Échec du téléversement.'));
     } finally {
       setUploading(false);
     }
@@ -121,10 +122,10 @@ export default function EditProviderProfile() {
   }
 
   async function save() {
-    if (!name.trim()) { setError('Le nom de l\'entreprise est requis.'); return; }
-    if (!primaryCategory) { setError('Choisissez votre service principal.'); return; }
+    if (!name.trim()) { setError(tr("Le nom de l'entreprise est requis.")); return; }
+    if (!primaryCategory) { setError(tr('Choisissez votre service principal.')); return; }
     if (isPro && username !== originalUsername && usernameStatus !== 'available') {
-      setError(usernameStatus === 'taken' ? 'Ce nom de lien est déjà pris.' : 'Choisissez un nom de lien valide et disponible avant d\'enregistrer.');
+      setError(usernameStatus === 'taken' ? tr('Ce nom de lien est déjà pris.') : tr("Choisissez un nom de lien valide et disponible avant d'enregistrer."));
       return;
     }
     setError('');
@@ -142,7 +143,7 @@ export default function EditProviderProfile() {
       }
       router.back();
     } catch (e: any) {
-      setError(e.message ?? 'Échec de l\'enregistrement.');
+      setError(e.message ?? tr("Échec de l'enregistrement."));
     } finally {
       setSaving(false);
     }
@@ -154,7 +155,7 @@ export default function EditProviderProfile() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Modifier le profil</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Modifier le profil')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -162,21 +163,21 @@ export default function EditProviderProfile() {
         <ActivityIndicator color={colors.vert} style={{ marginTop: 60 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={[text.label, { color: colors.textMuted }]}>NOM DE L'ENTREPRISE</Text>
-          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder="Nom de l'entreprise" placeholderTextColor={colors.textMuted} />
+          <Text style={[text.label, { color: colors.textMuted }]}>{tr("NOM DE L'ENTREPRISE")}</Text>
+          <TextInput style={styles.input} value={name} onChangeText={setName} placeholder={tr("Nom de l'entreprise")} placeholderTextColor={colors.textMuted} />
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>À PROPOS</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('À PROPOS')}</Text>
           <TextInput
             style={styles.textarea}
             value={bio}
             onChangeText={setBio}
-            placeholder="Décrivez vos services, votre expérience…"
+            placeholder={tr('Décrivez vos services, votre expérience…')}
             placeholderTextColor={colors.textMuted}
             multiline
             textAlignVertical="top"
           />
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>ANNÉES D'EXPÉRIENCE</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr("ANNÉES D'EXPÉRIENCE")}</Text>
           <TextInput
             style={styles.input}
             value={yearsActive}
@@ -187,7 +188,7 @@ export default function EditProviderProfile() {
           />
 
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
-            GALERIE DE TRAVAUX {isPro ? '(illimitée — Pro)' : `(${gallery.length}/${GALLERY_CAP_FREE})`}
+            {tr('GALERIE DE TRAVAUX')} {isPro ? tr('(illimitée — Pro)') : `(${gallery.length}/${GALLERY_CAP_FREE})`}
           </Text>
           <View style={styles.gallery}>
             {gallery.map((url, i) => (
@@ -209,10 +210,9 @@ export default function EditProviderProfile() {
             )}
           </View>
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>SERVICE PRINCIPAL</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('SERVICE PRINCIPAL')}</Text>
           <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>
-            Le métier sous lequel vous apparaissez dans les recherches et catégories.
-          </Text>
+            {tr('Le métier sous lequel vous apparaissez dans les recherches et catégories.')}</Text>
           <View style={styles.chips}>
             {CATEGORIES.map(c => {
               const active = c.key === primaryCategory;
@@ -230,12 +230,10 @@ export default function EditProviderProfile() {
           </View>
 
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
-            SERVICES SUPPLÉMENTAIRES {!isPro && '(Pro)'}
+            {tr('SERVICES SUPPLÉMENTAIRES')} {!isPro && tr('(Pro)')}
           </Text>
           <Text style={[text.small, { color: colors.textMuted, marginTop: 2 }]}>
-            {isPro
-              ? 'Proposez plusieurs métiers (ex. plomberie + électricité) pour recevoir plus de demandes.'
-              : "Réservé à Sèvizi Pro — ajoutez d'autres services que votre catégorie principale."}
+            {isPro ? tr('Proposez plusieurs métiers (ex. plomberie + électricité) pour recevoir plus de demandes.') : tr("Réservé à Sèvizi Pro — ajoutez d'autres services que votre catégorie principale.")}
           </Text>
           <View style={styles.chips}>
             {CATEGORIES.filter(c => c.key !== primaryCategory).map(c => {
@@ -255,15 +253,14 @@ export default function EditProviderProfile() {
           </View>
 
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>
-            LIEN DE RÉSERVATION {!isPro && '(Pro)'}
+            {tr('LIEN DE RÉSERVATION')} {!isPro && tr('(Pro)')}
           </Text>
           {isPro ? (
             <View style={{ gap: spacing.sm }}>
               <Text style={[text.small, { color: colors.textMuted }]}>
-                Partagez ce lien avec vos clients pour qu'ils réservent directement avec vous.
-              </Text>
+                {tr("Partagez ce lien avec vos clients pour qu'ils réservent directement avec vous.")}</Text>
               <View style={styles.usernameRow}>
-                <Text style={[text.body, { color: colors.textMuted }]}>{BOOKING_LINK_ORIGIN}/b/</Text>
+                <Text style={[text.body, { color: colors.textMuted }]}>{BOOKING_LINK_ORIGIN}{tr('/b/')}</Text>
                 <TextInput
                   style={styles.usernameInput}
                   value={username}
@@ -276,12 +273,12 @@ export default function EditProviderProfile() {
                 {usernameStatus === 'checking' && <ActivityIndicator size="small" color={colors.textMuted} />}
                 {usernameStatus === 'available' && <Check size={18} color={colors.vert} />}
               </View>
-              {usernameStatus === 'taken' && <Text style={styles.error}>Ce nom est déjà pris.</Text>}
-              {usernameStatus === 'invalid' && <Text style={styles.error}>3 à 30 caractères : lettres, chiffres, tirets.</Text>}
+              {usernameStatus === 'taken' && <Text style={styles.error}>{tr('Ce nom est déjà pris.')}</Text>}
+              {usernameStatus === 'invalid' && <Text style={styles.error}>{tr('3 à 30 caractères : lettres, chiffres, tirets.')}</Text>}
               {originalUsername && (
                 <View style={styles.linkActions}>
                   <Button
-                    label={copied ? 'Copié !' : 'Copier le lien'}
+                    label={copied ? tr('Copié !') : tr('Copier le lien')}
                     variant="ghost"
                     icon={copied ? <Check size={16} color={colors.encre} /> : <Copy size={16} color={colors.encre} />}
                     full={false}
@@ -289,7 +286,7 @@ export default function EditProviderProfile() {
                     onPress={copyLink}
                   />
                   <Button
-                    label="Partager"
+                    label={tr('Partager')}
                     icon={<Share2 size={16} color={colors.white} />}
                     full={false}
                     style={{ flex: 1 }}
@@ -302,15 +299,14 @@ export default function EditProviderProfile() {
             <Pressable style={styles.lockedBox} onPress={() => router.push('/provider/upgrade')}>
               <Lock size={14} color={colors.textMuted} />
               <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
-                Passez à Sèvizi Pro pour obtenir un lien de réservation à partager avec vos clients.
-              </Text>
+                {tr('Passez à Sèvizi Pro pour obtenir un lien de réservation à partager avec vos clients.')}</Text>
             </Pressable>
           )}
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <View style={{ height: spacing.xl }} />
-          <Button label="Enregistrer" onPress={save} loading={saving} />
+          <Button label={tr('Enregistrer')} onPress={save} loading={saving} />
         </ScrollView>
       )}
     </SafeAreaView>

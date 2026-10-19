@@ -6,6 +6,7 @@ import { colors, text, spacing } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { fetchProviderByUsername } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 // Public landing page for a Sèvizi Pro provider's shareable booking link
 // (sevizi.app/b/<username>). No login required to land here — it just
 // resolves the username and forwards straight into the booking flow (or the
@@ -35,10 +36,9 @@ export default function BookingLink() {
       <View style={styles.center}>
         {notFound ? (
           <>
-            <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>Lien introuvable</Text>
+            <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>{tr('Lien introuvable')}</Text>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.sm }]}>
-              Ce lien de réservation n'existe pas ou n'est plus actif.
-            </Text>
+              {tr("Ce lien de réservation n'existe pas ou n'est plus actif.")}</Text>
           </>
         ) : (
           <>

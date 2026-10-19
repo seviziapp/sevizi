@@ -7,6 +7,7 @@ import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { CATEGORIES } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 export default function Categories() {
   const router = useRouter();
   const [search, setSearch] = useState('');
@@ -16,7 +17,7 @@ export default function Categories() {
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
       <View style={styles.header}>
-        <Text style={[text.h2, { color: colors.encre }]}>Toutes les catégories</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Toutes les catégories')}</Text>
         <Pressable style={[styles.close, shadow.sm]} onPress={() => router.back()}>
           <X size={20} color={colors.encre} />
         </Pressable>
@@ -26,7 +27,7 @@ export default function Categories() {
         <Search size={18} color={colors.textMuted} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Rechercher une catégorie…"
+          placeholder={tr('Rechercher une catégorie…')}
           placeholderTextColor={colors.textMuted}
           value={search}
           onChangeText={setSearch}

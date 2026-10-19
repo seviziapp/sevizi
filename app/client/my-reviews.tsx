@@ -6,6 +6,7 @@ import { ArrowLeft, Star, MessageSquare } from 'lucide-react-native';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { supabase } from '../../src/lib/supabase';
 
+import { tr, locale } from '../../src/i18n';
 type MyReview = {
   id: string;
   providerName: string;
@@ -54,7 +55,7 @@ export default function MyReviews() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes avis laissés</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes avis laissés')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -64,8 +65,7 @@ export default function MyReviews() {
         <View style={styles.empty}>
           <MessageSquare size={48} color={colors.border} />
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Vous n'avez encore laissé aucun avis.{'\n'}Après chaque mission, vous pouvez évaluer votre prestataire.
-          </Text>
+            {tr("Vous n'avez encore laissé aucun avis.")}{'\n'}{tr('Après chaque mission, vous pouvez évaluer votre prestataire.')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -78,7 +78,7 @@ export default function MyReviews() {
                 <View style={{ flex: 1 }}>
                   <Text style={[text.bodyMd, { color: colors.encre }]}>{r.providerName}</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {new Date(r.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                    {new Date(r.createdAt).toLocaleDateString(locale(), { day: 'numeric', month: 'long', year: 'numeric' })}
                   </Text>
                 </View>
                 <View style={styles.stars}>

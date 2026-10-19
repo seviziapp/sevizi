@@ -9,8 +9,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Localization from 'expo-localization';
 import { EN as EN_BASE } from './en';
 import { EN_SEVIGO } from './en_sevigo';
+import { EN_APP } from './en_app';
+import { EN_EXTRA } from './en_extra';
 
-const EN: Record<string, string> = { ...EN_BASE, ...EN_SEVIGO };
+const EN: Record<string, string> = { ...EN_BASE, ...EN_SEVIGO, ...EN_APP, ...EN_EXTRA };
 
 export type Lang = 'fr' | 'en';
 const KEY = 'sevizi.lang';

@@ -4,6 +4,7 @@ import { Navigation, MapPin } from 'lucide-react-native';
 import { colors, text, radii, spacing } from '../theme/tokens';
 import type { GeoPoint } from '../lib/types';
 
+import { tr } from '../i18n';
 // Leaflet CSS injected once
 function injectLeafletCSS() {
   if (typeof document === 'undefined') return;
@@ -133,13 +134,12 @@ export function MapPicker({ value, onChange, height = 260 }: Props) {
         <Pressable style={styles.gpsBtn} onPress={useGPS} disabled={locating}>
           {locating
             ? <ActivityIndicator size="small" color={colors.vert} />
-            : <><Navigation size={14} color={colors.vert} /><Text style={[text.small, { color: colors.vert }]}>Ma position</Text></>
+            : <><Navigation size={14} color={colors.vert} /><Text style={[text.small, { color: colors.vert }]}>{tr('Ma position')}</Text></>
           }
         </Pressable>
       </View>
       <Text style={[text.label, { color: colors.textMuted, paddingHorizontal: spacing.sm, paddingBottom: spacing.sm }]}>
-        CLIQUEZ SUR LA CARTE OU FAITES GLISSER LE MARQUEUR
-      </Text>
+        {tr('CLIQUEZ SUR LA CARTE OU FAITES GLISSER LE MARQUEUR')}</Text>
     </View>
   );
 }

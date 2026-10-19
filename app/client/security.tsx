@@ -11,6 +11,7 @@ import { pickFile } from '../../src/lib/pickFile';
 import { uploadDocument, submitClientVerification, fetchMyVerificationStatus, fetchMyProfile, deleteMyAccount } from '../../src/lib/api';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function Security() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -34,27 +35,27 @@ export default function Security() {
   async function uploadId() {
     setError('');
     const file = await pickFile();
-    if (!file) { setError('Sélection de fichier indisponible sur cet appareil.'); return; }
+    if (!file) { setError(tr('Sélection de fichier indisponible sur cet appareil.')); return; }
     setUploading(true);
     try {
       const url = await uploadDocument(file.blob, 'id-docs', file.name);
       setIdDoc({ name: file.name, url });
     } catch (e: any) {
-      setError(e.message ?? 'Échec du téléversement.');
+      setError(e.message ?? tr('Échec du téléversement.'));
     } finally {
       setUploading(false);
     }
   }
 
   async function submitId() {
-    if (!idDoc) { setError('Téléversez d\'abord votre pièce d\'identité.'); return; }
+    if (!idDoc) { setError(tr("Téléversez d'abord votre pièce d'identité.")); return; }
     setError('');
     setSubmitting(true);
     try {
       await submitClientVerification(idDoc.url);
       setStatus('pending');
     } catch (e: any) {
-      setError(e.message ?? 'Échec de l\'envoi.');
+      setError(e.message ?? tr("Échec de l'envoi."));
     } finally {
       setSubmitting(false);
     }
@@ -65,16 +66,16 @@ export default function Security() {
     setResetting(true);
     const { error: e } = await supabase.auth.resetPasswordForEmail(email);
     setResetting(false);
-    alert(e ? 'Erreur' : 'Email envoyé', e ? e.message : `Un lien de réinitialisation a été envoyé à ${email}.`);
+    alert(e ? tr('Erreur') : tr('Email envoyé'), e ? e.message : tr('Un lien de réinitialisation a été envoyé à {email}.', { email: email }));
   }
 
   function confirmDeleteAccount() {
     alert(
-      'Supprimer le compte',
-      'Cette action est irréversible. Votre profil, vos messages, vos favoris et vos documents de vérification seront définitivement supprimés.',
+      tr('Supprimer le compte'),
+      tr('Cette action est irréversible. Votre profil, vos messages, vos favoris et vos documents de vérification seront définitivement supprimés.'),
       [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Supprimer', style: 'destructive', onPress: doDeleteAccount },
+        { text: tr('Annuler'), style: 'cancel' },
+        { text: tr('Supprimer'), style: 'destructive', onPress: doDeleteAccount },
       ],
     );
   }
@@ -87,7 +88,7 @@ export default function Security() {
       router.replace('/onboarding/auth');
     } catch (e: any) {
       setDeleting(false);
-      alert('Erreur', e.message ?? 'Échec de la suppression du compte.');
+      alert(tr('Erreur'), e.message ?? tr('Échec de la suppression du compte.'));
     }
   }
 
@@ -97,7 +98,7 @@ export default function Security() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Sécurité & confiance</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Sécurité & confiance')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -110,27 +111,25 @@ export default function Security() {
             <View style={[styles.statusCard, { borderColor: colors.vert }]}>
               <ShieldCheck size={28} color={colors.vert} />
               <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Identité vérifiée</Text>
-                <Text style={[text.small, { color: colors.textMuted }]}>Votre compte affiche le badge vérifié.</Text>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Identité vérifiée')}</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr('Votre compte affiche le badge vérifié.')}</Text>
               </View>
             </View>
           ) : status === 'pending' ? (
             <View style={[styles.statusCard, { borderColor: colors.soleil }]}>
               <Clock size={28} color={colors.soleil} />
               <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Vérification en cours</Text>
-                <Text style={[text.small, { color: colors.textMuted }]}>Nous examinons votre pièce d'identité. Vous pouvez continuer à utiliser Sèvizi.</Text>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Vérification en cours')}</Text>
+                <Text style={[text.small, { color: colors.textMuted }]}>{tr("Nous examinons votre pièce d'identité. Vous pouvez continuer à utiliser Sèvizi.")}</Text>
               </View>
             </View>
           ) : (
             <View style={[styles.statusCard, { borderColor: colors.border }]}>
               <ShieldAlert size={28} color={colors.textMuted} />
               <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Compte non vérifié</Text>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Compte non vérifié')}</Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>
-                  {status === 'rejected'
-                    ? 'Votre pièce n\'a pas pu être validée. Réessayez ci-dessous.'
-                    : 'Faites-vous vérifier en envoyant votre pièce d\'identité (facultatif).'}
+                  {status === 'rejected' ? tr("Votre pièce n'a pas pu être validée. Réessayez ci-dessous.") : tr("Faites-vous vérifier en envoyant votre pièce d'identité (facultatif).")}
                 </Text>
               </View>
             </View>
@@ -139,47 +138,47 @@ export default function Security() {
           {/* ID submission */}
           {!verified && status !== 'pending' && status !== 'approved' && (
             <View style={{ marginTop: spacing.lg }}>
-              <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>PIÈCE D'IDENTITÉ</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>{tr("PIÈCE D'IDENTITÉ")}</Text>
               <Pressable style={[styles.uploadRow, idDoc && styles.uploadDone]} onPress={uploadId} disabled={uploading}>
                 {uploading ? <ActivityIndicator size="small" color={colors.vert} />
                   : idDoc ? <Check size={20} color={colors.vert} />
                   : <Upload size={20} color={colors.textMuted} />}
                 <Text style={[text.small, { color: idDoc ? colors.vert : colors.encre, flex: 1 }]} numberOfLines={1}>
-                  {idDoc?.name ?? 'Téléverser une pièce d\'identité (CNI, passeport)'}
+                  {idDoc?.name ?? tr("Téléverser une pièce d'identité (CNI, passeport)")}
                 </Text>
               </Pressable>
               {!!error && <Text style={styles.error}>{error}</Text>}
               <View style={{ height: spacing.md }} />
-              <Button label="Envoyer pour vérification" onPress={submitId} loading={submitting} disabled={!idDoc} />
+              <Button label={tr('Envoyer pour vérification')} onPress={submitId} loading={submitting} disabled={!idDoc} />
             </View>
           )}
 
           {/* Account */}
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>MON COMPTE</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>{tr('MON COMPTE')}</Text>
           <View style={styles.list}>
             <View style={styles.row}>
               <Mail size={20} color={colors.encre} />
               <View style={{ flex: 1 }}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Adresse email</Text>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Adresse email')}</Text>
                 <Text style={[text.small, { color: colors.textMuted }]}>{email || '—'}</Text>
               </View>
             </View>
             <Pressable style={[styles.row, styles.rowBorder]} onPress={sendPasswordReset} disabled={resetting}>
               <Lock size={20} color={colors.encre} />
               <Text style={[text.bodyMd, { color: colors.encre, flex: 1 }]}>
-                {resetting ? 'Envoi en cours…' : 'Changer le mot de passe'}
+                {resetting ? tr('Envoi en cours…') : tr('Changer le mot de passe')}
               </Text>
               <ChevronRight size={18} color={colors.textMuted} />
             </Pressable>
           </View>
 
           {/* Danger */}
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>ZONE SENSIBLE</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.xl, marginBottom: spacing.sm }]}>{tr('ZONE SENSIBLE')}</Text>
           <View style={styles.list}>
             <Pressable style={styles.row} onPress={confirmDeleteAccount} disabled={deleting}>
               {deleting ? <ActivityIndicator size="small" color={colors.terre} /> : <Trash2 size={20} color={colors.terre} />}
               <Text style={[text.bodyMd, { color: colors.terre, flex: 1 }]}>
-                {deleting ? 'Suppression en cours…' : 'Supprimer mon compte'}
+                {deleting ? tr('Suppression en cours…') : tr('Supprimer mon compte')}
               </Text>
               <ChevronRight size={18} color={colors.terre} />
             </Pressable>

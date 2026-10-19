@@ -10,6 +10,7 @@ import { LOME, fetchMessages, sendMessage, resolveActiveThread } from '../../src
 import { containsContactInfo } from '../../src/lib/contentSafety';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 type Bubble = { id: string; me: boolean; text?: string; map?: boolean; time: string };
 
 // Shared by both client and provider (no tab bar wrapper), so messaging works
@@ -29,7 +30,7 @@ export default function Thread() {
   function toBubbles(data: { id: string; fromMe: boolean; text: string; createdAt: string }[]): Bubble[] {
     return data.map(m => ({
       id: m.id, me: m.fromMe, text: m.text,
-      time: new Date(m.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
+      time: new Date(m.createdAt).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }),
     }));
   }
 
@@ -65,7 +66,7 @@ export default function Thread() {
 
     // Keep contact info off the platform — see contentSafety.ts for why.
     if (containsContactInfo(body)) {
-      setWarning('Merci de ne pas partager de numéro de téléphone ou d\'email. Toute la communication doit rester sur Sèvizi.');
+      setWarning(tr("Merci de ne pas partager de numéro de téléphone ou d'email. Toute la communication doit rester sur Sèvizi."));
       return;
     }
     setWarning('');
@@ -73,7 +74,7 @@ export default function Thread() {
     setDraft('');
     setSending(true);
     const tempId = String(Date.now());
-    const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
     setMsgs(prev => [...prev, { id: tempId, me: true, text: body, time: now }]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
     try {
@@ -88,7 +89,7 @@ export default function Thread() {
   }
 
   function shareLocation() {
-    const now = new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date().toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
     setMsgs(prev => [...prev, { id: String(Date.now()), me: true, map: true, time: now }]);
     setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 100);
   }
@@ -109,8 +110,7 @@ export default function Thread() {
       <View style={styles.safetyBanner}>
         <ShieldAlert size={14} color={colors.vertDark} />
         <Text style={[text.label, { color: colors.vertDark, flex: 1 }]}>
-          Gardez toute communication et tout paiement sur Sèvizi. Ne partagez pas vos coordonnées personnelles.
-        </Text>
+          {tr('Gardez toute communication et tout paiement sur Sèvizi. Ne partagez pas vos coordonnées personnelles.')}</Text>
       </View>
 
       <ScrollView
@@ -124,14 +124,12 @@ export default function Thread() {
         ) : !requestId ? (
           <View style={styles.empty}>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              La messagerie s'ouvre une fois une mission en cours.{'\n'}Acceptez une offre pour discuter avec l'autre partie.
-            </Text>
+              {tr("La messagerie s'ouvre une fois une mission en cours.")}{'\n'}{tr("Acceptez une offre pour discuter avec l'autre partie.")}</Text>
           </View>
         ) : msgs.length === 0 ? (
           <View style={styles.empty}>
             <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucun message. Commencez la conversation !
-            </Text>
+              {tr('Aucun message. Commencez la conversation !')}</Text>
           </View>
         ) : (
           msgs.map(m => (
@@ -143,8 +141,7 @@ export default function Thread() {
                     <View style={styles.miniCoord}>
                       <Navigation size={10} color={colors.creme} />
                       <Text style={[text.label, { color: colors.creme, fontSize: 10 }]}>
-                        {LOME.lat.toFixed(4)}° N
-                      </Text>
+                        {LOME.lat.toFixed(4)}{tr('° N')}</Text>
                     </View>
                   </View>
                 ) : (
@@ -167,7 +164,7 @@ export default function Thread() {
           </Pressable>
           <TextInput
             style={styles.input}
-            placeholder={requestId ? 'Message…' : 'Aucune conversation active'}
+            placeholder={requestId ? tr('Message…') : tr('Aucune conversation active')}
             placeholderTextColor={colors.textMuted}
             value={draft}
             onChangeText={(v) => { setDraft(v); if (warning) setWarning(''); }}

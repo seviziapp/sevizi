@@ -7,9 +7,10 @@ import { CategoryIcon } from '../../src/components/CategoryIcon';
 import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchNearbyRequests, resolveMyLocation, fetchMyProviderProfile, LOME } from '../../src/lib/api';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
-import { timeAgo } from '../../src/lib/format';
+import { timeAgo, agoText } from '../../src/lib/format';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function ProviderRequests() {
   const router = useRouter();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -46,13 +47,13 @@ export default function ProviderRequests() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[text.h2, { color: colors.encre }]}>Demandes proches</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Demandes proches')}</Text>
       </View>
 
       {/* Category filter chips */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chips}>
         <Pressable style={[styles.chip, !filter && styles.chipActive]} onPress={() => setFilter(null)}>
-          <Text style={[text.small, { color: !filter ? colors.white : colors.encre }]}>Toutes</Text>
+          <Text style={[text.small, { color: !filter ? colors.white : colors.encre }]}>{tr('Toutes')}</Text>
         </Pressable>
         {topCats.map(c => (
           <Pressable key={c.key} style={[styles.chip, filter === c.key && styles.chipActive]} onPress={() => setFilter(c.key)}>
@@ -67,15 +68,13 @@ export default function ProviderRequests() {
           <Pressable style={styles.upsell} onPress={() => router.push('/provider/upgrade')}>
             <Crown size={14} color={colors.soleil} fill={colors.soleil} />
             <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-              Sèvizi Pro vous place en premier auprès des clients proches. Passez à Pro.
-            </Text>
+              {tr('Sèvizi Pro vous place en premier auprès des clients proches. Passez à Pro.')}</Text>
           </Pressable>
         )}
         {sorted.length === 0 && (
           <View style={styles.empty}>
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucune demande dans votre zone pour l'instant.
-            </Text>
+              {tr("Aucune demande dans votre zone pour l'instant.")}</Text>
           </View>
         )}
         {sorted.map(r => (
@@ -106,7 +105,7 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
             <Text style={[text.bodyMd, { color: colors.encre }]}>{cat?.label}</Text>
             {req.urgent && (
               <View style={styles.urgentBadge}>
-                <Text style={[text.label, { color: colors.terre }]}>URGENT</Text>
+                <Text style={[text.label, { color: colors.terre }]}>{tr('URGENT')}</Text>
               </View>
             )}
           </View>
@@ -121,16 +120,16 @@ function RequestCard({ req, onPress }: { req: ServiceRequest; onPress: () => voi
         <View style={styles.metaItem}>
           <MapPin size={13} color={colors.textMuted} />
           <Text style={[text.label, { color: colors.textMuted }]}>
-            {req.locationLabel}{req.distanceKm != null ? ` · ${req.distanceKm.toFixed(1)} km` : ''}
+            {req.locationLabel}{req.distanceKm != null ? tr(' · {v0} km', { v0: req.distanceKm.toFixed(1) }) : ''}
           </Text>
         </View>
         <View style={styles.metaItem}>
           <Clock size={13} color={colors.textMuted} />
-          <Text style={[text.label, { color: colors.textMuted }]}>Il y a {ago}</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>{agoText(req.createdAt)}</Text>
         </View>
         <View style={[styles.offersTag, offersCount === 0 && styles.offersTagNew]}>
           <Text style={[text.label, { color: offersCount === 0 ? colors.vert : colors.textMuted }]}>
-            {offersCount === 0 ? 'Nouveau' : `${offersCount} offre${offersCount > 1 ? 's' : ''}`}
+            {offersCount === 0 ? tr('Nouveau') : tr('{offersCount} offre{s1}', { offersCount: offersCount, s1: offersCount > 1 ? 's' : '' })}
           </Text>
         </View>
       </View>

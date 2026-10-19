@@ -15,12 +15,13 @@ import { saveProviderDetails, createProSubscriptionInvoice } from '../../src/lib
 import { CATEGORIES, type ServiceCategory, type ProviderTier } from '../../src/lib/types';
 import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, freeTierCommissionLabel } from '../../src/lib/pricing';
 
+import { tr, locale } from '../../src/i18n';
 function getFreeFeatures(): string[] {
   return [
-    '1 service proposé',
+    tr('1 service proposé'),
     freeTierCommissionLabel(),
-    'Classement normal dans les recherches',
-    `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
+    tr('Classement normal dans les recherches'),
+    tr("Jusqu'à {n} photos dans la galerie", { n: GALLERY_CAP_FREE }),
   ];
 }
 
@@ -49,7 +50,7 @@ export default function ProviderDetails() {
   const valid = companyName.trim() && firstName.trim() && lastName.trim() && phone.trim().length >= 8 && email.trim();
 
   async function submit() {
-    if (!valid) { setError('Remplissez les champs obligatoires.'); return; }
+    if (!valid) { setError(tr('Remplissez les champs obligatoires.')); return; }
     setError('');
     setLoading(true);
     try {
@@ -81,7 +82,7 @@ export default function ProviderDetails() {
       }
       router.replace('/provider/dashboard');
     } catch (e: any) {
-      setError(e.message ?? 'Une erreur est survenue.');
+      setError(e.message ?? tr('Une erreur est survenue.'));
     } finally {
       setLoading(false);
     }
@@ -92,16 +93,15 @@ export default function ProviderDetails() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Logo size={48} />
-          <Text style={[text.h1, { color: colors.encre, marginTop: spacing.lg }]}>Votre activité</Text>
+          <Text style={[text.h1, { color: colors.encre, marginTop: spacing.lg }]}>{tr('Votre activité')}</Text>
           <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.xl }]}>
-            Créez votre profil prestataire. La vérification est facultative — vous pouvez commencer à recevoir des demandes dès maintenant.
-          </Text>
+            {tr('Créez votre profil prestataire. La vérification est facultative — vous pouvez commencer à recevoir des demandes dès maintenant.')}</Text>
 
-          <Field icon={<Building2 size={18} color={colors.textMuted} />} placeholder="Nom de l'entreprise" value={companyName} onChangeText={setCompanyName} />
-          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Prénom" value={firstName} onChangeText={setFirstName} />
-          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Nom" value={lastName} onChangeText={setLastName} />
+          <Field icon={<Building2 size={18} color={colors.textMuted} />} placeholder={tr("Nom de l'entreprise")} value={companyName} onChangeText={setCompanyName} />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder={tr('Prénom')} value={firstName} onChangeText={setFirstName} />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder={tr('Nom')} value={lastName} onChangeText={setLastName} />
 
-          <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>CATÉGORIE DE SERVICE</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginBottom: spacing.sm }]}>{tr('CATÉGORIE DE SERVICE')}</Text>
           <View style={styles.chips}>
             {CATEGORIES.map(c => {
               const active = c.key === category;
@@ -115,13 +115,13 @@ export default function ProviderDetails() {
           </View>
 
           <View style={{ height: spacing.md }} />
-          <Field icon={<Phone size={18} color={colors.textMuted} />} placeholder="Numéro de téléphone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          <Field icon={<Mail size={18} color={colors.textMuted} />} placeholder="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <Field icon={<Phone size={18} color={colors.textMuted} />} placeholder={tr('Numéro de téléphone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <Field icon={<Mail size={18} color={colors.textMuted} />} placeholder={tr('Adresse e-mail')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
 
           <View style={styles.textareaWrap}>
             <TextInput
               style={styles.textarea}
-              placeholder="Décrivez vos services (facultatif)…"
+              placeholder={tr('Décrivez vos services (facultatif)…')}
               placeholderTextColor={colors.textMuted}
               value={bio}
               onChangeText={setBio}
@@ -133,17 +133,17 @@ export default function ProviderDetails() {
           <View style={{ height: spacing.md }} />
           <Field
             icon={<Gift size={18} color={colors.textMuted} />}
-            placeholder="Code de parrainage (facultatif)"
+            placeholder={tr('Code de parrainage (facultatif)')}
             value={referralCode}
             onChangeText={t => setReferralCode(t.toUpperCase())}
             autoCapitalize="characters"
           />
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm }]}>CHOISISSEZ VOTRE FORMULE</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg, marginBottom: spacing.sm }]}>{tr('CHOISISSEZ VOTRE FORMULE')}</Text>
           <View style={styles.tierRow}>
             <Pressable style={[styles.tierCard, tier === 'free' && styles.tierCardActive]} onPress={() => setTier('free')}>
               <View style={styles.tierHead}>
-                <Text style={[text.bodyMd, { color: colors.encre }]}>Gratuit</Text>
+                <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Gratuit')}</Text>
                 {tier === 'free' && <Check size={16} color={colors.vert} />}
               </View>
               {getFreeFeatures().map((f, i) => (
@@ -154,27 +154,25 @@ export default function ProviderDetails() {
               <View style={styles.tierHead}>
                 <View style={styles.proLabel}>
                   <Crown size={13} color={colors.encre} fill={colors.soleil} />
-                  <Text style={[text.bodyMd, { color: colors.encre }]}>Pro</Text>
+                  <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Pro')}</Text>
                 </View>
                 {tier === 'pro' && <Check size={16} color={colors.vert} />}
               </View>
               <Text style={[text.small, { color: colors.vertDark, marginBottom: 2 }]}>
-                {PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois
-              </Text>
+                {PRO_MONTHLY_FEE.toLocaleString(locale())} {tr('F/mois')}</Text>
               {getProFeatures().map((f, i) => (
                 <Text key={i} style={[text.small, { color: colors.encre, marginTop: 4 }]}>· {f}</Text>
               ))}
             </Pressable>
           </View>
           <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.sm }]}>
-            Vous pourrez changer de formule à tout moment depuis votre profil.
-          </Text>
+            {tr('Vous pourrez changer de formule à tout moment depuis votre profil.')}</Text>
 
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <View style={{ height: spacing.lg }} />
           <Button
-            label={tier === 'pro' ? `Continuer — Pro ${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois` : 'Continuer — Gratuit'}
+            label={tier === 'pro' ? tr('Continuer — Pro {v0} F/mois', { v0: PRO_MONTHLY_FEE.toLocaleString(locale()) }) : tr('Continuer — Gratuit')}
             icon={<ArrowRight size={20} color={colors.white} />}
             onPress={submit}
             loading={loading}

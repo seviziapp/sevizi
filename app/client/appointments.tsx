@@ -8,11 +8,12 @@ import { alert } from '../../src/lib/alert';
 import { fetchMyAppointments, cancelAppointment } from '../../src/lib/api';
 import type { Appointment } from '../../src/lib/types';
 
+import { tr, locale } from '../../src/i18n';
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('fr-FR', { weekday: 'short', day: 'numeric', month: 'short' });
+  return new Date(iso).toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'short' });
 }
 function fmtTime(iso: string) {
-  return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  return new Date(iso).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' });
 }
 
 const STATUS_LABEL: Record<Appointment['status'], string> = {
@@ -37,9 +38,9 @@ export default function ClientAppointments() {
   const past = appointments.filter(a => !upcoming.includes(a));
 
   function onCancel(a: Appointment) {
-    alert('Annuler ce rendez-vous ?', `${a.serviceName} — ${fmtDate(a.startsAt)} à ${fmtTime(a.startsAt)}`, [
-      { text: 'Non', style: 'cancel' },
-      { text: 'Oui, annuler', style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
+    alert(tr('Annuler ce rendez-vous ?'), tr('{serviceName} — {startsAt} à {v2}', { serviceName: a.serviceName, startsAt: fmtDate(a.startsAt), v2: fmtTime(a.startsAt) }), [
+      { text: tr('Non'), style: 'cancel' },
+      { text: tr('Oui, annuler'), style: 'destructive', onPress: async () => { await cancelAppointment(a.id); load(); } },
     ]);
   }
 
@@ -49,20 +50,20 @@ export default function ClientAppointments() {
         <View style={styles.cardHead}>
           <Text style={[text.bodyMd, { color: colors.encre }]}>{a.serviceName}</Text>
           <View style={[styles.statusPill, a.status === 'confirmed' && styles.statusPillActive]}>
-            <Text style={[text.small, { color: a.status === 'confirmed' ? colors.vert : colors.textMuted }]}>{STATUS_LABEL[a.status]}</Text>
+            <Text style={[text.small, { color: a.status === 'confirmed' ? colors.vert : colors.textMuted }]}>{tr(STATUS_LABEL[a.status])}</Text>
           </View>
         </View>
-        <Text style={[text.small, { color: colors.textMuted }]}>{a.providerName ?? 'Prestataire'}</Text>
+        <Text style={[text.small, { color: colors.textMuted }]}>{a.providerName ?? tr('Prestataire')}</Text>
         <View style={styles.metaRow}>
           <CalendarIcon size={13} color={colors.textMuted} />
           <Text style={[text.small, { color: colors.textMuted }]}>{fmtDate(a.startsAt)}</Text>
           <Clock size={13} color={colors.textMuted} style={{ marginLeft: spacing.sm }} />
-          <Text style={[text.small, { color: colors.textMuted }]}>{fmtTime(a.startsAt)} · {a.durationMinutes} min</Text>
+          <Text style={[text.small, { color: colors.textMuted }]}>{fmtTime(a.startsAt)} · {a.durationMinutes} {tr('min')}</Text>
         </View>
-        <Text style={[text.small, { color: colors.encre, marginTop: 2 }]}>{a.price.toLocaleString()} F</Text>
+        <Text style={[text.small, { color: colors.encre, marginTop: 2 }]}>{a.price.toLocaleString()} {tr('F')}</Text>
         {a.status === 'confirmed' && new Date(a.startsAt).getTime() > Date.now() && (
           <Pressable style={styles.cancelBtn} onPress={() => onCancel(a)}>
-            <Text style={[text.small, { color: colors.terre }]}>Annuler</Text>
+            <Text style={[text.small, { color: colors.terre }]}>{tr('Annuler')}</Text>
           </Pressable>
         )}
       </View>
@@ -75,7 +76,7 @@ export default function ClientAppointments() {
         <Pressable style={[styles.back, shadow.sm]} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes rendez-vous</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes rendez-vous')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -83,16 +84,16 @@ export default function ClientAppointments() {
         <ActivityIndicator color={colors.vert} style={{ marginTop: 60 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-          <Text style={[text.label, { color: colors.textMuted }]}>À VENIR</Text>
+          <Text style={[text.label, { color: colors.textMuted }]}>{tr('À VENIR')}</Text>
           {upcoming.length === 0 ? (
-            <Text style={[text.body, { color: colors.textMuted }]}>Aucun rendez-vous à venir.</Text>
+            <Text style={[text.body, { color: colors.textMuted }]}>{tr('Aucun rendez-vous à venir.')}</Text>
           ) : (
             <View style={{ gap: spacing.md }}>{upcoming.map(a => <Card key={a.id} a={a} />)}</View>
           )}
 
           {past.length > 0 && (
             <>
-              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>HISTORIQUE</Text>
+              <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('HISTORIQUE')}</Text>
               <View style={{ gap: spacing.md }}>{past.map(a => <Card key={a.id} a={a} />)}</View>
             </>
           )}

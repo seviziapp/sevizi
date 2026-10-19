@@ -10,6 +10,7 @@ import { getCurrentPosition } from '../../src/lib/geolocation';
 import { MarkersMap, type MapMarker } from '../../src/components/MarkersMap';
 import { CATEGORIES, type ServiceRequest, type ServiceCategory, type GeoPoint } from '../../src/lib/types';
 
+import { tr } from '../../src/i18n';
 const TOP_CATS = CATEGORIES.slice(0, 5);
 
 export default function ProviderMap() {
@@ -91,7 +92,7 @@ export default function ProviderMap() {
         <MarkersMap center={center} markers={markers} fill />
         <View style={styles.topOverlay}>
           <Text style={[text.bodyMd, { color: colors.encre }]}>
-            {loading ? 'Recherche…' : `${requests.length} demande${requests.length > 1 ? 's' : ''} dans votre zone`}
+            {loading ? tr('Recherche…') : tr('{length} demande{s1} dans votre zone', { length: requests.length, s1: requests.length > 1 ? 's' : '' })}
           </Text>
         </View>
         <Pressable style={styles.locateBtn} onPress={recenter} disabled={locating}>
@@ -101,7 +102,7 @@ export default function ProviderMap() {
         {/* Category filter chips */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipsScroll} contentContainerStyle={styles.chips}>
           <Pressable style={[styles.chip, !filter && styles.chipActive]} onPress={() => setFilter(null)}>
-            <Text style={[text.small, { color: !filter ? colors.white : colors.encre }]}>Toutes</Text>
+            <Text style={[text.small, { color: !filter ? colors.white : colors.encre }]}>{tr('Toutes')}</Text>
           </Pressable>
           {TOP_CATS.map(c => (
             <Pressable key={c.key} style={[styles.chip, filter === c.key && styles.chipActive]} onPress={() => setFilter(c.key)}>
@@ -132,26 +133,25 @@ export default function ProviderMap() {
             <View style={styles.selectedMeta}>
               <Navigation size={13} color={colors.textMuted} />
               <Text style={[text.small, { color: colors.textMuted }]}>
-                {selected.locationLabel}{selected.distanceKm != null ? ` · ${selected.distanceKm.toFixed(1)} km` : ''}
+                {selected.locationLabel}{selected.distanceKm != null ? tr(' · {v0} km', { v0: selected.distanceKm.toFixed(1) }) : ''}
               </Text>
-              {selected.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>URGENT</Text></View>}
+              {selected.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>{tr('URGENT')}</Text></View>}
             </View>
             <Pressable
               style={styles.offerBtn}
               onPress={() => router.push({ pathname: '/provider/send-offer', params: { requestId: selected.id, description: selected.description, category: selected.category } })}
             >
-              <Text style={[text.bodyMd, { color: colors.white }]}>Faire une offre Express</Text>
+              <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Faire une offre Express')}</Text>
             </Pressable>
           </View>
         ) : loading ? (
           <ActivityIndicator color={colors.vert} style={{ marginTop: spacing.lg }} />
         ) : sorted.length === 0 ? (
           <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', paddingVertical: spacing.lg }]}>
-            Aucune demande dans votre zone pour l'instant.
-          </Text>
+            {tr("Aucune demande dans votre zone pour l'instant.")}</Text>
         ) : (
           <>
-            <Text style={[text.h3, { color: colors.encre, marginBottom: spacing.md }]}>Demandes proches</Text>
+            <Text style={[text.h3, { color: colors.encre, marginBottom: spacing.md }]}>{tr('Demandes proches')}</Text>
             <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 220 }}>
               {sorted.map((r, i) => {
                 const c = CATEGORIES.find(cc => cc.key === r.category);
@@ -161,10 +161,10 @@ export default function ProviderMap() {
                     <View style={{ flex: 1 }}>
                       <Text style={[text.bodyMd, { color: colors.encre }]}>{c?.label}</Text>
                       {r.distanceKm != null && (
-                        <Text style={[text.label, { color: colors.textMuted }]}>{r.distanceKm.toFixed(1)} km</Text>
+                        <Text style={[text.label, { color: colors.textMuted }]}>{r.distanceKm.toFixed(1)} {tr('km')}</Text>
                       )}
                     </View>
-                    {r.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>URGENT</Text></View>}
+                    {r.urgent && <View style={styles.urgentBadge}><Text style={[text.label, { color: colors.terre }]}>{tr('URGENT')}</Text></View>}
                     <ChevronRight size={16} color={colors.textMuted} />
                   </Pressable>
                 );

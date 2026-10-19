@@ -6,6 +6,7 @@ import { DiscountCode } from '../types';
 import { hasSupabase } from './shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 function mapDiscountCode(d: any): DiscountCode {
   return {
     id: d.id, code: d.code, label: d.label ?? undefined,
@@ -53,7 +54,7 @@ export async function deleteDiscountCode(id: string): Promise<void> {
 // provider account immediately (server-validated — see redeem_discount_code
 // in supabase/migration_discounts.sql).
 export async function redeemCommissionDiscountCode(code: string): Promise<{ pct: number; durationDays: number | null; label?: string }> {
-  if (!hasSupabase) throw new Error('Indisponible en mode démo');
+  if (!hasSupabase) throw new Error(tr('Indisponible en mode démo'));
   const { data, error } = await supabase.rpc('redeem_discount_code', { p_code: code.trim(), p_purpose: 'commission' });
   if (error) throw new Error(error.message);
   return { pct: data.value, durationDays: data.durationDays ?? null, label: data.label ?? undefined };

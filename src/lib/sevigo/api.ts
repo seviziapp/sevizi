@@ -10,6 +10,7 @@ import {
   SevigoPlanId, SevigoInvoiceTemplate, computeInvoiceTotals, planById, invoiceFeeForUsage,
 } from './types';
 
+import { tr } from '../../i18n';
 const TABLE_MISSING = '42P01';
 
 function isTableMissing(error: any): boolean {
@@ -99,7 +100,7 @@ export async function fetchSevigoUsage(): Promise<SevigoUsage> {
 export async function setSevigoPlan(planId: 'payg'): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { error } = await supabase
     .from('sevigo_subscriptions')
     .upsert({ user_id: user.id, plan_id: planId }, { onConflict: 'user_id' });
@@ -143,7 +144,7 @@ export async function fetchSevigoBusinessProfile(): Promise<SevigoBusinessProfil
 export async function saveSevigoBusinessProfile(profile: SevigoBusinessProfile): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { error } = await supabase.from('sevigo_business_profiles').upsert({
     user_id: user.id,
     business_name: profile.businessName,
@@ -214,7 +215,7 @@ export async function createSevigoInvoice(input: CreateSevigoInvoiceInput): Prom
     };
   }
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
 
   // Invoice number: next sequential per-user, computed client-side from the
   // current count. A concurrent double-submit could in theory collide; low
@@ -317,7 +318,7 @@ export async function fetchSevigoWalletBalance(): Promise<{ balance: number; pro
 export async function requestSevigoWithdrawal(input: { amount: number; method: 'flooz' | 'mixx'; phone: string }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const providerId = providerRows?.[0]?.id ?? null;
   const { error } = await supabase.from('withdrawal_requests').insert({

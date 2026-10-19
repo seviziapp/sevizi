@@ -8,13 +8,14 @@ import { fetchCurrentJob, updateJobStatus } from '../../src/lib/api';
 import type { Job, JobStatus } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 type StepIcon = React.ComponentType<{ size?: number; color?: string }>;
 const STEPS: { key: JobStatus; label: string; action: string; Icon: StepIcon }[] = [
-  { key: 'accepte',  label: 'Mission acceptée',       action: 'Démarrer le trajet',  Icon: Handshake },
-  { key: 'en_route', label: 'En route',               action: 'Je suis arrivé',      Icon: Car },
-  { key: 'arrive',   label: 'Arrivé chez le client',  action: 'Démarrer la mission', Icon: MapPin },
-  { key: 'en_cours', label: 'Mission en cours',        action: 'Mission terminée',    Icon: Wrench },
-  { key: 'termine',  label: 'Mission terminée',        action: '',                    Icon: Flag },
+  { key: 'accepte',  get label() { return tr('Mission acceptée'); },       get action() { return tr('Démarrer le trajet'); },  Icon: Handshake },
+  { key: 'en_route', get label() { return tr('En route'); },               get action() { return tr('Je suis arrivé'); },      Icon: Car },
+  { key: 'arrive',   get label() { return tr('Arrivé chez le client'); },  get action() { return tr('Démarrer la mission'); }, Icon: MapPin },
+  { key: 'en_cours', get label() { return tr('Mission en cours'); },        get action() { return tr('Mission terminée'); },    Icon: Wrench },
+  { key: 'termine',  get label() { return tr('Mission terminée'); },        action: '',                    Icon: Flag },
 ];
 
 export default function ActiveJob() {
@@ -50,7 +51,7 @@ export default function ActiveJob() {
       await updateJobStatus(job.id, nextStep.key);
       setStatusIdx(i => i + 1);
     } catch (e: any) {
-      setError(e?.message ?? 'Impossible de mettre à jour le statut. Réessayez.');
+      setError(e?.message ?? tr('Impossible de mettre à jour le statut. Réessayez.'));
     } finally {
       setAdvancing(false);
     }
@@ -69,12 +70,11 @@ export default function ActiveJob() {
       <SafeAreaView style={styles.safe} edges={['top']}>
         <View style={styles.emptyWrap}>
           <Briefcase size={48} color={colors.border} />
-          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>Aucune mission active</Text>
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>{tr('Aucune mission active')}</Text>
           <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-            Envoyez des offres sur les demandes proches. Quand un client accepte, la mission apparaît ici.
-          </Text>
+            {tr('Envoyez des offres sur les demandes proches. Quand un client accepte, la mission apparaît ici.')}</Text>
           <Pressable style={styles.emptyBtn} onPress={() => router.replace('/provider/requests')}>
-            <Text style={[text.bodyMd, { color: colors.white }]}>Voir les demandes</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Voir les demandes')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -102,7 +102,7 @@ export default function ActiveJob() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mission active</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mission active')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -139,14 +139,13 @@ export default function ActiveJob() {
         <View style={styles.safetyBanner}>
           <ShieldAlert size={14} color={colors.vertDark} />
           <Text style={[text.label, { color: colors.vertDark, flex: 1 }]}>
-            Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le client.
-          </Text>
+            {tr('Restez sur Sèvizi : ne partagez pas votre numéro ou vos coordonnées personnelles avec le client.')}</Text>
         </View>
 
         {price > 0 && (
           <View style={styles.priceRow}>
-            <Text style={[text.body, { color: colors.textMuted }]}>Montant convenu</Text>
-            <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{price.toLocaleString('fr-FR')} F</Text>
+            <Text style={[text.body, { color: colors.textMuted }]}>{tr('Montant convenu')}</Text>
+            <Text style={[text.data, { color: colors.encre, fontSize: 20 }]}>{price.toLocaleString(locale())} {tr('F')}</Text>
           </View>
         )}
 
@@ -180,18 +179,18 @@ export default function ActiveJob() {
 
         {!isDone ? (
           <Pressable style={[styles.advanceBtn, advancing && { opacity: 0.6 }]} onPress={advance} disabled={advancing}>
-            <Text style={[text.bodyMd, { color: colors.white }]}>{advancing ? 'Mise à jour…' : current.action}</Text>
+            <Text style={[text.bodyMd, { color: colors.white }]}>{advancing ? tr('Mise à jour…') : current.action}</Text>
             <ChevronRight size={18} color={colors.white} />
           </Pressable>
         ) : (
           <View style={{ gap: spacing.md }}>
             <View style={styles.doneCard}>
               <CheckCircle size={30} color={colors.vert} />
-              <Text style={[text.h3, { color: colors.encre }]}>Mission accomplie !</Text>
-              <Text style={[text.small, { color: colors.textMuted }]}>Le client va vous évaluer sous peu.</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{tr('Mission accomplie !')}</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr('Le client va vous évaluer sous peu.')}</Text>
             </View>
             <Pressable style={styles.backHomeBtn} onPress={() => router.replace('/provider/dashboard')}>
-              <Text style={[text.bodyMd, { color: colors.vert }]}>Retour au tableau de bord</Text>
+              <Text style={[text.bodyMd, { color: colors.vert }]}>{tr('Retour au tableau de bord')}</Text>
             </Pressable>
           </View>
         )}
@@ -199,7 +198,7 @@ export default function ActiveJob() {
         {/* Signal a problem → admin */}
         <Pressable style={styles.reportBtn} onPress={() => router.push({ pathname: '/shared/report-problem', params: { jobId: job.id } })}>
           <AlertTriangle size={16} color={colors.terre} />
-          <Text style={[text.bodyMd, { color: colors.terre }]}>Signaler un problème</Text>
+          <Text style={[text.bodyMd, { color: colors.terre }]}>{tr('Signaler un problème')}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

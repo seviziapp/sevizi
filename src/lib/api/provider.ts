@@ -7,13 +7,14 @@ import { ServiceCategory, GeoPoint, ServiceRequest, WithdrawalRequest, ProviderS
 import { LOME, hasSupabase, currentUser } from './shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 // Starts a real PayDunya checkout for the Sèvizi Pro monthly subscription.
 // Returns the hosted checkout page URL to open (mobile money / card) — the
 // provider is only actually flipped to Pro once PayDunya confirms payment
 // and the paydunya-webhook Edge Function processes it (see
 // supabase/migration_paydunya.sql for why this can't happen client-side).
 export async function createProSubscriptionInvoice(returnUrl: string, cancelUrl: string, discountCode?: string): Promise<{ invoiceUrl: string }> {
-  if (!hasSupabase) throw new Error('Paiement indisponible en mode démo');
+  if (!hasSupabase) throw new Error(tr('Paiement indisponible en mode démo'));
   const { data, error } = await supabase.functions.invoke('paydunya-create-invoice', {
     body: { returnUrl, cancelUrl, discountCode: discountCode?.trim() || undefined },
   });
@@ -110,9 +111,9 @@ export async function fetchNearbyRequests(category?: ServiceCategory, center?: G
 export async function sendOffer(input: { requestId: string; price: number; availability: string; message?: string; visitRequired?: boolean; priceMax?: number }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: providerData } = await supabase.from('providers').select('id').eq('user_id', user.id).single();
-  if (!providerData) throw new Error('Profil prestataire introuvable');
+  if (!providerData) throw new Error(tr('Profil prestataire introuvable'));
   const { error } = await supabase.from('offers').insert({
     request_id: input.requestId, provider_id: providerData.id,
     price: input.price, availability: input.availability, message: input.message,
@@ -150,10 +151,10 @@ export async function fetchWalletBalance(): Promise<number> {
 export async function requestWithdrawal(input: { amount: number; method: 'flooz' | 'mixx'; phone: string }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const providerId = providerRows?.[0]?.id;
-  if (!providerId) throw new Error('Profil prestataire introuvable');
+  if (!providerId) throw new Error(tr('Profil prestataire introuvable'));
   const { error } = await supabase.from('withdrawal_requests').insert({
     provider_id: providerId, user_id: user.id,
     amount: input.amount, method: input.method, phone: input.phone,

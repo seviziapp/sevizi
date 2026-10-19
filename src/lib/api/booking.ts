@@ -7,12 +7,13 @@ import { ProviderService, ProviderAvailability, Appointment } from '../types';
 import { hasSupabase, currentUser } from './shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 // Any provider can flip this on to switch their profile from "Demander un
 // devis" to "Prendre rendez-vous" — no payment gating, just a UI mode switch.
 export async function toggleBookable(bookable: boolean): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { error } = await supabase.from('providers').update({ bookable }).eq('user_id', user.id);
   if (error) throw error;
 }
@@ -55,10 +56,10 @@ export async function fetchMyServices(): Promise<ProviderService[]> {
 export async function saveService(input: { id?: string; name: string; durationMinutes: number; price: number; depositAmount: number; photoUrl?: string }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const providerId = providerRows?.[0]?.id;
-  if (!providerId) throw new Error('Profil prestataire introuvable');
+  if (!providerId) throw new Error(tr('Profil prestataire introuvable'));
   if (input.id) {
     const { error } = await supabase.from('provider_services').update({
       name: input.name, duration_minutes: input.durationMinutes,
@@ -110,10 +111,10 @@ export async function fetchMyAvailability(): Promise<ProviderAvailability[]> {
 export async function saveMyAvailability(slots: { dayOfWeek: number; startTime: string; endTime: string }[]): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: providerRows } = await supabase.from('providers').select('id').eq('user_id', user.id).limit(1);
   const providerId = providerRows?.[0]?.id;
-  if (!providerId) throw new Error('Profil prestataire introuvable');
+  if (!providerId) throw new Error(tr('Profil prestataire introuvable'));
   await supabase.from('provider_availability').delete().eq('provider_id', providerId);
   if (slots.length === 0) return;
   const { error } = await supabase.from('provider_availability').insert(
@@ -171,7 +172,7 @@ export async function fetchAvailableSlots(providerId: string, service: ProviderS
 // immediately (no invoiceUrl returned); otherwise open invoiceUrl for the
 // client to pay the deposit via PayDunya.
 export async function createAppointmentInvoice(input: { serviceId: string; startsAt: string; returnUrl: string; cancelUrl: string }): Promise<{ appointmentId: string; invoiceUrl?: string; confirmed?: boolean }> {
-  if (!hasSupabase) throw new Error('Réservation indisponible en mode démo');
+  if (!hasSupabase) throw new Error(tr('Réservation indisponible en mode démo'));
   const { data, error } = await supabase.functions.invoke('paydunya-create-appointment-invoice', {
     body: input,
   });

@@ -12,6 +12,7 @@ import { Button } from './Button';
 import { fetchSevigoUsage } from '../lib/sevigo/api';
 import { reportError } from '../lib/reportError';
 
+import { tr } from '../i18n';
 export function PosGate({ title, children }: { title: string; children: React.ReactNode }) {
   const router = useRouter();
   const [state, setState] = useState<'loading' | 'ok' | 'locked'>('loading');
@@ -38,11 +39,10 @@ export function PosGate({ title, children }: { title: string; children: React.Re
       ) : (
         <View style={styles.locked}>
           <View style={styles.lockIcon}><Lock size={28} color={colors.vert} /></View>
-          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>Réservé à la formule Unlimited</Text>
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>{tr('Réservé à la formule Unlimited')}</Text>
           <Text style={[text.small, { color: colors.textMuted, textAlign: 'center', marginTop: spacing.xs, marginBottom: spacing.xl }]}>
-            La caisse (POS) et la gestion de stock sont incluses dans Sèvi Go Unlimited.
-          </Text>
-          <Button label="Voir les formules" onPress={() => router.push('/sevigo/plan')} />
+            {tr('La caisse (POS) et la gestion de stock sont incluses dans Sèvi Go Unlimited.')}</Text>
+          <Button label={tr('Voir les formules')} onPress={() => router.push('/sevigo/plan')} />
         </View>
       )}
     </SafeAreaView>

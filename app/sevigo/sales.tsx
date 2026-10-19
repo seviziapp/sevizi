@@ -41,7 +41,7 @@ function Sales() {
       client: s.clientName ? { name: s.clientName, email: s.clientEmail, phone: s.clientPhone } : undefined,
       lines: (s.items ?? []).map(i => ({ description: i.name, qty: i.qty, unitPrice: i.unitPrice, total: i.lineTotal })),
       subtotal: s.total, adjustments: [], total: s.total,
-      paymentLabel: s.paymentMethod === 'cash' ? 'Espèces' : 'Mobile money',
+      paymentLabel: s.paymentMethod === 'cash' ? tr('Espèces') : tr('Mobile money'),
     };
   }
 

@@ -4,6 +4,7 @@
 import { supabase } from '../supabase';
 import { hasSupabase } from './shared';
 
+import { locale, tr } from '../../i18n';
 export type ClientAccessStatus = {
   /** Clients are open to everyone (the opening date has passed). */
   open: boolean;
@@ -25,10 +26,10 @@ export async function fetchClientAccessStatus(): Promise<ClientAccessStatus> {
 
 /** "1er janvier 2027" */
 export function formatOpeningDate(iso: string | null): string {
-  if (!iso) return 'bientôt';
+  if (!iso) return tr('bientôt');
   const d = new Date(iso);
-  const day = d.getUTCDate() === 1 ? '1er' : String(d.getUTCDate());
-  const month = d.toLocaleDateString('fr-FR', { month: 'long', timeZone: 'UTC' });
+  const day = d.getUTCDate() === 1 ? tr('1er') : String(d.getUTCDate());
+  const month = d.toLocaleDateString(locale(), { month: 'long', timeZone: 'UTC' });
   return `${day} ${month} ${d.getUTCFullYear()}`;
 }
 

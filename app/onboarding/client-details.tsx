@@ -11,6 +11,7 @@ import { Button } from '../../src/components/Button';
 import { supabase } from '../../src/lib/supabase';
 import { saveClientDetails } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 export default function ClientDetails() {
   const router = useRouter();
   const [firstName, setFirstName] = useState('');
@@ -35,7 +36,7 @@ export default function ClientDetails() {
   const valid = firstName.trim() && lastName.trim() && phone.trim().length >= 8 && email.trim();
 
   async function submit() {
-    if (!valid) { setError('Remplissez tous les champs.'); return; }
+    if (!valid) { setError(tr('Remplissez tous les champs.')); return; }
     setError('');
     setLoading(true);
     try {
@@ -45,7 +46,7 @@ export default function ClientDetails() {
       });
       router.replace('/client/home');
     } catch (e: any) {
-      setError(e.message ?? 'Une erreur est survenue.');
+      setError(e.message ?? tr('Une erreur est survenue.'));
     } finally {
       setLoading(false);
     }
@@ -56,18 +57,17 @@ export default function ClientDetails() {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Logo size={48} />
-          <Text style={[text.h1, { color: colors.encre, marginTop: spacing.lg }]}>Vos informations</Text>
+          <Text style={[text.h1, { color: colors.encre, marginTop: spacing.lg }]}>{tr('Vos informations')}</Text>
           <Text style={[text.body, { color: colors.textMuted, marginTop: spacing.xs, marginBottom: spacing.xl }]}>
-            Quelques détails pour créer votre profil. Vous pourrez vous faire vérifier plus tard.
-          </Text>
+            {tr('Quelques détails pour créer votre profil. Vous pourrez vous faire vérifier plus tard.')}</Text>
 
-          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Prénom" value={firstName} onChangeText={setFirstName} />
-          <Field icon={<User size={18} color={colors.textMuted} />} placeholder="Nom" value={lastName} onChangeText={setLastName} />
-          <Field icon={<Phone size={18} color={colors.textMuted} />} placeholder="Numéro de téléphone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-          <Field icon={<Mail size={18} color={colors.textMuted} />} placeholder="Adresse e-mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder={tr('Prénom')} value={firstName} onChangeText={setFirstName} />
+          <Field icon={<User size={18} color={colors.textMuted} />} placeholder={tr('Nom')} value={lastName} onChangeText={setLastName} />
+          <Field icon={<Phone size={18} color={colors.textMuted} />} placeholder={tr('Numéro de téléphone')} value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+          <Field icon={<Mail size={18} color={colors.textMuted} />} placeholder={tr('Adresse e-mail')} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
           <Field
             icon={<Gift size={18} color={colors.textMuted} />}
-            placeholder="Code de parrainage (facultatif)"
+            placeholder={tr('Code de parrainage (facultatif)')}
             value={referralCode}
             onChangeText={t => setReferralCode(t.toUpperCase())}
             autoCapitalize="characters"
@@ -77,7 +77,7 @@ export default function ClientDetails() {
 
           <View style={{ height: spacing.lg }} />
           <Button
-            label="Continuer"
+            label={tr('Continuer')}
             icon={<ArrowRight size={20} color={colors.white} />}
             onPress={submit}
             loading={loading}

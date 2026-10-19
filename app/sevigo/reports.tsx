@@ -66,20 +66,20 @@ export default function ReportsScreen() {
               <>
                 <Text style={[text.label, { color: colors.textMuted }]}>{tr('FACTURES')}</Text>
                 <View style={styles.kpiGrid}>
-                  <Kpi icon={<TrendingUp size={16} color={colors.vert} />} value={money(report.invoices.paid_total)} label={tr('Encaissé')} sub={`${report.invoices.paid_count} facture${report.invoices.paid_count > 1 ? 's' : ''} payée${report.invoices.paid_count > 1 ? 's' : ''}`} />
-                  <Kpi icon={<Clock size={16} color={colors.soleil} />} value={money(report.invoices.outstanding_total)} label={tr('En attente')} sub={`${report.invoices.outstanding_count} à encaisser`} />
-                  <Kpi icon={<TrendingUp size={16} color={colors.encre} />} value={money(report.invoices.invoiced_total)} label={tr('Facturé')} sub={`${report.invoices.invoiced_count} émise${report.invoices.invoiced_count > 1 ? 's' : ''}`} />
-                  <Kpi icon={<AlertTriangle size={16} color={report.invoices.overdue_count ? colors.terre : colors.textMuted} />} value={String(report.invoices.overdue_count)} label={tr('En retard')} sub="à relancer" />
+                  <Kpi icon={<TrendingUp size={16} color={colors.vert} />} value={money(report.invoices.paid_total)} label={tr('Encaissé')} sub={tr('{paid_count} facture{s1} payée{s2}', { paid_count: report.invoices.paid_count, s1: report.invoices.paid_count > 1 ? 's' : '', s2: report.invoices.paid_count > 1 ? 's' : '' })} />
+                  <Kpi icon={<Clock size={16} color={colors.soleil} />} value={money(report.invoices.outstanding_total)} label={tr('En attente')} sub={tr('{outstanding_count} à encaisser', { outstanding_count: report.invoices.outstanding_count })} />
+                  <Kpi icon={<TrendingUp size={16} color={colors.encre} />} value={money(report.invoices.invoiced_total)} label={tr('Facturé')} sub={tr('{invoiced_count} émise{s1}', { invoiced_count: report.invoices.invoiced_count, s1: report.invoices.invoiced_count > 1 ? 's' : '' })} />
+                  <Kpi icon={<AlertTriangle size={16} color={report.invoices.overdue_count ? colors.terre : colors.textMuted} />} value={String(report.invoices.overdue_count)} label={tr('En retard')} sub={tr('à relancer')} />
                 </View>
 
                 <Card title={tr('Facturé et encaissé par jour')}>
                   <Bars data={report.invoices.series.map(s => ({ day: s.day, a: s.invoiced, b: s.paid }))} aColor={colors.border} bColor={colors.vert} />
-                  <Legend items={[['Facturé', colors.border], ['Encaissé', colors.vert]]} />
+                  <Legend items={[[tr('Facturé'), colors.border], [tr('Encaissé'), colors.vert]]} />
                 </Card>
 
                 <Card title={tr('Meilleurs clients (factures)')}>
                   {report.invoices.top_clients.length === 0 ? <Empty /> : report.invoices.top_clients.map((c, i) => (
-                    <Rank key={i} i={i + 1} name={c.name} right={money(c.total)} sub={`${c.count} facture${c.count > 1 ? 's' : ''}`} />
+                    <Rank key={i} i={i + 1} name={c.name} right={money(c.total)} sub={tr('{count} facture{s1}', { count: c.count, s1: c.count > 1 ? 's' : '' })} />
                   ))}
                 </Card>
 
@@ -87,8 +87,8 @@ export default function ReportsScreen() {
                   <>
                     <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.sm }]}>{tr('CAISSE')}</Text>
                     <View style={styles.kpiGrid}>
-                      <Kpi icon={<TrendingUp size={16} color={colors.vert} />} value={money(report.pos.sales_total)} label={tr('Ventes')} sub={`${report.pos.sales_count} vente${report.pos.sales_count > 1 ? 's' : ''}`} />
-                      <Kpi icon={<TrendingUp size={16} color={colors.encre} />} value={money(report.pos.sales_count ? Math.round(report.pos.sales_total / report.pos.sales_count) : 0)} label={tr('Panier moyen')} sub="par vente" />
+                      <Kpi icon={<TrendingUp size={16} color={colors.vert} />} value={money(report.pos.sales_total)} label={tr('Ventes')} sub={tr('{sales_count} vente{s1}', { sales_count: report.pos.sales_count, s1: report.pos.sales_count > 1 ? 's' : '' })} />
+                      <Kpi icon={<TrendingUp size={16} color={colors.encre} />} value={money(report.pos.sales_count ? Math.round(report.pos.sales_total / report.pos.sales_count) : 0)} label={tr('Panier moyen')} sub={tr('par vente')} />
                       <Kpi icon={<Banknote size={16} color={colors.vert} />} value={money(report.pos.cash_total)} label={tr('Espèces')} sub="" />
                       <Kpi icon={<Smartphone size={16} color={colors.vert} />} value={money(report.pos.mobile_total)} label={tr('Mobile money')} sub="" />
                     </View>
@@ -99,7 +99,7 @@ export default function ReportsScreen() {
 
                     <Card title={tr('Produits les plus vendus')}>
                       {report.pos.top_products.length === 0 ? <Empty /> : report.pos.top_products.map((p, i) => (
-                        <Rank key={i} i={i + 1} name={p.name} right={money(p.revenue)} sub={`${p.qty} vendu${p.qty > 1 ? 's' : ''}`} />
+                        <Rank key={i} i={i + 1} name={p.name} right={money(p.revenue)} sub={tr('{qty} vendu{s1}', { qty: p.qty, s1: p.qty > 1 ? 's' : '' })} />
                       ))}
                     </Card>
 

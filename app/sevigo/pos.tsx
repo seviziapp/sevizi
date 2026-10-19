@@ -84,7 +84,7 @@ function Pos() {
         client: client ? { name: client.name, email: client.email, phone: client.phone } : undefined,
         lines: lines.map(l => ({ description: l.p.name, qty: l.qty, unitPrice: l.p.price, total: l.p.price * l.qty })),
         subtotal: sale.total, adjustments: [], total: sale.total,
-        paymentLabel: method === 'cash' ? 'Espèces' : 'Mobile money',
+        paymentLabel: method === 'cash' ? tr('Espèces') : tr('Mobile money'),
       });
       setDoneMethod(method);
       setCart({});

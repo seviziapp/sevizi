@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { reportDispute } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 const QUICK_REASONS = [
   'Le prestataire ne s\'est pas présenté',
   'Travail non conforme à l\'accord',
@@ -29,14 +30,14 @@ export default function ReportProblem() {
   const valid = !!jobId && (!!selected || details.trim().length > 3);
 
   async function submit() {
-    if (!valid) { setError('Choisissez un motif ou décrivez le problème.'); return; }
+    if (!valid) { setError(tr('Choisissez un motif ou décrivez le problème.')); return; }
     setError('');
     setLoading(true);
     try {
       await reportDispute(jobId!, reason);
       setDone(true);
     } catch (e: any) {
-      setError(e?.message ?? 'Impossible d\'envoyer le signalement. Réessayez.');
+      setError(e?.message ?? tr("Impossible d'envoyer le signalement. Réessayez."));
     } finally {
       setLoading(false);
     }
@@ -47,11 +48,10 @@ export default function ReportProblem() {
       <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
         <View style={styles.doneWrap}>
           <View style={styles.doneIcon}><CheckCircle size={44} color={colors.vert} /></View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Signalement envoyé</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Signalement envoyé')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Notre équipe support a bien reçu votre signalement et va intervenir pour trouver une solution.
-          </Text>
-          <Button label="Retour" onPress={() => router.back()} />
+            {tr('Notre équipe support a bien reçu votre signalement et va intervenir pour trouver une solution.')}</Text>
+          <Button label={tr('Retour')} onPress={() => router.back()} />
         </View>
       </SafeAreaView>
     );
@@ -63,7 +63,7 @@ export default function ReportProblem() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Signaler un problème</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Signaler un problème')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -72,26 +72,25 @@ export default function ReportProblem() {
           <View style={[styles.banner, shadow.card]}>
             <AlertTriangle size={22} color={colors.terre} />
             <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-              Décrivez le problème rencontré pendant la mission. Le support Sèvizi examinera votre signalement et interviendra.
-            </Text>
+              {tr('Décrivez le problème rencontré pendant la mission. Le support Sèvizi examinera votre signalement et interviendra.')}</Text>
           </View>
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>MOTIF</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('MOTIF')}</Text>
           <View style={styles.chips}>
             {QUICK_REASONS.map(r => {
               const active = selected === r;
               return (
                 <Pressable key={r} onPress={() => setSelected(active ? null : r)} style={[styles.chip, active && styles.chipActive]}>
-                  <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{r}</Text>
+                  <Text style={[text.small, { color: active ? colors.white : colors.encre }]}>{tr(r)}</Text>
                 </Pressable>
               );
             })}
           </View>
 
-          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>DÉTAILS (FACULTATIF)</Text>
+          <Text style={[text.label, { color: colors.textMuted, marginTop: spacing.lg }]}>{tr('DÉTAILS (FACULTATIF)')}</Text>
           <TextInput
             style={styles.textarea}
-            placeholder="Expliquez ce qui s'est passé…"
+            placeholder={tr("Expliquez ce qui s'est passé…")}
             placeholderTextColor={colors.textMuted}
             value={details}
             onChangeText={setDetails}
@@ -103,7 +102,7 @@ export default function ReportProblem() {
         </ScrollView>
 
         <View style={styles.footer}>
-          <Button label="Envoyer le signalement" onPress={submit} loading={loading} disabled={!valid} />
+          <Button label={tr('Envoyer le signalement')} onPress={submit} loading={loading} disabled={!valid} />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>

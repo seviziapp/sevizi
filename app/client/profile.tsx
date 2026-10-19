@@ -13,6 +13,7 @@ import { fetchMyProfile, fetchMyProviderProfile } from '../../src/lib/api';
 import { SevigoMark } from '../../src/components/SevigoLogo';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function Profile() {
   const router = useRouter();
   const [profile, setProfile] = useState<{ fullName: string; firstName: string; phone: string; role: string; verified: boolean; isAdmin: boolean } | null>(null);
@@ -37,32 +38,32 @@ export default function Profile() {
 
   const sections = [
     {
-      title: 'Mon compte',
+      title: tr('Mon compte'),
       items: [
-        { icon: <MapPin size={20} color={colors.encre} />, label: 'Mon adresse', onPress: () => router.push('/onboarding/location') },
-        { icon: <Bell size={20} color={colors.encre} />, label: 'Notifications', onPress: () => router.push('/client/notifications') },
-        { icon: <Heart size={20} color={colors.encre} />, label: 'Mes favoris', onPress: () => router.push('/client/favorites') },
+        { icon: <MapPin size={20} color={colors.encre} />, label: tr('Mon adresse'), onPress: () => router.push('/onboarding/location') },
+        { icon: <Bell size={20} color={colors.encre} />, label: tr('Notifications'), onPress: () => router.push('/client/notifications') },
+        { icon: <Heart size={20} color={colors.encre} />, label: tr('Mes favoris'), onPress: () => router.push('/client/favorites') },
       ],
     },
     {
-      title: 'Mes missions',
+      title: tr('Mes missions'),
       items: [
-        { icon: <ClipboardList size={20} color={colors.encre} />, label: 'Mes demandes', onPress: () => router.push('/client/requests') },
-        { icon: <CalendarDays size={20} color={colors.encre} />, label: 'Mes rendez-vous', onPress: () => router.push('/client/appointments') },
-        { icon: <Briefcase size={20} color={colors.encre} />, label: 'Mission en cours', onPress: () => router.push('/client/job-status') },
-        { icon: <Star size={20} color={colors.encre} />, label: 'Mes avis laissés', onPress: () => router.push('/client/my-reviews') },
+        { icon: <ClipboardList size={20} color={colors.encre} />, label: tr('Mes demandes'), onPress: () => router.push('/client/requests') },
+        { icon: <CalendarDays size={20} color={colors.encre} />, label: tr('Mes rendez-vous'), onPress: () => router.push('/client/appointments') },
+        { icon: <Briefcase size={20} color={colors.encre} />, label: tr('Mission en cours'), onPress: () => router.push('/client/job-status') },
+        { icon: <Star size={20} color={colors.encre} />, label: tr('Mes avis laissés'), onPress: () => router.push('/client/my-reviews') },
       ],
     },
     {
-      title: 'Paramètres',
+      title: tr('Paramètres'),
       items: [
-        { icon: <ShieldCheck size={20} color={colors.encre} />, label: 'Sécurité & confiance', onPress: () => router.push('/client/security') },
+        { icon: <ShieldCheck size={20} color={colors.encre} />, label: tr('Sécurité & confiance'), onPress: () => router.push('/client/security') },
         hasProvider
-          ? { icon: <Briefcase size={20} color={colors.vert} />, label: 'Espace professionnel', onPress: () => router.push('/provider/dashboard') }
-          : { icon: <Settings size={20} color={colors.encre} />, label: 'Devenir prestataire', onPress: () => router.push('/onboarding/provider-details') },
-        { icon: <SevigoMark size={20} />, label: 'Sèvi Go — Factures & paiements', onPress: () => router.push('/sevigo/dashboard') },
-        { icon: <Gift size={20} color={colors.encre} />, label: 'Programme de parrainage', onPress: () => router.push('/referral' as any) },
-        { icon: <HelpCircle size={20} color={colors.encre} />, label: 'Aide', onPress: () => router.push('/client/help') },
+          ? { icon: <Briefcase size={20} color={colors.vert} />, label: tr('Espace professionnel'), onPress: () => router.push('/provider/dashboard') }
+          : { icon: <Settings size={20} color={colors.encre} />, label: tr('Devenir prestataire'), onPress: () => router.push('/onboarding/provider-details') },
+        { icon: <SevigoMark size={20} />, label: tr('Sèvi Go — Factures & paiements'), onPress: () => router.push('/sevigo/dashboard') },
+        { icon: <Gift size={20} color={colors.encre} />, label: tr('Programme de parrainage'), onPress: () => router.push('/referral' as any) },
+        { icon: <HelpCircle size={20} color={colors.encre} />, label: tr('Aide'), onPress: () => router.push('/client/help') },
       ],
     },
   ];
@@ -83,7 +84,7 @@ export default function Profile() {
             {profile?.verified && (
               <View style={styles.verifiedBadge}>
                 <ShieldCheck size={12} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>VÉRIFIÉ</Text>
+                <Text style={[text.label, { color: colors.vert }]}>{tr('VÉRIFIÉ')}</Text>
               </View>
             )}
           </View>
@@ -111,14 +112,14 @@ export default function Profile() {
 
         {profile?.isAdmin && (
           <Pressable style={styles.adminBtn} onPress={() => router.push('/admin/dashboard')}>
-            <Text style={[text.bodyMd, { color: colors.encre }]}>Espace admin</Text>
+            <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Espace admin')}</Text>
           </Pressable>
         )}
 
         <View style={{ alignItems: 'center', marginBottom: spacing.md }}><LanguageSwitch /></View>
         <Pressable style={styles.logout} onPress={logout}>
           <LogOut size={20} color={colors.terre} />
-          <Text style={[text.bodyMd, { color: colors.terre }]}>Se déconnecter</Text>
+          <Text style={[text.bodyMd, { color: colors.terre }]}>{tr('Se déconnecter')}</Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

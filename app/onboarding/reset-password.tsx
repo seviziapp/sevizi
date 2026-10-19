@@ -12,6 +12,7 @@ import { SevigoLogoFull } from '../../src/components/SevigoLogo';
 import { isSevigoBrand } from '../../src/lib/brand';
 import { supabase } from '../../src/lib/supabase';
 
+import { tr } from '../../src/i18n';
 const MIN_LEN = 8;
 
 export default function ResetPassword() {
@@ -38,15 +39,15 @@ export default function ResetPassword() {
 
   async function submit() {
     setError('');
-    if (password.length < MIN_LEN) { setError(`Choisissez au moins ${MIN_LEN} caractères.`); return; }
-    if (password !== confirm) { setError('Les deux mots de passe ne sont pas identiques.'); return; }
+    if (password.length < MIN_LEN) { setError(tr('Choisissez au moins {MIN_LEN} caractères.', { MIN_LEN: MIN_LEN })); return; }
+    if (password !== confirm) { setError(tr('Les deux mots de passe ne sont pas identiques.')); return; }
     setSaving(true);
     try {
       const { error: e } = await supabase.auth.updateUser({ password });
       if (e) throw e;
       setState('done');
     } catch (e: any) {
-      setError(e.message ?? 'Impossible de changer le mot de passe.');
+      setError(e.message ?? tr('Impossible de changer le mot de passe.'));
     } finally {
       setSaving(false);
     }
@@ -62,25 +63,23 @@ export default function ResetPassword() {
 
           {state === 'invalid' && (
             <View style={{ gap: spacing.md }}>
-              <Text style={[text.h2, { color: colors.encre }]}>Lien expiré ou invalide</Text>
+              <Text style={[text.h2, { color: colors.encre }]}>{tr('Lien expiré ou invalide')}</Text>
               <Text style={[text.body, { color: colors.textMuted }]}>
-                Ce lien ne fonctionne plus (il est valable peu de temps et une seule fois). Demandez-en un nouveau depuis l'écran de connexion.
-              </Text>
+                {tr("Ce lien ne fonctionne plus (il est valable peu de temps et une seule fois). Demandez-en un nouveau depuis l'écran de connexion.")}</Text>
               <Pressable style={styles.btn} onPress={() => router.replace('/onboarding/auth' as any)}>
-                <Text style={[text.bodyMd, { color: colors.creme }]}>Retour à la connexion</Text>
+                <Text style={[text.bodyMd, { color: colors.creme }]}>{tr('Retour à la connexion')}</Text>
               </Pressable>
             </View>
           )}
 
           {state === 'ready' && (
             <View>
-              <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>Nouveau mot de passe</Text>
+              <Text style={[text.h2, { color: colors.encre, marginBottom: spacing.sm }]}>{tr('Nouveau mot de passe')}</Text>
               <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.xl }]}>
-                Choisissez un mot de passe d'au moins {MIN_LEN} caractères.
-              </Text>
+                {tr("Choisissez un mot de passe d'au moins")} {MIN_LEN} {tr('caractères.')}</Text>
               <View style={styles.inputWrap}>
                 <Lock size={18} color={colors.textMuted} />
-                <TextInput style={styles.input} placeholder="Nouveau mot de passe" placeholderTextColor={colors.textMuted}
+                <TextInput style={styles.input} placeholder={tr('Nouveau mot de passe')} placeholderTextColor={colors.textMuted}
                   value={password} onChangeText={setPassword} secureTextEntry={!showPw} autoCapitalize="none" />
                 <Pressable onPress={() => setShowPw(v => !v)}>
                   {showPw ? <EyeOff size={18} color={colors.textMuted} /> : <Eye size={18} color={colors.textMuted} />}
@@ -88,12 +87,12 @@ export default function ResetPassword() {
               </View>
               <View style={styles.inputWrap}>
                 <Lock size={18} color={colors.textMuted} />
-                <TextInput style={styles.input} placeholder="Confirmez le mot de passe" placeholderTextColor={colors.textMuted}
+                <TextInput style={styles.input} placeholder={tr('Confirmez le mot de passe')} placeholderTextColor={colors.textMuted}
                   value={confirm} onChangeText={setConfirm} secureTextEntry={!showPw} autoCapitalize="none" />
               </View>
               {!!error && <Text style={styles.errorText}>{error}</Text>}
               <Pressable style={[styles.btn, saving && { opacity: 0.6 }]} onPress={submit} disabled={saving}>
-                {saving ? <ActivityIndicator color={colors.creme} /> : <Text style={[text.bodyMd, { color: colors.creme }]}>Changer le mot de passe</Text>}
+                {saving ? <ActivityIndicator color={colors.creme} /> : <Text style={[text.bodyMd, { color: colors.creme }]}>{tr('Changer le mot de passe')}</Text>}
               </Pressable>
             </View>
           )}
@@ -101,10 +100,10 @@ export default function ResetPassword() {
           {state === 'done' && (
             <View style={{ alignItems: 'center', gap: spacing.md, paddingTop: spacing.xl }}>
               <CheckCircle2 size={44} color={colors.vert} />
-              <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Mot de passe changé</Text>
-              <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>Vous êtes connecté. Vous pouvez continuer.</Text>
+              <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Mot de passe changé')}</Text>
+              <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>{tr('Vous êtes connecté. Vous pouvez continuer.')}</Text>
               <Pressable style={[styles.btn, { alignSelf: 'stretch' }]} onPress={() => router.replace('/' as any)}>
-                <Text style={[text.bodyMd, { color: colors.creme }]}>Continuer</Text>
+                <Text style={[text.bodyMd, { color: colors.creme }]}>{tr('Continuer')}</Text>
               </Pressable>
             </View>
           )}

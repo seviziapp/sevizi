@@ -10,12 +10,13 @@ import { fetchMyProviderProfile, createProSubscriptionInvoice, fetchLatestProPay
 import { getProFeatures, PRO_MONTHLY_FEE, GALLERY_CAP_FREE, COMMISSION_RATE, COMMISSION_RATE_PRO, COMMISSION_RATE_INTRO, COMMISSION_RATE_PRO_INTRO, isCommissionIntroPeriod, pctLabel, freeTierCommissionLabel, isCommissionFreePeriod } from '../../src/lib/pricing';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 function getFreeFeatures(): string[] {
   return [
-    '1 service proposé',
+    tr('1 service proposé'),
     freeTierCommissionLabel(),
-    'Classement normal dans les recherches',
-    `Jusqu'à ${GALLERY_CAP_FREE} photos dans la galerie`,
+    tr('Classement normal dans les recherches'),
+    tr("Jusqu'à {n} photos dans la galerie", { n: GALLERY_CAP_FREE }),
   ];
 }
 
@@ -67,7 +68,7 @@ export default function UpgradeToPro() {
       } else if (payment?.status === 'failed' || payment?.status === 'cancelled' || attempts >= 10) {
         setVerifying(false);
         if (payment?.status === 'failed' || payment?.status === 'cancelled') {
-          setError("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous.");
+          setError(tr("Le paiement n'a pas abouti. Vous pouvez réessayer ci-dessous."));
         }
         if (pollRef.current) clearInterval(pollRef.current);
       }
@@ -92,7 +93,7 @@ export default function UpgradeToPro() {
         await Linking.openURL(result.invoiceUrl);
       }
     } catch (e: any) {
-      setError(e.message ?? "Échec du démarrage du paiement.");
+      setError(e.message ?? tr('Échec du démarrage du paiement.'));
     } finally {
       setStartingCheckout(false);
     }
@@ -104,7 +105,7 @@ export default function UpgradeToPro() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Sèvizi Pro</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Sèvizi Pro')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -115,39 +116,33 @@ export default function UpgradeToPro() {
           <View style={styles.activeIcon}>
             <Crown size={36} color={colors.soleil} fill={colors.soleil} />
           </View>
-          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>Vous êtes Pro</Text>
+          <Text style={[text.h2, { color: colors.encre, textAlign: 'center' }]}>{tr('Vous êtes Pro')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            Commission réduite, placement prioritaire et badge vérifié sont déjà actifs sur votre profil.
-          </Text>
+            {tr('Commission réduite, placement prioritaire et badge vérifié sont déjà actifs sur votre profil.')}</Text>
         </View>
       ) : verifying ? (
         <View style={styles.activeWrap}>
           <ActivityIndicator color={colors.vert} />
           <Text style={[text.h3, { color: colors.encre, textAlign: 'center', marginTop: spacing.md }]}>
-            Vérification du paiement…
-          </Text>
+            {tr('Vérification du paiement…')}</Text>
           <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-            PayDunya confirme votre paiement — cela prend quelques secondes.
-          </Text>
+            {tr('PayDunya confirme votre paiement — cela prend quelques secondes.')}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <View style={styles.hero}>
             <Crown size={32} color={colors.soleil} fill={colors.soleil} />
             <Text style={[text.display, { color: colors.encre, fontSize: 28, textAlign: 'center' }]}>
-              Passez plus de missions, gardez plus d'argent
-            </Text>
+              {tr("Passez plus de missions, gardez plus d'argent")}</Text>
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              {isCommissionFreePeriod()
-                ? `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission est à 0% pour tout le monde en ce moment, alors profitez-en pour construire votre visibilité avec le placement prioritaire.`
-                : `${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F / mois — la commission réduite (${pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE_PRO)} au lieu de ${pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO : COMMISSION_RATE)}) vous fait économiser dès que vos missions payées dans l'application dépassent ${(Math.round(PRO_MONTHLY_FEE / ((isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO - COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE - COMMISSION_RATE_PRO)) / 1000) * 1000).toLocaleString('fr-FR')} F par mois.`}
+              {isCommissionFreePeriod() ? tr('{v0} F / mois — la commission est à 0% pour tout le monde en ce moment, alors profitez-en pour construire votre visibilité avec le placement prioritaire.', { v0: PRO_MONTHLY_FEE.toLocaleString(locale()) }) : tr("{v0} F / mois — la commission réduite ({COMMISSION_RATE_PRO} au lieu de {COMMISSION_RATE}) vous fait économiser dès que vos missions payées dans l'application dépassent {v3} F par mois.", { v0: PRO_MONTHLY_FEE.toLocaleString(locale()), COMMISSION_RATE_PRO: pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE_PRO), COMMISSION_RATE: pctLabel(isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO : COMMISSION_RATE), v3: (Math.round(PRO_MONTHLY_FEE / ((isCommissionIntroPeriod() ? COMMISSION_RATE_INTRO - COMMISSION_RATE_PRO_INTRO : COMMISSION_RATE - COMMISSION_RATE_PRO)) / 1000) * 1000).toLocaleString(locale()) })}
             </Text>
           </View>
 
           <View style={styles.compareRow}>
             <View style={[styles.planCard, shadow.card]}>
-              <Text style={[text.h3, { color: colors.encre }]}>Gratuit</Text>
-              <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.sm }]}>Votre plan actuel</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{tr('Gratuit')}</Text>
+              <Text style={[text.small, { color: colors.textMuted, marginBottom: spacing.sm }]}>{tr('Votre plan actuel')}</Text>
               {getFreeFeatures().map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Text style={[text.small, { color: colors.textMuted }]}>· {f}</Text>
@@ -157,10 +152,10 @@ export default function UpgradeToPro() {
             <View style={[styles.planCard, styles.planCardPro, shadow.card]}>
               <View style={styles.proBadge}>
                 <Crown size={12} color={colors.encre} fill={colors.soleil} />
-                <Text style={[text.label, { color: colors.encre }]}>PRO</Text>
+                <Text style={[text.label, { color: colors.encre }]}>{tr('PRO')}</Text>
               </View>
-              <Text style={[text.h3, { color: colors.encre }]}>{PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois</Text>
-              <Text style={[text.small, { color: colors.vertDark, marginBottom: spacing.sm }]}>Résiliable à tout moment</Text>
+              <Text style={[text.h3, { color: colors.encre }]}>{PRO_MONTHLY_FEE.toLocaleString(locale())} {tr('F/mois')}</Text>
+              <Text style={[text.small, { color: colors.vertDark, marginBottom: spacing.sm }]}>{tr('Résiliable à tout moment')}</Text>
               {getProFeatures().map((f, i) => (
                 <View key={i} style={styles.featureRow}>
                   <Check size={14} color={colors.vert} />
@@ -174,18 +169,17 @@ export default function UpgradeToPro() {
             <View style={styles.noteRow}>
               <ShieldCheck size={14} color={colors.textMuted} />
               <Text style={[text.label, { color: colors.textMuted, flex: 1 }]}>
-                Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte. Votre badge vérifié est activé automatiquement dès la confirmation.
-              </Text>
+                {tr('Paiement sécurisé via PayDunya — mobile money (Flooz, T-Money) ou carte. Votre badge vérifié est activé automatiquement dès la confirmation.')}</Text>
             </View>
           </View>
 
           <View style={styles.section}>
-            <Text style={[text.label, { color: colors.textMuted }]}>CODE PROMO (OPTIONNEL)</Text>
+            <Text style={[text.label, { color: colors.textMuted }]}>{tr('CODE PROMO (OPTIONNEL)')}</Text>
             <TextInput
               style={styles.promoInput}
               value={discountCode}
               onChangeText={setDiscountCode}
-              placeholder="Ex. LANCEMENT2027"
+              placeholder={tr('Ex. LANCEMENT2027')}
               placeholderTextColor={colors.textMuted}
               autoCapitalize="characters"
             />
@@ -194,7 +188,7 @@ export default function UpgradeToPro() {
           {!!error && <Text style={styles.error}>{error}</Text>}
 
           <Button
-            label={`Passer à Pro — ${PRO_MONTHLY_FEE.toLocaleString('fr-FR')} F/mois`}
+            label={tr('Passer à Pro — {v0} F/mois', { v0: PRO_MONTHLY_FEE.toLocaleString(locale()) })}
             onPress={startCheckout}
             loading={startingCheckout}
           />

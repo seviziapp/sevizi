@@ -13,6 +13,7 @@ import { COMMISSION_RATE, COMMISSION_RATE_PRO, isCommissionFreePeriod } from '..
 import { timeAgo } from '../../src/lib/format';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 export default function ProviderDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<ProviderStats | null>(null);
@@ -71,15 +72,15 @@ export default function ProviderDashboard() {
           <View style={styles.logoRow}>
             <Logo size={36} />
             <View>
-              <Text style={[text.small, { color: colors.textMuted }]}>Bienvenue,</Text>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName || 'Mon tableau de bord'}</Text>
+              <Text style={[text.small, { color: colors.textMuted }]}>{tr('Bienvenue,')}</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{providerName || tr('Mon tableau de bord')}</Text>
             </View>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
             {!clientsClosed && (
               <Pressable style={styles.switchPill} onPress={() => router.push('/client/home' as any)}>
                 <ArrowLeftRight size={14} color={colors.vert} />
-                <Text style={[text.label, { color: colors.vert }]}>Mode client</Text>
+                <Text style={[text.label, { color: colors.vert }]}>{tr('Mode client')}</Text>
               </Pressable>
             )}
             <Pressable style={styles.bell} onPress={() => router.push('/client/notifications' as any)}>
@@ -95,10 +96,9 @@ export default function ProviderDashboard() {
 
         {!clientsOpen && (
           <View style={styles.launchBanner}>
-            <Text style={[text.bodyMd, { color: colors.vertDark }]}>Les clients arrivent le {formatOpeningDate(opensAt)}</Text>
+            <Text style={[text.bodyMd, { color: colors.vertDark }]}>{tr('Les clients arrivent le')} {formatOpeningDate(opensAt)}</Text>
             <Text style={[text.small, { color: colors.vertDark }]}>
-              Complétez votre profil, ajoutez vos services et vos photos : vous serez prêt à recevoir vos premières demandes dès l'ouverture.
-            </Text>
+              {tr("Complétez votre profil, ajoutez vos services et vos photos : vous serez prêt à recevoir vos premières demandes dès l'ouverture.")}</Text>
           </View>
         )}
 
@@ -106,10 +106,10 @@ export default function ProviderDashboard() {
         <View style={[styles.toggleCard, online ? styles.toggleOnline : styles.toggleOffline]}>
           <View>
             <Text style={[text.h3, { color: online ? colors.encre : colors.textMuted }]}>
-              {online ? 'Disponible' : 'Hors ligne'}
+              {online ? tr('Disponible') : tr('Hors ligne')}
             </Text>
             <Text style={[text.small, { color: online ? colors.vertDark : colors.textMuted }]}>
-              {online ? 'Vous recevez des demandes à proximité' : 'Activez pour recevoir des demandes'}
+              {online ? tr('Vous recevez des demandes à proximité') : tr('Activez pour recevoir des demandes')}
             </Text>
           </View>
           <Switch
@@ -123,10 +123,10 @@ export default function ProviderDashboard() {
         {/* Stats grid */}
         {stats && (
           <View style={styles.statsGrid}>
-            <StatCard icon={<Briefcase size={20} color={colors.vert} />} value={String(stats.openRequests)} label="Demandes ouvertes" />
-            <StatCard icon={<Zap size={20} color={colors.soleil} />} value={String(stats.sentOffers)} label="Offres envoyées" />
-            <StatCard icon={<Star size={20} color={colors.soleil} />} value={stats.rating.toFixed(1)} label="Note moyenne" />
-            <StatCard icon={<TrendingUp size={20} color={colors.vert} />} value={`${stats.responseRate}%`} label="Taux de réponse" />
+            <StatCard icon={<Briefcase size={20} color={colors.vert} />} value={String(stats.openRequests)} label={tr('Demandes ouvertes')} />
+            <StatCard icon={<Zap size={20} color={colors.soleil} />} value={String(stats.sentOffers)} label={tr('Offres envoyées')} />
+            <StatCard icon={<Star size={20} color={colors.soleil} />} value={stats.rating.toFixed(1)} label={tr('Note moyenne')} />
+            <StatCard icon={<TrendingUp size={20} color={colors.vert} />} value={`${stats.responseRate}%`} label={tr('Taux de réponse')} />
           </View>
         )}
 
@@ -134,13 +134,12 @@ export default function ProviderDashboard() {
         {stats && (
           <View style={styles.earningsBanner}>
             <View>
-              <Text style={[text.small, { color: colors.textMutedDark }]}>Revenus ce mois</Text>
+              <Text style={[text.small, { color: colors.textMutedDark }]}>{tr('Revenus ce mois')}</Text>
               <Text style={[text.data, { color: colors.creme, fontSize: 24, marginTop: 2 }]}>
-                {stats.earnings.toLocaleString('fr-FR')} F
-              </Text>
+                {stats.earnings.toLocaleString(locale())} {tr('F')}</Text>
             </View>
             <Pressable style={styles.walletBtn} onPress={() => router.push('/provider/earnings')}>
-              <Text style={[text.small, { color: colors.vert }]}>Voir le détail</Text>
+              <Text style={[text.small, { color: colors.vert }]}>{tr('Voir le détail')}</Text>
               <ChevronRight size={16} color={colors.vert} />
             </Pressable>
           </View>
@@ -154,11 +153,9 @@ export default function ProviderDashboard() {
               <Crown size={20} color={colors.encre} fill={colors.soleil} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>Passez à Sèvizi Pro</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Passez à Sèvizi Pro')}</Text>
               <Text style={[text.small, { color: colors.textMuted }]}>
-                {monthlySavings > 0
-                  ? `Vous auriez gardé ${monthlySavings.toLocaleString('fr-FR')} F de plus ce mois-ci avec la commission réduite.`
-                  : 'Commission réduite, placement prioritaire et badge vérifié.'}
+                {monthlySavings > 0 ? tr('Vous auriez gardé {v0} F de plus ce mois-ci avec la commission réduite.', { v0: monthlySavings.toLocaleString(locale()) }) : tr('Commission réduite, placement prioritaire et badge vérifié.')}
               </Text>
             </View>
             <ChevronRight size={18} color={colors.textMuted} />
@@ -170,20 +167,20 @@ export default function ProviderDashboard() {
           <Pressable style={styles.activeJobBanner} onPress={() => router.push('/provider/active-job')}>
             <View style={styles.activeJobDot} />
             <View style={{ flex: 1 }}>
-              <Text style={[text.bodyMd, { color: colors.creme }]}>Mission en cours</Text>
+              <Text style={[text.bodyMd, { color: colors.creme }]}>{tr('Mission en cours')}</Text>
               <Text style={[text.small, { color: colors.textMutedDark }]}>
-                {activeJob.clientName || 'Client'} · {activeJob.status === 'en_route' ? 'En route' : activeJob.status === 'arrive' ? 'Arrivé' : 'En cours'}
+                {activeJob.clientName || tr('Client')} · {activeJob.status === 'en_route' ? tr('En route') : activeJob.status === 'arrive' ? tr('Arrivé') : tr('En cours')}
               </Text>
             </View>
-            <Text style={[text.small, { color: colors.vert }]}>Gérer →</Text>
+            <Text style={[text.small, { color: colors.vert }]}>{tr('Gérer →')}</Text>
           </Pressable>
         )}
 
         {/* Nearby requests */}
         <View style={styles.sectionHead}>
-          <Text style={[text.h3, { color: colors.encre }]}>Demandes proches</Text>
+          <Text style={[text.h3, { color: colors.encre }]}>{tr('Demandes proches')}</Text>
           <Pressable onPress={() => router.push('/provider/requests')}>
-            <Text style={[text.small, { color: colors.vert }]}>Tout voir</Text>
+            <Text style={[text.small, { color: colors.vert }]}>{tr('Tout voir')}</Text>
           </Pressable>
         </View>
         <View style={{ gap: spacing.md }}>
@@ -218,7 +215,7 @@ function RequestRow({ req, onPress }: { req: ServiceRequest; onPress: () => void
         <View style={styles.reqTop}>
           <Text style={[text.bodyMd, { color: colors.encre }]} numberOfLines={1}>{req.description}</Text>
           {req.urgent && (
-            <View style={styles.urgentTag}><Text style={[text.label, { color: colors.terre }]}>URGENT</Text></View>
+            <View style={styles.urgentTag}><Text style={[text.label, { color: colors.terre }]}>{tr('URGENT')}</Text></View>
           )}
         </View>
         <Text style={[text.small, { color: colors.textMuted }]}>{req.locationLabel} · {ago}</Text>

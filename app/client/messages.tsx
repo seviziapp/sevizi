@@ -7,6 +7,7 @@ import { colors, text, radii, spacing, shadow } from '../../src/theme/tokens';
 import { fetchThreads } from '../../src/lib/api';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 type Thread = {
   id: string;
   name: string;
@@ -29,7 +30,7 @@ export default function Messages() {
           id: t.id,
           name: t.providerName ?? 'Prestataire',
           lastMsg: t.lastMessage ?? '',
-          time: t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }) : '',
+          time: t.lastMessageAt ? new Date(t.lastMessageAt).toLocaleTimeString(locale(), { hour: '2-digit', minute: '2-digit' }) : '',
           unread: t.unreadCount ?? 0,
           online: false,
           status: null,
@@ -44,7 +45,7 @@ export default function Messages() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={[text.h2, { color: colors.encre }]}>Messages</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Messages')}</Text>
         {totalUnread > 0 && (
           <View style={styles.totalBadge}>
             <Text style={[text.label, { color: colors.white }]}>{totalUnread}</Text>
@@ -59,8 +60,7 @@ export default function Messages() {
           <View style={styles.empty}>
             <MessageCircle size={48} color={colors.border} />
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucune conversation pour l'instant.{'\n'}Acceptez une offre pour commencer à échanger.
-            </Text>
+              {tr("Aucune conversation pour l'instant.")}{'\n'}{tr('Acceptez une offre pour commencer à échanger.')}</Text>
           </View>
         ) : (
           threads.map(t => (

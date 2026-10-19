@@ -6,14 +6,15 @@ import { colors, radii, shadow, spacing, text } from '../../src/theme/tokens';
 import { Logo } from '../../src/components/Logo';
 import { SevigoMark } from '../../src/components/SevigoLogo';
 
+import { tr } from '../../src/i18n';
 const NAV_ITEMS = [
-  { label: 'Accueil',     icon: Home,          route: '/client/home' },
-  { label: 'Mes demandes', icon: ClipboardList, route: '/client/requests' },
-  { label: 'Carte',       icon: Map,           route: '/client/map' },
-  { label: 'Messages',    icon: MessageCircle, route: '/client/messages' },
-  { label: 'Catégories',  icon: LayoutGrid,    route: '/client/categories' },
-  { label: 'Sèvi Go',     icon: null,          route: '/sevigo/dashboard' },
-  { label: 'Profil',      icon: User,          route: '/client/profile' },
+  { get label() { return tr('Accueil'); },     icon: Home,          route: '/client/home' },
+  { get label() { return tr('Mes demandes'); }, icon: ClipboardList, route: '/client/requests' },
+  { get label() { return tr('Carte'); },       icon: Map,           route: '/client/map' },
+  { get label() { return tr('Messages'); },    icon: MessageCircle, route: '/client/messages' },
+  { get label() { return tr('Catégories'); },  icon: LayoutGrid,    route: '/client/categories' },
+  { get label() { return tr('Sèvi Go'); },     icon: null,          route: '/sevigo/dashboard' },
+  { get label() { return tr('Profil'); },      icon: User,          route: '/client/profile' },
 ];
 
 function DesktopSidebar() {
@@ -24,7 +25,7 @@ function DesktopSidebar() {
     <View style={styles.sidebar}>
       <Pressable style={styles.sidebarLogo} onPress={() => router.push('/client/home')}>
         <Logo size={36} />
-        <Text style={[text.h3, { color: colors.creme }]}>Sèvizi</Text>
+        <Text style={[text.h3, { color: colors.creme }]}>{tr('Sèvizi')}</Text>
       </Pressable>
 
       <View style={styles.sidebarNav}>
@@ -49,7 +50,7 @@ function DesktopSidebar() {
 
       <Pressable style={styles.sidebarFab} onPress={() => router.push('/client/new-request' as any)}>
         <Plus size={20} color={colors.white} />
-        <Text style={[text.bodyMd, { color: colors.white }]}>Nouvelle demande</Text>
+        <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Nouvelle demande')}</Text>
       </Pressable>
     </View>
   );

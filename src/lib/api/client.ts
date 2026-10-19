@@ -11,6 +11,7 @@ import {
 } from './shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 // `center` should be the caller's real location (see resolveMyLocation) so
 // distanceKm and the "nearby" set actually reflect where the user is, instead
 // of always the fixed LOME city anchor.
@@ -91,7 +92,7 @@ export async function fetchProviderReviews(providerId: string): Promise<Review[]
 export async function submitReview(input: { jobId: string; providerId: string; rating: number; comment?: string }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data: me } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
   const { error } = await supabase.from('reviews').insert({
     job_id: input.jobId,
@@ -118,7 +119,7 @@ export async function createRequest(
     return { ...input, id: 'r1', clientId: 'me', createdAt: new Date().toISOString(), status: 'ouverte', offersCount: 0 };
   }
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const { data, error } = await supabase
     .from('requests')
     .insert({
@@ -206,14 +207,14 @@ export async function fetchMyRequestsWithOffers(): Promise<(ServiceRequest & { o
 export async function acceptOffer(offerId: string): Promise<{ jobId: string; price: number; providerName: string }> {
   if (!hasSupabase) return { jobId: 'j1', price: 0, providerName: 'Prestataire' };
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
 
   const { data: offer, error: oErr } = await supabase
     .from('offers')
     .select('id, price, request_id, provider_id, request:requests(client_id), provider:providers(name)')
     .eq('id', offerId)
     .single();
-  if (oErr || !offer) throw new Error('Offre introuvable');
+  if (oErr || !offer) throw new Error(tr('Offre introuvable'));
 
   // The client may read their own profile, so capture name/phone here and store
   // them on the job — the provider can't read the client's profile directly.
@@ -248,7 +249,7 @@ export async function acceptOffer(offerId: string): Promise<{ jobId: string; pri
 // supabase/migration_paydunya_job_payments.sql for why this can't happen
 // client-side).
 export async function createJobPaymentInvoice(jobId: string, returnUrl: string, cancelUrl: string): Promise<{ invoiceUrl: string }> {
-  if (!hasSupabase) throw new Error('Paiement indisponible en mode démo');
+  if (!hasSupabase) throw new Error(tr('Paiement indisponible en mode démo'));
   const { data, error } = await supabase.functions.invoke('paydunya-create-job-invoice', {
     body: { jobId, returnUrl, cancelUrl },
   });
@@ -358,7 +359,7 @@ export async function updateJobStatus(jobId: string, status: Job['status']): Pro
   if (error) throw new Error(error.message);
   // RLS can silently match zero rows — surface that instead of pretending success.
   if (!data || data.length === 0) {
-    throw new Error("Impossible de mettre à jour la mission (accès refusé). Reconnectez-vous et réessayez.");
+    throw new Error(tr('Impossible de mettre à jour la mission (accès refusé). Reconnectez-vous et réessayez.'));
   }
 }
 

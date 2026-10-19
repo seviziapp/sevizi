@@ -7,6 +7,7 @@ import { colors, text, radii, spacing } from '../../src/theme/tokens';
 import { Button } from '../../src/components/Button';
 import { fetchMyAvailability, saveMyAvailability } from '../../src/lib/api';
 
+import { tr } from '../../src/i18n';
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
 type DayRow = { enabled: boolean; startTime: string; endTime: string };
@@ -42,9 +43,9 @@ export default function ProviderHours() {
         .map((r, i) => ({ dayOfWeek: i, startTime: r.startTime, endTime: r.endTime, enabled: r.enabled }))
         .filter(r => r.enabled && r.startTime < r.endTime);
       await saveMyAvailability(slots);
-      setMessage({ text: 'Vos horaires ont été mis à jour.' });
+      setMessage({ text: tr('Vos horaires ont été mis à jour.') });
     } catch (e: any) {
-      setMessage({ text: e.message ?? "Échec de l'enregistrement.", error: true });
+      setMessage({ text: e.message ?? tr("Échec de l'enregistrement."), error: true });
     } finally {
       setSaving(false);
     }
@@ -56,7 +57,7 @@ export default function ProviderHours() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Mes horaires</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Mes horaires')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -65,8 +66,7 @@ export default function ProviderHours() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
           <Text style={[text.small, { color: colors.textMuted }]}>
-            Activez les jours où vous acceptez des rendez-vous et indiquez vos heures d'ouverture.
-          </Text>
+            {tr("Activez les jours où vous acceptez des rendez-vous et indiquez vos heures d'ouverture.")}</Text>
           {DAYS.map((day, i) => (
             <View key={day} style={styles.dayCard}>
               <View style={styles.dayHead}>
@@ -86,7 +86,7 @@ export default function ProviderHours() {
                     onChangeText={v => updateRow(i, { startTime: v })}
                     placeholder="09:00"
                   />
-                  <Text style={[text.body, { color: colors.textMuted }]}>à</Text>
+                  <Text style={[text.body, { color: colors.textMuted }]}>{tr('à')}</Text>
                   <TextInput
                     style={styles.timeInput}
                     value={rows[i].endTime}
@@ -102,7 +102,7 @@ export default function ProviderHours() {
               {message.text}
             </Text>
           )}
-          <Button label={saving ? 'Enregistrement…' : 'Enregistrer les horaires'} onPress={onSave} loading={saving} style={{ marginTop: spacing.lg }} />
+          <Button label={saving ? tr('Enregistrement…') : tr('Enregistrer les horaires')} onPress={onSave} loading={saving} style={{ marginTop: spacing.lg }} />
         </ScrollView>
       )}
     </SafeAreaView>

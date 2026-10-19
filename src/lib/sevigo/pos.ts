@@ -7,6 +7,7 @@ import { supabase } from '../supabase';
 import { hasSupabase, currentUser } from '../api/shared';
 import { reportError } from '../reportError';
 
+import { tr } from '../../i18n';
 export type SevigoProduct = {
   id: string;
   name: string;
@@ -53,7 +54,7 @@ export async function saveProduct(input: {
 }): Promise<void> {
   if (!hasSupabase) return;
   const user = await currentUser();
-  if (!user) throw new Error('Non connecté');
+  if (!user) throw new Error(tr('Non connecté'));
   const row = {
     name: input.name.trim(), price: Math.round(input.price), stock: Math.round(input.stock),
     low_stock_threshold: Math.round(input.lowStockThreshold), photo_url: input.photoUrl ?? null,

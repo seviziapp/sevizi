@@ -11,6 +11,7 @@ import { fetchWalletBalance, redeemCommissionDiscountCode } from '../../src/lib/
 import { CATEGORIES } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 type Transaction = {
   id: string;
   client: string;
@@ -41,9 +42,9 @@ export default function Earnings() {
       const result = await redeemCommissionDiscountCode(promoCode);
       setDiscount({ pct: result.pct, until: result.durationDays != null ? new Date(Date.now() + result.durationDays * 86400000).toISOString() : null });
       setPromoCode('');
-      alert('Code appliqué', `Réduction de ${result.pct}% sur votre commission${result.durationDays ? ` pendant ${result.durationDays} jours` : ''}.`);
+      alert(tr('Code appliqué'), (result.durationDays ? tr('Réduction de {pct}% sur votre commission pendant {days} jours.', { pct: result.pct, days: result.durationDays }) : tr('Réduction de {pct}% sur votre commission.', { pct: result.pct })));
     } catch (e: any) {
-      alert('Code invalide', e.message ?? "Ce code n'a pas pu être appliqué.");
+      alert(tr('Code invalide'), e.message ?? tr("Ce code n'a pas pu être appliqué."));
     } finally {
       setApplyingPromo(false);
     }
@@ -85,7 +86,7 @@ export default function Earnings() {
       if (jobs) {
         const txs: Transaction[] = jobs.map((j: any) => {
           const cat = CATEGORIES.find(c => c.key === j.requests?.category);
-          const dateStr = new Date(j.accepted_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+          const dateStr = new Date(j.accepted_at).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
           return {
             id: j.id,
             client: j.client_name || 'Client',
@@ -125,7 +126,7 @@ export default function Earnings() {
         <Pressable style={styles.back} onPress={() => router.back()}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Revenus & Wallet</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Revenus & Wallet')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -135,25 +136,22 @@ export default function Earnings() {
           <View style={styles.balanceIcon}>
             <Wallet size={24} color={colors.vert} />
           </View>
-          <Text style={[text.label, { color: colors.textMutedDark }]}>SOLDE DISPONIBLE</Text>
+          <Text style={[text.label, { color: colors.textMutedDark }]}>{tr('SOLDE DISPONIBLE')}</Text>
           <Text style={[text.display, { color: colors.creme, fontSize: 36, marginTop: 4 }]}>
-            {walletBalance.toLocaleString('fr-FR')} F
-          </Text>
+            {walletBalance.toLocaleString(locale())} {tr('F')}</Text>
           <View style={styles.breakdownRow}>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
-              Ce mois — brut : {grossMonth.toLocaleString('fr-FR')} F
-            </Text>
+              {tr('Ce mois — brut :')} {grossMonth.toLocaleString(locale())} {tr('F')}</Text>
             <Text style={[text.small, { color: colors.textMutedDark }]}>
-              Commission Sèvizi ({formatCommissionPct(tier, discount)}) : −{commissionMonth.toLocaleString('fr-FR')} F
-            </Text>
+              {tr('Commission Sèvizi (')}{formatCommissionPct(tier, discount)}) : −{commissionMonth.toLocaleString(locale())} {tr('F')}</Text>
           </View>
 
           <View style={styles.withdrawRow}>
             <Pressable style={styles.withdrawBtn} onPress={() => router.push({ pathname: '/provider/withdraw', params: { method: 'flooz' } })}>
-              <Text style={[text.bodyMd, { color: colors.encre }]}>Retrait Flooz</Text>
+              <Text style={[text.bodyMd, { color: colors.encre }]}>{tr('Retrait Flooz')}</Text>
             </Pressable>
             <Pressable style={[styles.withdrawBtn, { backgroundColor: colors.vert }]} onPress={() => router.push({ pathname: '/provider/withdraw', params: { method: 'mixx' } })}>
-              <Text style={[text.bodyMd, { color: colors.white }]}>Retrait Mixx</Text>
+              <Text style={[text.bodyMd, { color: colors.white }]}>{tr('Retrait Mixx')}</Text>
             </Pressable>
           </View>
         </View>
@@ -163,7 +161,7 @@ export default function Earnings() {
           <View style={styles.promoActiveRow}>
             <Tag size={16} color={colors.vert} />
             <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
-              Réduction de {discount.pct}% active sur votre commission{discount.until ? ` jusqu'au ${new Date(discount.until).toLocaleDateString('fr-FR')}` : ''}.
+              {tr('Réduction de')} {discount.pct}{tr('% active sur votre commission')}{discount.until ? tr(" jusqu'au {v0}", { v0: new Date(discount.until).toLocaleDateString(locale()) }) : ''}.
             </Text>
           </View>
         ) : (
@@ -173,12 +171,12 @@ export default function Earnings() {
               style={styles.promoInput}
               value={promoCode}
               onChangeText={setPromoCode}
-              placeholder="Code promo commission"
+              placeholder={tr('Code promo commission')}
               placeholderTextColor={colors.textMuted}
               autoCapitalize="characters"
             />
             <Pressable style={styles.promoBtn} onPress={applyPromoCode} disabled={applyingPromo}>
-              <Text style={[text.small, { color: colors.white }]}>{applyingPromo ? '…' : 'Appliquer'}</Text>
+              <Text style={[text.small, { color: colors.white }]}>{applyingPromo ? '…' : tr('Appliquer')}</Text>
             </Pressable>
           </View>
         )}
@@ -189,18 +187,18 @@ export default function Earnings() {
             <View style={styles.analyticsCard}>
               <View style={styles.analyticsHead}>
                 <Crown size={14} color={colors.soleil} fill={colors.soleil} />
-                <Text style={[text.label, { color: colors.encre }]}>STATISTIQUES AVANCÉES</Text>
+                <Text style={[text.label, { color: colors.encre }]}>{tr('STATISTIQUES AVANCÉES')}</Text>
               </View>
               <View style={styles.analyticsRow}>
                 <TrendingUp size={16} color={colors.vert} />
                 <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-                  Meilleure catégorie : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{bestCategory}</Text>
+                  {tr('Meilleure catégorie :')} <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{bestCategory}</Text>
                 </Text>
               </View>
               <View style={styles.analyticsRow}>
                 <Repeat size={16} color={colors.vert} />
                 <Text style={[text.small, { color: colors.encre, flex: 1 }]}>
-                  Taux de clients fidèles : <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{repeatRate}%</Text>
+                  {tr('Taux de clients fidèles :')} <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{repeatRate}%</Text>
                 </Text>
               </View>
             </View>
@@ -209,14 +207,13 @@ export default function Earnings() {
           <Pressable style={styles.analyticsLocked} onPress={() => router.push('/provider/upgrade')}>
             <Lock size={16} color={colors.textMuted} />
             <Text style={[text.small, { color: colors.textMuted, flex: 1 }]}>
-              Passez à Sèvizi Pro pour voir vos tendances hebdomadaires, votre meilleure catégorie et votre taux de clients fidèles.
-            </Text>
+              {tr('Passez à Sèvizi Pro pour voir vos tendances hebdomadaires, votre meilleure catégorie et votre taux de clients fidèles.')}</Text>
           </Pressable>
         )}
 
         {/* Transactions */}
         <View style={styles.sectionHead}>
-          <Text style={[text.h3, { color: colors.encre }]}>Transactions récentes</Text>
+          <Text style={[text.h3, { color: colors.encre }]}>{tr('Transactions récentes')}</Text>
         </View>
 
         {loading ? (
@@ -225,8 +222,7 @@ export default function Earnings() {
           <View style={styles.empty}>
             <TrendingUp size={40} color={colors.border} />
             <Text style={[text.body, { color: colors.textMuted, textAlign: 'center' }]}>
-              Aucune transaction pour l'instant.{'\n'}Vos revenus apparaîtront ici après chaque mission.
-            </Text>
+              {tr("Aucune transaction pour l'instant.")}{'\n'}{tr('Vos revenus apparaîtront ici après chaque mission.')}</Text>
           </View>
         ) : (
           <View style={{ gap: spacing.md }}>
@@ -241,13 +237,13 @@ export default function Earnings() {
                   </View>
                 </View>
                 <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount, tier, discount).net.toLocaleString('fr-FR')} F</Text>
+                  <Text style={[text.data, { color: colors.encre }]}>+{computeCommission(t.amount, tier, discount).net.toLocaleString(locale())} {tr('F')}</Text>
                   <Text style={[text.label, { color: colors.textMuted }]}>
-                    {t.amount.toLocaleString('fr-FR')} F − {formatCommissionPct(tier, discount)}
+                    {t.amount.toLocaleString(locale())} {tr('F −')} {formatCommissionPct(tier, discount)}
                   </Text>
                   <View style={styles.methodBadge}>
                     <Text style={[text.label, { color: t.method === 'cash' ? colors.textMuted : colors.vert }]}>
-                      {t.method === 'cash' ? 'Espèces' : t.method === 'flooz' ? 'Flooz' : t.method === 'mixx' ? 'Mixx' : 'PayDunya'}
+                      {t.method === 'cash' ? tr('Espèces') : t.method === 'flooz' ? tr('Flooz') : t.method === 'mixx' ? tr('Mixx') : tr('PayDunya')}
                     </Text>
                   </View>
                 </View>

@@ -12,6 +12,7 @@ import { MapPicker } from '../../src/components/MapPicker';
 import type { GeoPoint } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr } from '../../src/i18n';
 export default function NewRequest() {
   const router = useRouter();
   const { category: catParam, providerId, providerName, categories: extraCatsParam } = useLocalSearchParams<{
@@ -55,7 +56,7 @@ export default function NewRequest() {
       const url = await uploadDocument(file.blob, 'requests', file.name);
       setPhoto({ name: file.name, url });
     } catch (e: any) {
-      setError(e?.message ?? "Impossible d'ajouter la photo.");
+      setError(e?.message ?? tr("Impossible d'ajouter la photo."));
     } finally {
       setUploadingPhoto(false);
     }
@@ -77,12 +78,12 @@ export default function NewRequest() {
       router.replace({ pathname: '/client/offers', params: { requestId: req.id } });
     } catch (e: any) {
       const msg = e?.message ?? '';
-      if (msg === 'Non connecté') {
+      if (msg === tr('Non connecté')) {
         // session expired or not signed in — send them to login
         router.replace('/onboarding/auth');
         return;
       }
-      setError(msg || "Impossible de publier la demande. Réessayez.");
+      setError(msg || tr('Impossible de publier la demande. Réessayez.'));
     } finally {
       setLoading(false);
     }
@@ -94,7 +95,7 @@ export default function NewRequest() {
         <Pressable onPress={() => router.back()} style={[styles.close, shadow.sm]}>
           <X size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Nouvelle demande</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Nouvelle demande')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -103,15 +104,14 @@ export default function NewRequest() {
           <View style={styles.providerBanner}>
             <User size={16} color={colors.vertDark} />
             <Text style={[text.small, { color: colors.vertDark, flex: 1 }]}>
-              Demande pour <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{providerName}</Text> — seuls ses services sont proposés ci-dessous.
-            </Text>
+              {tr('Demande pour')} <Text style={{ fontFamily: text.bodyMd.fontFamily }}>{providerName}</Text> {tr('— seuls ses services sont proposés ci-dessous.')}</Text>
           </View>
         ) : null}
 
-        <Field label="Que se passe-t-il ?">
+        <Field label={tr('Que se passe-t-il ?')}>
           <TextInput
             style={styles.textarea}
-            placeholder="Fuite sous l'évier de la cuisine, besoin d'un plombier aujourd'hui…"
+            placeholder={tr("Fuite sous l'évier de la cuisine, besoin d'un plombier aujourd'hui…")}
             placeholderTextColor={colors.textMuted}
             multiline
             value={desc}
@@ -120,7 +120,7 @@ export default function NewRequest() {
           />
         </Field>
 
-        <Field label="Catégorie">
+        <Field label={tr('Catégorie')}>
           <View style={styles.chips}>
             {availableCategories.map((c) => {
               const active = c.key === category;
@@ -139,7 +139,7 @@ export default function NewRequest() {
           </View>
         </Field>
 
-        <Field label="Où ? — posez le point exact">
+        <Field label={tr('Où ? — posez le point exact')}>
           <MapPicker
             value={location}
             onChange={(pt, lbl) => { setLocation(pt); setLocationLabel(lbl); }}
@@ -152,15 +152,14 @@ export default function NewRequest() {
             {uploadingPhoto ? <ActivityIndicator size="small" color={colors.vert} />
               : photo ? <Check size={18} color={colors.vert} />
               : <Camera size={18} color={colors.textMuted} />}
-            <Text style={[text.small, { color: photo ? colors.vert : colors.textMuted }]}>{photo ? 'Photo ajoutée' : 'Photo'}</Text>
+            <Text style={[text.small, { color: photo ? colors.vert : colors.textMuted }]}>{photo ? tr('Photo ajoutée') : tr('Photo')}</Text>
           </Pressable>
           <Pressable
             style={[styles.attach, urgent && styles.urgentActive]}
             onPress={() => setUrgent(!urgent)}
           >
             <Text style={[text.small, { color: urgent ? colors.terre : colors.textMuted }]}>
-              Urgent
-            </Text>
+              {tr('Urgent')}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -168,7 +167,7 @@ export default function NewRequest() {
       <View style={styles.footer}>
         {!!error && <Text style={styles.error}>{error}</Text>}
         <Button
-          label="Publier ma demande"
+          label={tr('Publier ma demande')}
           icon={<ArrowRight size={20} color={colors.white} />}
           onPress={publish}
           loading={loading}

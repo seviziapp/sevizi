@@ -9,6 +9,7 @@ import { fetchOffers, fetchRequest, acceptOffer } from '../../src/lib/api';
 import type { Offer, ServiceRequest } from '../../src/lib/types';
 import { reportError } from '../../src/lib/reportError';
 
+import { tr, locale } from '../../src/i18n';
 export default function Offers() {
   const router = useRouter();
   const { requestId } = useLocalSearchParams<{ requestId?: string }>();
@@ -59,15 +60,14 @@ export default function Offers() {
         <Pressable onPress={() => router.replace('/client/home')} style={[styles.back, shadow.sm]}>
           <ArrowLeft size={22} color={colors.encre} />
         </Pressable>
-        <Text style={[text.h2, { color: colors.encre }]}>Offres reçues</Text>
+        <Text style={[text.h2, { color: colors.encre }]}>{tr('Offres reçues')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.notice}>
         <View style={styles.noticeDot} />
         <Text style={[text.small, { color: colors.vertDark }]} numberOfLines={1}>
-          {loading ? 'Chargement…'
-            : `${offers.length} ${offers.length > 1 ? 'prestataires ont répondu' : 'prestataire a répondu'}${request ? ` · ${request.description}` : ''}`}
+          {loading ? tr('Chargement…') : `${offers.length > 1 ? tr('{n} prestataires ont répondu', { n: offers.length }) : tr('{n} prestataire a répondu', { n: offers.length })}${request ? ` · ${request.description}` : ''}`}
         </Text>
       </View>
 
@@ -76,10 +76,9 @@ export default function Offers() {
       ) : offers.length === 0 ? (
         <View style={styles.empty}>
           <Hourglass size={44} color={colors.border} />
-          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>En attente d'offres…</Text>
+          <Text style={[text.h3, { color: colors.encre, textAlign: 'center' }]}>{tr("En attente d'offres…")}</Text>
           <Text style={[text.small, { color: colors.textMuted, textAlign: 'center' }]}>
-            Votre demande est visible par les prestataires proches.{'\n'}Vous serez notifié dès qu'une offre arrive.
-          </Text>
+            {tr('Votre demande est visible par les prestataires proches.')}{'\n'}{tr("Vous serez notifié dès qu'une offre arrive.")}</Text>
         </View>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -108,7 +107,7 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
     <View style={[styles.card, best && styles.cardFeatured, shadow.card]}>
       {best && (
         <View style={styles.bestTag}>
-          <Text style={[text.label, { color: colors.encre }]}>MEILLEUR PRIX</Text>
+          <Text style={[text.label, { color: colors.encre }]}>{tr('MEILLEUR PRIX')}</Text>
         </View>
       )}
       <View style={styles.cardTop}>
@@ -132,13 +131,11 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
                 <Text style={[text.label, { color: colors.textMuted }]}>{offer.availability}</Text>
               </View>
             ) : null}
-            <Text style={[text.label, { color: colors.vert }]}>Voir le profil ›</Text>
+            <Text style={[text.label, { color: colors.vert }]}>{tr('Voir le profil ›')}</Text>
           </View>
         </Pressable>
         <Text style={[text.data, { color: colors.encre, fontSize: 18 }]}>
-          {offer.visitRequired
-            ? `À partir de ${offer.price.toLocaleString('fr-FR')} F`
-            : `${offer.price.toLocaleString('fr-FR')} F`}
+          {offer.visitRequired ? tr('À partir de {v0} F', { v0: offer.price.toLocaleString(locale()) }) : tr('{v0} F', { v0: offer.price.toLocaleString(locale()) })}
         </Text>
       </View>
 
@@ -146,7 +143,7 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
         <View style={styles.visitBadge}>
           <MapPin size={13} color={colors.terre} />
           <Text style={[text.label, { color: colors.terre }]}>
-            VISITE REQUISE — ESTIMATION{offer.priceMax ? ` ${offer.price.toLocaleString('fr-FR')}–${offer.priceMax.toLocaleString('fr-FR')} F` : ''}
+            {tr('VISITE REQUISE — ESTIMATION')}{offer.priceMax ? tr(' {v0}–{v1} F', { v0: offer.price.toLocaleString(locale()), v1: offer.priceMax.toLocaleString(locale()) }) : ''}
           </Text>
         </View>
       )}
@@ -159,11 +156,11 @@ function OfferCard({ offer, best, accepting, disabled, onAccept, onMessage, onPr
 
       <View style={styles.actions}>
         {offer.visitRequired ? (
-          <Button label="Discuter de la visite" full style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
+          <Button label={tr('Discuter de la visite')} full style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
         ) : (
           <>
-            <Button label="Message" variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
-            <Button label="Accepter" full={false} style={{ flex: 1 }} onPress={onAccept} loading={accepting} disabled={disabled} />
+            <Button label={tr('Message')} variant="ghost" full={false} style={{ flex: 1 }} onPress={onMessage} disabled={disabled} />
+            <Button label={tr('Accepter')} full={false} style={{ flex: 1 }} onPress={onAccept} loading={accepting} disabled={disabled} />
           </>
         )}
       </View>
