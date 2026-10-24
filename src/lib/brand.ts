@@ -20,3 +20,7 @@ export function isSevigoBrand(): boolean {
 }
 
 export const BRAND_NAME = () => (isSevigoBrand() ? 'Sèvi Go' : 'Sèvizi');
+
+/** Legal entity that publishes the apps — must match the developer name shown on Google Play. */
+export const DEVELOPER_NAME = 'Aurum Group';
+export const SUPPORT_EMAIL = 'support@sevizi.app';

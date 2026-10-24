@@ -11,8 +11,9 @@ import { EN as EN_BASE } from './en';
 import { EN_SEVIGO } from './en_sevigo';
 import { EN_APP } from './en_app';
 import { EN_EXTRA } from './en_extra';
+import { EN_LEGAL } from './en_legal';
 
-const EN: Record<string, string> = { ...EN_BASE, ...EN_SEVIGO, ...EN_APP, ...EN_EXTRA };
+const EN: Record<string, string> = { ...EN_BASE, ...EN_SEVIGO, ...EN_APP, ...EN_EXTRA, ...EN_LEGAL };
 
 export type Lang = 'fr' | 'en';
 const KEY = 'sevizi.lang';
