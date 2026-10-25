@@ -32,7 +32,7 @@ function SevizPrivacy() {
         <Text style={[text.label, { color: colors.textMuted }]}>DERNIÈRE MISE À JOUR : JUILLET 2026</Text>
 
         <Section title="1. Qui nous sommes">
-          Sèvizi, publiée par Aurum Group, est une plateforme qui met en relation des clients avec des prestataires de services
+          Sèvizi, publiée par We Are Aurum, est une plateforme qui met en relation des clients avec des prestataires de services
           indépendants à Lomé et ses environs. Cette politique explique quelles données nous collectons
           et comment nous les utilisons.
         </Section>
