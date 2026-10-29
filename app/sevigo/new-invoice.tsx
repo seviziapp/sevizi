@@ -62,6 +62,7 @@ export default function NewInvoice() {
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [badLine, setBadLine] = useState<string | null>(null);
 
   useEffect(() => {
     if (!clientIdParam) return;
@@ -84,10 +85,10 @@ export default function NewInvoice() {
   }, []);
 
   const items: SevigoLineItem[] = useMemo(() => lines
-    .filter(l => l.description.trim() || (parseInt(l.unitPrice, 10) || 0) > 0)
+    .filter(l => l.description.trim())
     .map(l => ({
       id: l.id,
-      description: l.description.trim() || tr('Article'),
+      description: l.description,
       quantity: parseFloat(l.quantity) || 0,
       unitPrice: parseInt(l.unitPrice, 10) || 0,
     })), [lines]);
@@ -126,7 +127,22 @@ export default function NewInvoice() {
 
   function validate(): string {
     if (!clientName.trim()) return tr('Indiquez le nom du client.');
-    if (items.length === 0) return tr('Ajoutez au moins un article.');
+    const priced = lines.map((l, i) => ({ l, n: i + 1, price: (parseInt(l.unitPrice, 10) || 0) > 0 }));
+    const noDesc = priced.find(x => x.price && !x.l.description.trim());
+    if (noDesc) {
+      setBadLine(noDesc.l.id);
+      return tr("Article {n} : il manque la description. Écrivez ce que vous facturez (par exemple « Installation électrique ») dans le champ « Description » en haut de l'article.", { n: noDesc.n });
+    }
+    const noPrice = priced.find(x => x.l.description.trim() && !x.price);
+    if (noPrice) {
+      setBadLine(noPrice.l.id);
+      return tr('Article {n} : il manque le prix unitaire. Indiquez le prix d\'une unité dans le champ « Prix unitaire ».', { n: noPrice.n });
+    }
+    if (items.length === 0) {
+      setBadLine(lines[0]?.id ?? null);
+      return tr("Ajoutez au moins un article : remplissez sa description (ce que vous facturez), sa quantité et son prix unitaire.");
+    }
+    setBadLine(null);
     return '';
   }
 
@@ -215,12 +231,13 @@ export default function NewInvoice() {
             <View style={{ gap: spacing.sm }}>
               {lines.map(l => (
                 <View key={l.id} style={[styles.lineCard, shadow.sm]}>
+                  <Text style={[text.label, { color: badLine === l.id && !l.description.trim() ? colors.terre : colors.textMuted }]}>{tr('DESCRIPTION (CE QUE VOUS FACTUREZ)')}</Text>
                   <TextInput
-                    style={styles.lineDesc}
-                    placeholder={tr('Description')}
+                    style={[styles.lineDesc, badLine === l.id && !l.description.trim() && { borderColor: colors.terre }]}
+                    placeholder={tr('Ex. : Installation électrique')}
                     placeholderTextColor={colors.textMuted}
                     value={l.description}
-                    onChangeText={t => updateLine(l.id, { description: t })}
+                    onChangeText={t => { updateLine(l.id, { description: t }); if (badLine === l.id) setBadLine(null); }}
                   />
                   <View style={styles.lineRow}>
                     <TextInput
@@ -386,7 +403,7 @@ const styles = StyleSheet.create({
   scroll: { padding: spacing.xl, gap: spacing.xl, paddingBottom: spacing.xl },
   input: { backgroundColor: colors.white, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)', borderRadius: radii.lg, paddingHorizontal: spacing.lg, height: 48, ...text.body, color: colors.encre, ...shadow.sm },
   lineCard: { backgroundColor: colors.white, borderRadius: radii.lg, padding: spacing.md, gap: spacing.sm, borderWidth: 1, borderColor: 'rgba(6,41,31,0.05)' },
-  lineDesc: { ...text.body, color: colors.encre, height: 24 },
+  lineDesc: { ...text.body, color: colors.encre, height: 44, backgroundColor: colors.surface, borderRadius: radii.sm, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md },
   lineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   lineQty: { width: 50, height: 36, backgroundColor: colors.surface, borderRadius: radii.sm, textAlign: 'center', color: colors.encre, ...text.small },
   linePrice: { flex: 1, height: 36, backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: spacing.md, color: colors.encre, ...text.small },

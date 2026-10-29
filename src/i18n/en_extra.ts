@@ -71,6 +71,11 @@ export const EN_EXTRA: Record<string, string> = {
   "Généré avec Sèvi Go · go.sevizi.app": "Generated with Sèvi Go · go.sevizi.app",
   "Paiement": "Payment",
   "Article": "Item",
+  "Article {n} : il manque la description. Écrivez ce que vous facturez (par exemple « Installation électrique ») dans le champ « Description » en haut de l'article.": "Item {n}: the description is missing. Write what you are billing for (for example “Electrical installation”) in the “Description” field at the top of the item.",
+  "Article {n} : il manque le prix unitaire. Indiquez le prix d'une unité dans le champ « Prix unitaire ».": "Item {n}: the unit price is missing. Enter the price of one unit in the “Unit price” field.",
+  "Ajoutez au moins un article : remplissez sa description (ce que vous facturez), sa quantité et son prix unitaire.": "Add at least one item: fill in its description (what you are billing for), its quantity and its unit price.",
+  "DESCRIPTION (CE QUE VOUS FACTUREZ)": "DESCRIPTION (WHAT YOU ARE BILLING FOR)",
+  "Ex. : Installation électrique": "e.g. Electrical installation",
   // Appointment / referral / dispute labels that are looked up dynamically
   "Confirmé": "Confirmed",
   "Absence": "No-show",
