@@ -84,10 +84,10 @@ export default function NewInvoice() {
   }, []);
 
   const items: SevigoLineItem[] = useMemo(() => lines
-    .filter(l => l.description.trim())
+    .filter(l => l.description.trim() || (parseInt(l.unitPrice, 10) || 0) > 0)
     .map(l => ({
       id: l.id,
-      description: l.description,
+      description: l.description.trim() || tr('Article'),
       quantity: parseFloat(l.quantity) || 0,
       unitPrice: parseInt(l.unitPrice, 10) || 0,
     })), [lines]);
@@ -193,7 +193,7 @@ export default function NewInvoice() {
         <View style={{ width: 40 }} />
       </View>
 
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Field label={tr('Client')}>
             <Pressable style={styles.savedClientBtn} onPress={() => setPickerOpen(true)}>

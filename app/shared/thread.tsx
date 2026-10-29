@@ -156,7 +156,7 @@ export default function Thread() {
         )}
       </ScrollView>
 
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView behavior="padding">
         {!!warning && <Text style={styles.warningText}>{warning}</Text>}
         <View style={styles.composer}>
           <Pressable style={styles.locBtn} onPress={shareLocation}>

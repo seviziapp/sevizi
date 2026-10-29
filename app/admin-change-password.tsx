@@ -46,7 +46,7 @@ export default function AdminChangePassword() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+      <KeyboardAvoidingView behavior="padding" style={{ flex: 1 }}>
         <View style={styles.content}>
           <View style={styles.iconWrap}>
             <ShieldCheck size={32} color={colors.vert} />

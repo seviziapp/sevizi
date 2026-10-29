@@ -54,7 +54,7 @@ export default function ClientDetails() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior="padding">
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
           <Logo size={48} />
           <Text style={[text.h1, { color: colors.encre, marginTop: spacing.lg }]}>{tr('Vos informations')}</Text>

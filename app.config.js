@@ -9,7 +9,7 @@
 
 // Bump on every Sèvi Go build uploaded to Google Play (Sèvi Go is not
 // auto-incremented, so it never touches Sèvizi's counter in app.json).
-const SEVIGO_VERSION_CODE = 2;
+const SEVIGO_VERSION_CODE = 3;
 
 module.exports = ({ config }) => {
   if (process.env.APP_VARIANT !== 'sevigo') {

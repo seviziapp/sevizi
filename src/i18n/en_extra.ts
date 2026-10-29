@@ -70,6 +70,7 @@ export const EN_EXTRA: Record<string, string> = {
   "Document généré avec Sèvi Go · go.sevizi.app": "Document generated with Sèvi Go · go.sevizi.app",
   "Généré avec Sèvi Go · go.sevizi.app": "Generated with Sèvi Go · go.sevizi.app",
   "Paiement": "Payment",
+  "Article": "Item",
   // Appointment / referral / dispute labels that are looked up dynamically
   "Confirmé": "Confirmed",
   "Absence": "No-show",
